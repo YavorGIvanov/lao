@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LAO architecture map</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --board: #111814;
+      --chalk: #eee9d8;
+      --dim: #b8b9aa;
+      --green: #a8d5ad;
+      --yellow: #e3cf88;
+      --line: #7f8d81;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--board);
+      color: var(--chalk);
+      font-family: "Chalkboard SE", "Comic Sans MS", ui-monospace, monospace;
+      line-height: 1.45;
+    }
+    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 64px; }
+    header { border-bottom: 2px solid var(--line); padding-bottom: 20px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(2rem, 6vw, 4.6rem); line-height: .95; margin-bottom: 14px; letter-spacing: -.04em; }
+    h2 { font-size: clamp(1.35rem, 3vw, 2rem); margin-bottom: 18px; }
+    h3 { color: var(--green); font-size: 1rem; margin-bottom: 8px; }
+    p { max-width: 72ch; color: var(--dim); }
+    code { color: var(--yellow); font-family: inherit; }
+    a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
+    section { padding: 34px 0; border-bottom: 1px dashed var(--line); }
+    .note { color: var(--green); font-size: .9rem; }
+    .flow, .lane, .layers { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .flow { min-height: 210px; }
+    .stack { display: grid; gap: 10px; }
+    .node {
+      border: 2px solid var(--chalk);
+      padding: 13px 16px;
+      text-align: center;
+      min-width: 120px;
+      box-shadow: 2px 2px 0 var(--line);
+    }
+    .node strong, .node small { display: block; }
+    .node small { color: var(--dim); margin-top: 5px; }
+    .node.main { min-width: 280px; border-color: var(--green); transform: rotate(-.4deg); }
+    .node.optional { border-style: dashed; color: var(--dim); }
+    .arrow { color: var(--yellow); font-size: 2rem; line-height: 1; }
+    .split { display: grid; gap: 12px; }
+    .inside { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 12px; }
+    .inside span { border: 1px solid var(--line); padding: 3px 7px; font-size: .78rem; }
+    .lane { justify-content: flex-start; overflow-x: auto; padding: 8px 4px 14px; }
+    .lane .node { min-width: 150px; }
+    .layers { align-items: stretch; }
+    .layer { flex: 1; border: 2px solid var(--chalk); padding: 18px; min-width: 0; }
+    .layer:nth-child(1) { transform: rotate(-.25deg); }
+    .layer:nth-child(3) { transform: rotate(.25deg); }
+    .layer b { display: block; font-size: 1.15rem; color: var(--green); }
+    .layer span { display: block; color: var(--dim); margin-top: 7px; }
+    .rule { margin: 20px auto 0; width: fit-content; color: var(--yellow); text-align: center; }
+    .grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 28px; }
+    pre {
+      margin: 0;
+      padding: 18px;
+      border-left: 3px solid var(--green);
+      color: var(--dim);
+      font: .9rem/1.55 ui-monospace, monospace;
+      white-space: pre-wrap;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 10px 8px; border-bottom: 1px dashed var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--green); font-weight: normal; }
+    td:first-child { color: var(--yellow); }
+    .checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .check { border-top: 2px solid var(--chalk); padding-top: 12px; }
+    .check b { color: var(--green); }
+    footer { padding-top: 24px; color: var(--dim); font-size: .85rem; }
+    @media (max-width: 800px) {
+      .flow { flex-direction: column; }
+      .flow .arrow { transform: rotate(90deg); }
+      .layers, .grid { grid-template-columns: 1fr; display: grid; }
+      .layer { width: 100%; }
+      .checks { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+    @media print {
+      :root { color-scheme: light; --board: #fff; --chalk: #111; --dim: #333; --green: #174c28; --yellow: #644d00; --line: #777; }
+      main { width: 100%; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="note">LOCAL AGENT OPTIMIZER · P0-00</div>
+    <h1>How the pieces fit.</h1>
+    <p>LAO sits quietly beside Codex and Claude Code. Easy work may go to a local model. Everything else keeps its normal cloud path. The harness stays in charge.</p>
+  </header>
+
+  <section>
+    <h2>1. The runtime idea</h2>
+    <div class="flow" aria-label="Codex, Claude Code and the CLI connect to the LAO daemon, which chooses a local runtime or native cloud path.">
+      <div class="stack">
+        <div class="node"><strong>Codex</strong><small>unchanged</small></div>
+        <div class="node"><strong>Claude Code</strong><small>unchanged</small></div>
+        <div class="node"><strong>LAO CLI</strong><small>setup + status</small></div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node main">
+        <strong>lao-daemon</strong>
+        <small>small, always-on coordinator</small>
+        <div class="inside">
+          <span>gate</span><span>route</span><span>run</span><span>model</span><span>codex</span><span>claude</span>
+        </div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="split">
+        <div class="node"><strong>llama.cpp</strong><small>local child process</small></div>
+        <div class="node"><strong>native cloud</strong><small>original provider path</small></div>
+      </div>
+    </div>
+    <p class="note">Today: the packages and boundaries exist. Routing and inference behavior begin in P0-01.</p>
+  </section>
+
+  <section>
+    <h2>2. Optional work sleeps</h2>
+    <p>Heavy or sensitive jobs use separate, least-authority processes. They are not loaded into the daemon.</p>
+    <div class="lane" aria-label="Optional capture, vault, evaluation and training workers form a consent-gated evidence path.">
+      <div class="node optional"><strong>capture worker</strong><small>scrub + snapshot</small></div>
+      <div class="arrow">→</div>
+      <div class="node optional"><strong>vault worker</strong><small>encrypted evidence</small></div>
+      <div class="arrow">→</div>
+      <div class="node optional"><strong>eval worker</strong><small>replay + compare</small></div>
+      <div class="arrow">→</div>
+      <div class="node optional"><strong>train worker</strong><small>explicit opt-in</small></div>
+    </div>
+    <p class="note">Dashed boxes are lazy and consent-gated. Each worker owns only its component.</p>
+  </section>
+
+  <section>
+    <h2>3. The one dependency rule</h2>
+    <div class="layers" aria-label="Applications may use services and APIs. Services may use APIs. APIs never use services.">
+      <div class="layer"><b>app/*</b><span>Chooses concrete parts and wires them together.</span></div>
+      <div class="arrow">→</div>
+      <div class="layer"><b>svc/*</b><span>Does the work. Never imports another service.</span></div>
+      <div class="arrow">→</div>
+      <div class="layer"><b>api/*</b><span>Defines promises, messages and errors. No implementation.</span></div>
+    </div>
+    <div class="rule">svc/route ─✕→ svc/run<br><small>the app connects both through their APIs</small></div>
+  </section>
+
+  <section>
+    <h2>4. Workspace map</h2>
+    <div class="grid">
+      <pre aria-label="Repository folder tree">new/
+├── Cargo.toml       29-package workspace
+├── api/             public contracts + wire
+├── svc/             private implementations
+├── app/             process entry points
+├── test/kit/        shared conformance proof
+├── xtask/           architecture guard
+├── README.md        manifesto
+└── architecture.html  this map</pre>
+      <div>
+        <h3>Why a monorepo?</h3>
+        <p>Contracts and consumers can change atomically while the project is young. Package boundaries—not repository boundaries—enforce ownership. A component can move out later without changing its API.</p>
+        <h3>What is a component?</h3>
+        <p>Usually one <code>api/x</code> package plus one <code>svc/x</code> package. An <code>app</code> selects implementations and gives them a process.</p>
+        <h3>What is private?</h3>
+        <p>State, migrations and sensitive internal stages. Credentials remain inside <code>svc/gate</code>. Raw captured content remains inside <code>svc/capture</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>5. Component → code</h2>
+    <table>
+      <thead><tr><th>Component</th><th>Contract</th><th>Implementation</th><th>Runs in</th><th>Owns</th></tr></thead>
+      <tbody>
+        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>daemon / CLI</td><td>client config journals</td></tr>
+        <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>private credential flow</td></tr>
+        <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>routing policy</td></tr>
+        <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + runtime state</td></tr>
+        <tr><td>model</td><td><a href="api/model/Cargo.toml">api/model</a></td><td><a href="svc/model/Cargo.toml">svc/model</a></td><td>daemon</td><td>catalog + artifacts</td></tr>
+        <tr><td>capture</td><td><a href="api/capture/Cargo.toml">api/capture</a></td><td><a href="svc/capture/Cargo.toml">svc/capture</a></td><td>capture worker</td><td>raw ingress + scrub</td></tr>
+        <tr><td>vault</td><td><a href="api/vault/Cargo.toml">api/vault</a></td><td><a href="svc/vault/Cargo.toml">svc/vault</a></td><td>vault worker</td><td>encrypted store</td></tr>
+        <tr><td>eval</td><td><a href="api/eval/Cargo.toml">api/eval</a></td><td><a href="svc/eval/Cargo.toml">svc/eval</a></td><td>eval worker</td><td>campaign results</td></tr>
+        <tr><td>train</td><td><a href="api/train/Cargo.toml">api/train</a></td><td><a href="svc/train/Cargo.toml">svc/train</a></td><td>train worker</td><td>eligible candidates</td></tr>
+        <tr><td>wire</td><td><a href="api/wire/Cargo.toml">api/wire</a></td><td>transport adapter</td><td>local RPC</td><td>framing only</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>6. The architecture is executable</h2>
+    <div class="checks">
+      <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
+      <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
+      <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    Solid boxes = always-on path. Dashed boxes = optional path. Package metadata in each Cargo.toml is the source of truth.
+  </footer>
+</main>
+</body>
+</html>

@@ -80,6 +80,7 @@ Every agent starts here. If two solutions are equally safe and functional, choos
 
 ## Documents
 
+- [Visual architecture map](architecture.html)
 - [Product vision and system architecture](PRODUCT_VISION_AND_ARCHITECTURE.md)
 - [Decision-complete implementation plan](IMPLEMENTATION_PLAN.md)
 

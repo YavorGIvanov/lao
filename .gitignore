@@ -1,3 +1,4 @@
 /target
 /.tmp
 *.sock
+.DS_Store
