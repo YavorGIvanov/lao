@@ -1,0 +1,24 @@
+[package]
+name = "lao-wire"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc.workspace = true
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "wire"
+owner = "A00"
+state = "none"
+isolate = "contract"
+status = "active"

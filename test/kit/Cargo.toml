@@ -1,0 +1,25 @@
+[package]
+name = "lao-test-kit"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lao-core-api = { path = "../../api/core", version = "0.1.0" }
+lao-wire = { path = "../../api/wire", version = "0.1.0" }
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "test"
+owner = "A00"
+state = "none"
+isolate = "process"
+status = "active"

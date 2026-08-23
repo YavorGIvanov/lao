@@ -1,0 +1,21 @@
+[package]
+name = "lao-run"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lao-run-api = { path = "../../api/run", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "svc"
+owner = "A05"
+api = "lao-run-api"
+state = "run"
+isolate = "linked"
+status = "stub"

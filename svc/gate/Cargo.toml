@@ -1,0 +1,21 @@
+[package]
+name = "lao-gate"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lao-gate-api = { path = "../../api/gate", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "svc"
+owner = "A03"
+api = "lao-gate-api"
+state = "none"
+isolate = "linked"
+status = "stub"

@@ -1,0 +1,21 @@
+[package]
+name = "lao-claude"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lao-client-api = { path = "../../api/client", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "svc"
+owner = "A02"
+api = "lao-client-api"
+state = "client-claude"
+isolate = "linked"
+status = "stub"

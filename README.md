@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository currently contains the research-backed product specification and implementation plan. It does not yet contain a production implementation.
+This repository contains the research-backed product specification, implementation plan, and P0-00 architecture skeleton. It does not yet contain production routing.
 
 ## Manifesto
 
@@ -68,8 +68,8 @@ This repository currently contains the research-backed product specification and
 ## How to begin
 
 1. Read the product architecture and implementation plan below.
-2. Run P0-00 first. Create the short package skeleton, API versions, boundary check, and extraction test.
-3. Reuse pinned llama.cpp. Do not build inference kernels.
+2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the P0-00 boundary baseline.
+3. Begin P0-01. Reuse pinned llama.cpp. Do not build inference kernels.
 4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
 5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
 6. Keep capture, eval, optimization, and training disabled behind their APIs.
@@ -95,4 +95,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-Research and planning. The implementation plan defines the phase gates that must pass before live subscription routing, task capture, proprietary-model evaluation, or fine-tuning can be enabled.
+P0-00 architecture skeleton implemented. The implementation plan defines the remaining gates before live subscription routing, task capture, proprietary-model evaluation, or fine-tuning can be enabled.

@@ -98,83 +98,61 @@ Implementation agents must validate volatile upstream facts again before coding.
 
 ## 3. Repository structure
 
-Use a contract-first modular monorepo. Create the full package topology in the first foundation change; a component that is deferred may contain only its public contract conformance tests and a disabled `Unsupported` implementation, but it must not be omitted and later introduced by reaching into another component.
+Use a contract-first modular monorepo. P0-00 creates every strategic boundary as a buildable package. Deferred components expose only draft status; operational methods appear during the spike that proves them. Backends and internal stages remain modules or adapters until independent state, trust, release, or ownership makes another package boundary useful.
 
 Target layout:
 
     api/
-      core/                    versions, handles, errors, capabilities
-      client/                  configuration and task-boundary API
-      gate/                    ingress, streaming, egress policy API
-      route/                   context, decisions, outcomes, stickiness
-      run/                     managed runtime and external endpoint API
-      data/                    capture, privacy, vault, provenance API
-      eval/                    campaign, trial, verifier, report API
-      train/                   eligibility, training, promotion, rollback API
-      proto/                   canonical local-RPC schemas
-    lib/
-      cfg/                     paths, locks, transactions, migration helpers
-      crypto/                  capability types and reviewed wrappers
-      obs/                     content-free logging and metrics
-      test/                    fake clock, transports, golden fixtures
+      core/                    status and typed errors
+      wire/                    bounded local-RPC projection
+      client/                  client configuration boundary
+      gate/                    gateway and credential state machine boundary
+      route/                   routing boundary
+      run/                     hardware, fit, and runtime boundary
+      model/                   catalog and artifact boundary
+      capture/                 classified capture boundary
+      vault/                   encrypted storage boundary
+      eval/                    replay, statistics, and report boundary
+      train/                   eligibility, training, and promotion boundary
     svc/
-      gate/                    loopback transport and protocol normalization
-      auth/                    credential sealing and egress firewall
-      codex/                   Codex adapter
-      claude/                  Claude Code adapter
-      route/                   policy, stickiness, escalation, feedback
-      hw/                      probes, profiles, fit plans, pressure events
-      catalog/                 signed manifests and recommendation
-      model/                   downloads, cache, promotion, rollback
-      llama/                   direct managed llama.cpp adapter
-      swap/                    optional managed llama-swap adapter
-      remote/                  non-owning Ollama/LM Studio adapter
-      capture/                 authenticated boundaries and staging
-      scrub/                   sole raw-content inspection boundary
-      snap/                    bounded Git/worktree reconstruction
-      vault/                   encrypted metadata and artifact store
-      eval/                    sandbox, replay, verifier execution
-      report/                  paired statistics and recommendations
-      opt/                     disabled ShoeHorn-compatible boundary
-      train/                   disabled local training boundary
-      mlx/                     future MLX adapter skeleton
-      freetoken/               future Maximum-mode adapter skeleton
+      gate/                    gateway plus private credential state
+      codex/                   Codex client adapter
+      claude/                  Claude Code client adapter
+      route/                   routing implementation
+      run/                     hardware, fit, runtime, and backend adapters
+      model/                   signed catalog and artifact lifecycle
+      capture/                 ingress, private scrub stage, and snapshot
+      vault/                   encrypted store
+      eval/                    replay and reporting
+      train/                   optional training adapters
     app/
-      lao/                     hot-path daemon composition root
-      cli/                     local control client and installer
-      capture/                 lazy privacy/capture worker
-      vault/                   lazy encrypted-data worker
-      eval/                    on-demand sandbox coordinator
-      train/                   on-demand authorized trainer
-    adapters/
-      python/                  optional JSON/JSONL eval/training processes
-    catalog/
-      root/                    offline trusted root metadata
-      fixtures/                non-production model and signature fixtures
-    fixtures/
-      api/                      cross-version protocol goldens
-      protocols/                sanitized Responses and Messages streams
-      repositories/             Git state and secret fixtures
-      hardware/                 captured probe outputs
-    components.toml             owner, API, state, status, extraction metadata
-    xtask/                       boundary, schema, fixture, and release checks
+      daemon/                  small hot-path composition root
+      cli/                     installer and local control client
+      capture/                 least-authority capture worker
+      vault/                   least-authority vault worker
+      eval/                    least-authority evaluation worker
+      train/                   least-authority training worker
+    test/
+      kit/                     public contract conformance suite
+    xtask/                     architecture, extraction, and release checks
 
 Rules:
 
-- Paths are short because the namespace carries meaning. Published Cargo packages use the shortest unambiguous `lao-*` name; API crates add `-api` only when needed to avoid a collision.
-- `api/*` may depend only on the standard library, serialization/protocol libraries, and approved `lib/*` primitives. They never depend on a service or application.
-- `svc/*` may depend on APIs and approved libraries, never a sibling service implementation. Concrete selection happens only in `app/*` composition roots.
-- Cycles are forbidden. `cargo xtask boundary-check` reads Cargo metadata and fails CI on a forbidden edge.
-- `components.toml` records each component's owner, public API, semantic contract version, state owner, isolation class, and implementation status. Package API docs contain only contract-specific invariants; design prose remains in the two canonical documents.
+- Paths are short because the namespace carries meaning. Packages use the shortest unambiguous `lao-*` name; contract crates add `-api` only when needed.
+- `api/*` may depend only on other APIs and reviewed external libraries. They never depend on a service or application.
+- `svc/*` may depend on APIs, never a sibling service implementation. Concrete selection happens only in `app/*` composition roots.
+- Cycles are forbidden. `cargo xtask check` reads Cargo metadata and fails CI on a forbidden edge.
+- `[package.metadata.lao]` is the only component registry. It records kind, owner, API, private state owner, isolation class, and status. `[workspace.metadata.lao]` records restricted API consumers. `cargo metadata --format-version 1` drives enforcement and graph generation.
 - Every stateful component exclusively owns its schemas and migrations. Shared databases, cross-component SQL, unversioned filesystem reads, and environment variables used as private inter-component APIs are forbidden.
-- In-process calls use contract traits and immutable owned DTOs. Local RPC uses the canonical protobuf contract with version and capability negotiation. Optional Python batch adapters use versioned JSON/JSONL envelopes.
-- Major contract mismatches fail closed. Additive-compatible fields are tolerated and exercised with previous/current-version golden fixtures.
+- In-process calls use transport-neutral traits and immutable owned DTOs. The draft local RPC v0 uses a four-byte length prefix, typed JSON, a 1 MiB cap, service/version/capability negotiation, and one call per connection. Deadlines, idempotency, and semantic cancellation are defined only after a later spike proves them. No domain API mentions its wire format.
+- Unsupported major versions fail before body decode or work. Additive optional fields are tolerated within a major; new required semantics use a capability or new major.
 - Contract conformance suites run against every implementation. Linked and RPC adapters for the same contract must produce equivalent outcomes and typed errors.
-- Opaque handles represent credentials, staged artifacts, vault records, and runtime leases; raw paths or secret-bearing values do not cross boundaries.
+- Private affine values represent credentials and raw capture only inside their owning service. Scoped serializable capabilities and typed non-authorizing IDs are distinct concepts; one generic handle is forbidden.
 - Gateway code cannot access vault decryption keys.
-- Ingress auth seals credentials into opaque non-serializable handles; router code cannot clone, serialize, or inspect them.
-- CaptureIngress may accept raw material only into memory or an encrypted crash-safe spool. PrivacyScanner alone may inspect it; TaskCommitter and ArtifactStore receive only redacted artifacts, classified ciphertext, or explicit encrypted handles.
-- The always-on daemon may link hot-path packages for latency and memory efficiency, but this does not relax dependency rules. llama.cpp is a separate process; capture/privacy, vault, eval, optimization, and training workers are lazy or on demand.
+- Credential ingress, route commitment, and egress materialization form one ordered private state machine in `svc/gate`; router sees only sanitized context and an immutable decision.
+- Raw ingress, scrub, and snapshot are private modules in `svc/capture`; raw types never enter an API. Vault receives only classified/redacted artifacts or scoped references.
+- The always-on daemon may link hot-path packages for latency and memory efficiency, but this does not relax dependency rules. llama.cpp is a separate process. Capture, vault, eval, and train each have a tiny least-authority worker launched only on demand.
+- Shared foundation crates are not created speculatively. A utility becomes shared only after real duplication and at least two current consumers justify it.
 - Python adapters cannot listen on external interfaces and are never resident by default.
 - No crate logs request bodies, paths, secrets, capabilities, diffs, or decrypted artifacts.
 
@@ -186,18 +164,18 @@ Pin the Rust compiler, Cargo.lock, llama.cpp build, optional sidecars, and relea
 
 | Capability | Package boundary | Default process | Owned durable state | Allowed communication |
 |---|---|---|---|---|
-| gateway, auth, router | three independent components | `lao-daemon` | router policy/cache only | contract traits; supported HTTP at client edge |
+| gateway/auth state machine and router | two independent components | `lao-daemon` | router policy/cache only | contract traits; supported HTTP at client edge |
 | Codex/Claude adapters | one component per client | `lao-daemon` or short-lived installer | its own config transaction journal | ClientAdapter contract only |
-| hardware, catalog, artifacts | independent components | `lao-daemon` | catalog rollback counters and artifact index owned separately | contracts and opaque artifact/runtime handles |
-| llama.cpp/llama-swap/external endpoints | one adapter per backend | supervised external runtime | runtime lease metadata only | Runtime contract plus loopback HTTP to inference worker |
-| capture, privacy, snapshot | independent components | lazy `lao-capture-worker` | encrypted staging spool owned by capture | authenticated local RPC and opaque approved-artifact handles |
-| vault | independent component | lazy `lao-vault-worker` | exclusive ownership of vault DB, blobs, keys, migrations | authenticated ArtifactStore RPC only |
-| eval and report | independent components | on-demand `lao-eval-worker` | campaign work directory and signed results | Eval contract; vault access only through ArtifactStore |
-| optimization and training | independent components/adapters | on-demand worker | candidate artifacts and provenance owned by artifact manager | approved handles and versioned RPC/JSONL only |
+| hardware, fit, runtimes | run component with private backend adapters | `lao-daemon` plus supervised runtime | runtime state owned by run | Run contract plus loopback HTTP to inference worker |
+| catalog and artifacts | model component | `lao-daemon` | catalog, artifact cache, and promotion state owned by model | Model contract only |
+| capture, private scrub, snapshot | one ordered component | lazy `lao-capture-worker` | encrypted staging spool owned by capture | authenticated local RPC and classified outputs only |
+| vault | independent component | lazy `lao-vault-worker` | exclusive ownership of vault DB, blobs, keys, migrations | authenticated Vault RPC only |
+| eval and report | one component | on-demand `lao-eval-worker` | campaign work directory and signed results | Eval contract; vault access only through Vault API |
+| optimization and training | model/train adapters behind separate APIs | on-demand `lao-train-worker` | candidate artifacts and provenance owned by model/train | approved references and versioned RPC/JSONL only |
 
 The table is an initial deployment profile, not permission to merge ownership. A linked call may be replaced with RPC, or a package extracted to another repository, without changing the domain contract.
 
-## 4. Public contracts
+## 4. Contracts and private boundaries
 
 ### 4.1 ClientAdapter
 
@@ -213,18 +191,18 @@ Required operations:
 
 Implementations: Codex and ClaudeCode.
 
-### 4.2 IngressCredentialSealer and EgressCredentialFirewall
+### 4.2 Gate boundary
 
-IngressCredentialSealer consumes the local URL capability and seals native credential material into an opaque non-cloneable, non-serializable handle before routing. The router sees header classes and client metadata but never values.
+Credential sealing and egress materialization are private ordered stages inside `svc/gate`; their secret-bearing types never cross a package boundary. The public gate contract exposes only sanitized routing context and the immutable route decision boundary. The router sees header classes and client metadata but never values.
 
-Egress inputs:
+Private egress-stage inputs:
 
 - client kind and version;
 - immutable final route class;
 - request origin/path, sanitized non-secret headers, and an opaque SealedNativeCredentials handle;
 - provider-policy snapshot.
 
-Egress outputs:
+Private egress-stage outputs:
 
 - exact upstream origin;
 - allowed headers;
@@ -275,9 +253,9 @@ Output RouteDecision includes:
 - sticky boundary;
 - permitted recovery.
 
-### 4.5 Capture pipeline and ArtifactStore
+### 4.5 Capture boundary and ArtifactStore
 
-CaptureIngress stages correlated raw hook/gateway material only in memory or an encrypted spool. The bounded snapshotter streams repository bytes through PrivacyScanner; unscanned bytes exist only in memory or the encrypted spool. PrivacyScanner is the sole raw-data inspector and emits approved encrypted/redacted snapshot artifacts. TaskCommitter only assembles metadata, importance, retention, and opaque artifact handles.
+Raw ingress, scrub, snapshot, and commit are private ordered stages inside `svc/capture`. Unscanned bytes exist only in memory or the encrypted spool. The scrub stage is the sole raw-data inspector. The public capture contract exposes only classified/redacted artifacts and opaque references.
 
 ArtifactStore rejects unclassified plaintext and exposes opaque handles. It supports inspect-with-local-auth, retention, pin, encrypted-by-default export, delete, wipe, integrity verification, key rotation, and migration.
 
@@ -295,23 +273,29 @@ Owner: A00 with A15 review
 
 Dependencies: none
 
+Implementation: 29-package Rust 1.98 workspace, `lao-wire` draft JSON v0 projection, `lao-test-kit`, and Cargo-metadata `xtask` enforcement.
+
 Create the minimal workspace, empty strategic packages, contract-only dependency graph, one linked fake implementation, and one RPC fake implementation. Confirm the modular-monorepo decision in the two canonical documents before any protocol or runtime spike establishes an accidental private interface.
 
 Deliverables:
 
-- machine-readable package classification and allowed dependency edges;
+- package-local Cargo classification and workspace policy for allowed dependency edges;
 - skeleton contract, component, application, and lazy-worker packages;
-- canonical version/capability handshake;
-- `boundary-check` prototype using Cargo metadata;
-- a temporary extraction drill that builds one fake component outside the workspace using only its published contract.
+- transport-neutral semantic contract plus version/capability handshake;
+- `cargo xtask check` using Cargo metadata;
+- a temporary extraction drill that builds one fake component outside the workspace against the synthetic public conformance contract.
 
 Acceptance:
 
-- every component named in Section 3 builds independently, including deferred components as disabled stubs;
-- an injected component-to-component dependency, cycle, cross-owned SQL access, and workspace-relative runtime path each fail an automated check;
+- every strategic component named in Section 3 builds independently, including deferred components as honest draft stubs;
+- injected service-to-service, restricted-API, dependency-cycle, duplicate/foreign-state, escaped-migration-root, and ambient workspace-path violations fail automated checks;
 - linked and local-RPC fake implementations pass the same conformance suite;
-- previous/current additive protocol versions interoperate and an unsupported major version fails closed;
-- the extracted fake component passes without access to private workspace code or state.
+- previous/current additive fields interoperate and unsupported majors, missing capabilities, malformed frames, oversized frames, and unknown operations fail before dispatch;
+- macOS local RPC verifies the peer user before decoding the handshake;
+- the active self-contained core and wire packages pass Cargo's pristine package build;
+- an external fake builds from an unrelated temporary directory against pristine-packaged core/wire crates and the same public conformance source, then passes linked/RPC parity.
+
+Research basis: [Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html), [versioned Cargo metadata](https://doc.rust-lang.org/cargo/commands/cargo-metadata.html), [pristine package verification](https://doc.rust-lang.org/cargo/commands/cargo-package.html), [Rust dyn compatibility](https://doc.rust-lang.org/reference/items/traits.html#dyn-compatibility), [Serde evolution rules](https://serde.rs/container-attrs.html), and [tonic's transport/codegen surface](https://docs.rs/tonic/latest/tonic/). P0-00 deliberately does not adopt tonic or protobuf; Section 3 records the later adoption triggers.
 
 ### P0-01 — Rust protocol proxy feasibility
 
@@ -559,7 +543,7 @@ Owner: A00
 
 Dependencies: P0 gate
 
-Create the full Cargo workspace topology from Section 3, pinned toolchain, license policy, deny/audit configuration, formatting/lint/test commands, shared CI, and feature flags. Promote the P0 boundary prototype into a required CI check. Deferred packages are present but inert; features cannot create forbidden dependency edges.
+Harden the P0 workspace with license and advisory policy, deny/audit configuration, shared CI, release profiles, and feature policy. Promote the P0 boundary and extraction checks into required CI. Do not recreate or expand the topology without a proven boundary.
 
 Acceptance:
 
@@ -567,7 +551,7 @@ Acceptance:
 - dependency licenses are compatible or explicitly reviewed;
 - unsafe code is denied except named audited modules;
 - Cargo.lock is committed;
-- every strategic component has a `components.toml` entry, package manifest, public contract reference, test target, and disabled implementation where functionality is deferred;
+- every strategic component has package-local `metadata.lao`, a package manifest, public contract reference, test target, and draft status where functionality is deferred;
 - every package builds and tests independently with `cargo test -p`, and change-scoped CI can select it without building unrelated optional workers;
 - boundary, cycle, state-ownership, and workspace-relative-path checks are mandatory and cannot be skipped by feature selection;
 - release profile strips symbols into separate debug artifacts and uses reproducible settings.
@@ -578,7 +562,7 @@ Owner: A00
 
 Dependencies: F-01
 
-Implement schema-versioned ModelManifest with backend-specific artifact format, HardwareSnapshot, per-pool FitPlan, BenchmarkResult, TaskContext, RouteDecision, RouteOutcome, artifact-level ProvenanceNode/DAG, TaskBundle metadata, EvalCampaign approval digest/scope, EvalTrial, EvalReport, ConsentPolicy, and typed errors. Define the canonical protobuf envelopes, protocol/version negotiation, deadlines, cancellation, idempotency keys, and opaque-handle representations at the same time.
+Implement schema-versioned ModelManifest with backend-specific artifact format, HardwareSnapshot, per-pool FitPlan, BenchmarkResult, TaskContext, RouteDecision, RouteOutcome, artifact-level ProvenanceNode/DAG, TaskBundle metadata, EvalCampaign approval digest/scope, EvalTrial, EvalReport, ConsentPolicy, and typed errors. Keep domain DTOs wire-independent. Add bounded JSON projections only for real worker calls; adopt Prost only if the documented cross-language, independent-release, remote-RPC, or measured-performance trigger is met.
 
 Acceptance:
 
@@ -586,7 +570,7 @@ Acceptance:
 - unknown additive fields are tolerated where compatibility requires;
 - breaking schema changes require migrations;
 - previous/current contract fixtures pass in both directions and unsupported major versions fail before work or state mutation;
-- Rust linked calls, local RPC, and Python JSON/JSONL projections have documented lossless mappings for the fields they support;
+- Rust linked calls, local RPC, and Python JSON/JSONL projections have documented semantic mappings for the fields they support;
 - identifiers containing provider/user data are keyed or encrypted.
 
 ### F-03 — Content-free observability
@@ -870,7 +854,7 @@ Owner: A09
 
 Dependencies: G-06, F-04
 
-Extend the content-free boundary tracker with consent-gated CaptureIngress. Raw material may exist only in memory or an encrypted crash-safe spool.
+Extend the content-free boundary tracker with a consent-gated private capture ingress. Raw material may exist only in memory or an encrypted crash-safe spool.
 
 Acceptance:
 
@@ -888,7 +872,7 @@ Owner: A09
 
 Dependencies: P0-10, C-03
 
-Stream bounded repository files through PrivacyScanner to produce approved encrypted/redacted archives and binary-safe patches that reconstruct base tree, index, worktree, and untracked layers separately; include recursive initialized submodules and safe already-present LFS bytes; detect sparse/partial/history boundaries and unstable files.
+Stream bounded repository files through the private scrub stage to produce approved encrypted/redacted archives and binary-safe patches that reconstruct base tree, index, worktree, and untracked layers separately; include recursive initialized submodules and safe already-present LFS bytes; detect sparse/partial/history boundaries and unstable files.
 
 Acceptance:
 
@@ -912,7 +896,7 @@ Acceptance:
 - fixture tokens, keys, connection strings, env files, encoded secrets, and PII never reach durable plaintext;
 - scanner failure discards full content and retains at most content-free metrics;
 - repeated values use stable task-local placeholders;
-- TaskCommitter and ArtifactStore reject unclassified plaintext;
+- the private commit stage and ArtifactStore reject unclassified plaintext;
 - local-model artifacts receive artifact-level provenance; proprietary/unknown ancestors taint descendants;
 - exact runtime campaign requests are scanned separately under E-04.
 
@@ -1420,8 +1404,8 @@ Evaluate over at least 300 real tasks, 10 repositories, and 10 design partners:
 ## 14. Decisions that are intentionally fixed
 
 - The normal user continues to invoke Codex or Claude Code, not a replacement agent.
-- The project begins as a contract-first modular monorepo with all strategic component boundaries scaffolded from the first foundation phase.
-- Components depend only on versioned contracts and approved foundation primitives; only application composition roots select concrete implementations.
+- The project begins as a contract-first modular monorepo with all strategic component boundaries scaffolded in P0-00.
+- Services depend only on versioned APIs; only application composition roots select concrete implementations.
 - Stateful components own private schemas and migrations; no shared database or cross-component SQL is permitted.
 - Rust owns the trusted core.
 - llama.cpp is the default inference engine.

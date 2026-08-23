@@ -312,19 +312,20 @@ The repository boundary is not the architecture boundary. A separate repository 
 
 The dependency rule is strict:
 
-    applications -> component implementations -> contracts + foundation
-                                       contracts -> foundation
+    applications -> service implementations -> APIs
+                                  applications -> APIs
 
-- Contracts are owned, versioned packages containing immutable data transfer objects, traits, protocol schemas, error taxonomies, and capability negotiation. They contain no implementation code.
-- Component implementations may depend on contracts and narrowly scoped foundation packages, never on another component implementation.
+- APIs are owned, versioned packages containing immutable data transfer objects, traits, error taxonomies, and capability negotiation. They contain no service implementation code.
+- Service implementations may depend on APIs, never on another service implementation.
 - Application composition roots are the only packages allowed to select and connect concrete implementations.
 - A stateful component owns its schema, migrations, encryption policy, and retention. No component reads another component's database, files, environment variables, or private types.
 - Cross-component values are owned messages or opaque capability/artifact handles. There is no shared mutable state and no raw-path shortcut around an API.
-- Deferred systems such as training, artifact optimization, and alternative runtimes receive contracts and inert adapters from the beginning, so later work fills an implementation rather than cutting across the existing system.
+- Deferred systems such as training, artifact optimization, and alternative runtimes have an owning API boundary from the beginning. Adapter code appears only when its spike defines real operations, so placeholders do not become speculative frameworks.
+- Shared utility packages are created only after real duplication and at least two current consumers prove the need.
 
 Hot-path components may be linked into the same daemon to minimize latency and idle memory, but they still communicate only through contract traits. Security-, crash-, language-, and lifecycle-sensitive components run as separate workers behind the equivalent versioned RPC contract. Contract tests must prove that linked and RPC implementations have the same observable behavior.
 
-Out-of-process local control uses authenticated, versioned protobuf messages over Unix-domain sockets on macOS/Linux and named pipes on Windows. Standard model traffic continues to use supported Responses and Messages HTTP interfaces. Optional Python batch workers use versioned JSON/JSONL envelopes and never become an alternate private API into the core.
+The semantic Rust contract is canonical. The draft out-of-process projection is authenticated, length-prefixed, typed JSON over Unix-domain sockets on macOS/Linux and named pipes on Windows. It allows one call per connection and caps control frames at 1 MiB. Deadlines, idempotency, and semantic cancellation remain undefined until a later spike proves them. This avoids an HTTP/2, protobuf-codegen, and multiplexing stack before the product has a gRPC consumer. Protobuf remains a replaceable wire adapter if independent non-Rust releases, remote RPC, or measured JSON cost later justify it. Standard model traffic continues to use supported Responses and Messages HTTP interfaces. Optional Python batch workers use the same versioned JSON/JSONL semantics and never become an alternate private API into the core.
 
 This section is the canonical architecture decision. The implementation plan carries its executable checks and extraction gate; do not create a second copy in a separate design document.
 
@@ -367,27 +368,24 @@ Deployment is deliberately different from package ownership:
 
 - `lao-daemon` is the lightweight always-on composition root for gateway, authentication, routing, and control packages.
 - llama.cpp or another inference runtime is always supervised as a separate process.
-- capture/privacy, vault, evaluation, reporting, optimization, and training workers are lazy and start only when their explicitly enabled workflow needs them.
+- four tiny least-authority workers run capture, vault, evaluation, or training only when their explicitly enabled workflow needs them.
 - the CLI is a separate client of the authenticated local control contract.
 
 This preserves a small idle footprint without collapsing independently owned components into one codebase or one failure domain.
 
 ### 6.1 Core interfaces
 
-The implementation must keep these boundaries stable. Every interface below lives in a versioned contract package; its concrete implementation lives elsewhere. A component may not import a sibling implementation, and only an application composition root may wire implementations together:
+The implementation must keep the public boundaries stable. Each public interface below lives in a versioned contract package; its concrete implementation lives elsewhere. A component may not import a sibling implementation, and only an application composition root may wire implementations together:
 
 - ClientAdapter: detect, configure, verify, pause, and restore Codex or Claude Code; register hooks and correlate sessions.
-- IngressCredentialSealer: consume the local URL capability, classify native header material into an opaque non-serializable handle, and ensure the router cannot inspect, clone, or persist credential values.
-- EgressCredentialFirewall: after RouteDecision is immutable, validate exact origins, materialize the minimum allowed headers, reject redirects, and inject only explicitly configured third-party credentials.
+- Gate: expose only sanitized TaskContext and an immutable RouteDecision boundary; credential sealing and egress materialization remain private ordered stages inside `svc/gate`.
 - RouterPolicy: accept TaskContext and return an explainable RouteDecision.
 - ManagedRuntime: prepare, start, health-check, benchmark, cancel, and stop a product-owned model process.
 - ExternalEndpoint: probe, fingerprint, health-check, benchmark, and send requests without pulling, deleting, stopping, or reconfiguring user-owned Ollama or LM Studio instances.
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
 - ModelCatalog: return signed and revocable manifests, licenses, compatibility, artifacts, and quality priors.
 - ArtifactManager: preview, download, verify, cache, promote, roll back, and remove model artifacts.
-- CaptureIngress: accept raw hook/repository material only into memory or an encrypted crash-safe spool.
-- PrivacyScanner: the sole component allowed to inspect raw staged content.
-- TaskCommitter: receive only redacted artifacts or encrypted handles, score importance, and commit atomically.
+- Capture: expose only classified/redacted artifacts or opaque references; raw ingress, scrub, snapshot, and commit remain private ordered stages inside `svc/capture`.
 - ArtifactStore: reject unclassified plaintext, encrypt metadata and blobs, enforce retention, export, and delete.
 - EvalRunner: reconstruct a task, run a pinned agent in isolation, collect verifiers, and produce comparable trials.
 - Trainer: prepare eligible data, launch an optional training backend, evaluate an adapter, and support explicit promotion and rollback.
@@ -651,7 +649,7 @@ Routing works without capture. Capture can be paused globally or per repository.
 
 Gateway traffic alone cannot know the exact task boundary, working directory, base commit, dirty state, final patch, tests, or user acceptance. A content-free, same-user-authenticated TaskBoundaryTracker is installed for routing even when capture is off. It accepts session/turn/start/stop/incomplete metadata but persists no prompt, transcript, or repository body without consent.
 
-After capture consent, CaptureIngress may correlate richer asynchronous Codex and Claude hook events with gateway route, model, latency, and token metadata. Concurrent, duplicate, and out-of-order events must be idempotent and must not cross-assign sessions.
+After capture consent, the private ingress stage may correlate richer asynchronous Codex and Claude hook events with gateway route, model, latency, and token metadata. Concurrent, duplicate, and out-of-order events must be idempotent and must not cross-assign sessions.
 
 ### 10.3 Repository checkpoint
 
@@ -672,7 +670,7 @@ A full Git bundle is an opt-in export because reachable history may contain unre
 
 ### 10.4 Privacy pipeline
 
-CaptureIngress accepts raw material only into memory or an encrypted crash-safe spool. PrivacyScanner is the sole component allowed to inspect it. Before durable storage:
+The private capture ingress accepts raw material only into memory or an encrypted crash-safe spool. Its scrub stage is the sole raw-content inspector. Before durable storage:
 
 1. Apply hard path exclusions.
 2. Scan prompts, tool data, patches, source, tests, and environment metadata.
@@ -680,7 +678,7 @@ CaptureIngress accepts raw material only into memory or an encrypted crash-safe 
 4. Replace allowed textual values with stable task-local typed placeholders.
 5. Exclude files whose structure cannot be safely redacted.
 6. On scanner error or unsupported content, discard full content and retain at most content-free metrics.
-7. Hand TaskCommitter only redacted artifacts or encrypted classified handles.
+7. Hand the private commit stage only redacted artifacts or encrypted classified handles.
 
 Use Gitleaks as one layer, not a guarantee. Never run repository code during capture.
 
