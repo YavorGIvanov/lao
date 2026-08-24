@@ -320,7 +320,7 @@ Acceptance:
 - no content logging;
 - native-cloud overhead below 20 milliseconds locally for the fixture.
 
-Result (2026-08-24): passed. The dependency-free `std::net` spike in `svc/gate/tests/proxy.rs` streams sanitized Responses and Messages fixtures in both directions, preserves every byte and event/tool identifier, and propagates downstream disconnect to upstream. Median measured loopback overhead was 109.874 microseconds across 21 direct and 21 proxied trials.
+Result (2026-08-24): passed. The dependency-free `std::net` spike in `svc/gate/tests/proxy.rs` streams complete HTTP/1.1 requests and chunked SSE responses for sanitized Responses and Messages fixtures. It preserves every byte, header, event, and tool identifier; carries two exchanges over one persistent connection; and closes the opposite side after either peer disconnects. A paired 21-trial full-fixture measurement on an Apple M4 MacBook Air in the Rust debug test profile measured 118.291 microseconds median and 150.167 microseconds p95 first-byte overhead. The full proxy suite then passed 100 consecutive runs.
 
 Transport decision:
 

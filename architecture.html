@@ -33,8 +33,10 @@
     a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
     section { padding: 34px 0; border-bottom: 1px dashed var(--line); }
     .note { color: var(--green); font-size: .9rem; }
-    .flow, .lane, .layers { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .flow, .lane, .layers, .control-flow { display: flex; align-items: center; justify-content: center; gap: 14px; }
     .flow { min-height: 210px; }
+    .control-flow { margin-top: 22px; }
+    .control-target { color: var(--dim); }
     .stack { display: grid; gap: 10px; }
     .node {
       border: 2px solid var(--chalk);
@@ -80,6 +82,7 @@
     @media (max-width: 800px) {
       .flow { flex-direction: column; }
       .flow .arrow { transform: rotate(90deg); }
+      .control-flow { align-items: flex-start; }
       .layers, .grid { grid-template-columns: 1fr; display: grid; }
       .layer { width: 100%; }
       .checks { grid-template-columns: 1fr; }
@@ -94,18 +97,17 @@
 <body>
 <main>
   <header>
-    <div class="note">LOCAL AGENT OPTIMIZER · P0-00</div>
+    <div class="note">LOCAL AGENT OPTIMIZER · CURRENT MAP · P0-01</div>
     <h1>How the pieces fit.</h1>
     <p>LAO sits quietly beside Codex and Claude Code. Easy work may go to a local model. Everything else keeps its normal cloud path. The harness stays in charge.</p>
   </header>
 
   <section>
     <h2>1. The runtime idea</h2>
-    <div class="flow" aria-label="Codex, Claude Code and the CLI connect to the LAO daemon, which chooses a local runtime or native cloud path.">
+    <div class="flow" aria-label="Codex and Claude Code use the LAO daemon, which chooses a local runtime or native cloud path.">
       <div class="stack">
         <div class="node"><strong>Codex</strong><small>unchanged</small></div>
         <div class="node"><strong>Claude Code</strong><small>unchanged</small></div>
-        <div class="node"><strong>LAO CLI</strong><small>setup + status</small></div>
       </div>
       <div class="arrow">→</div>
       <div class="node main">
@@ -121,7 +123,12 @@
         <div class="node"><strong>native cloud</strong><small>original provider path</small></div>
       </div>
     </div>
-    <p class="note">Today: boundaries and raw streaming are proven. Client compatibility is the next gate; production routing is still off.</p>
+    <div class="control-flow" aria-label="The short-lived lao command configures the clients and controls the daemon, but does not carry coding requests.">
+      <div class="node"><strong><code>lao</code> control</strong><small>rare: setup · doctor · off</small></div>
+      <div class="arrow">⇢</div>
+      <div class="control-target"><code>client config + hooks</code><br><code>daemon control socket</code><br>then the command exits</div>
+    </div>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Codex or Claude Code remains the daily interface. Today: package boundaries and byte-exact HTTP pass-through are proven. Client compatibility is the next gate; production routing is still off.</p>
   </section>
 
   <section>
@@ -199,11 +206,12 @@
       <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
+      <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
     </div>
   </section>
 
   <footer>
-    Solid boxes = always-on path. Dashed boxes = optional path. Package metadata in each Cargo.toml is the source of truth.
+    Solid boxes = normal request or control paths. Dashed boxes = lazy, consent-gated paths. Package metadata in each Cargo.toml is the source of truth.
   </footer>
 </main>
 </body>

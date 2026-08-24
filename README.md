@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, and P0-00 architecture skeleton. It does not yet contain production routing.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, and P0-01 streaming proof. It does not yet contain production routing.
 
 ## Manifesto
 
@@ -68,8 +68,8 @@ This repository contains the research-backed product specification, implementati
 ## How to begin
 
 1. Read the product architecture and implementation plan below.
-2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the P0-00 boundary baseline.
-3. Begin P0-01. Reuse pinned llama.cpp. Do not build inference kernels.
+2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
+3. Begin P0-02 and P0-03 client-compatibility work. Reuse pinned llama.cpp. Do not build inference kernels.
 4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
 5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
 6. Keep capture, eval, optimization, and training disabled behind their APIs.

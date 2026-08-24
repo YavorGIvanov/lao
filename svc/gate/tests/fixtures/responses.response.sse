@@ -1,12 +1,14 @@
 event: response.output_item.added
-data: {"type":"response.output_item.added","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":""}}
+data: {"type":"response.output_item.added","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":"","status":"in_progress"},"sequence_number":1}
 
 event: response.function_call_arguments.delta
-data: {"type":"response.function_call_arguments.delta","item_id":"fc_01","output_index":0,"delta":"{\"city\":\"London\"}"}
+data: {"type":"response.function_call_arguments.delta","item_id":"fc_01","output_index":0,"delta":"{\"city\":\"London\"}","sequence_number":2}
+
+event: response.function_call_arguments.done
+data: {"type":"response.function_call_arguments.done","item_id":"fc_01","output_index":0,"name":"weather","arguments":"{\"city\":\"London\"}","sequence_number":3}
 
 event: response.output_item.done
-data: {"type":"response.output_item.done","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":"{\"city\":\"London\"}"}}
+data: {"type":"response.output_item.done","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":"{\"city\":\"London\"}","status":"completed"},"sequence_number":4}
 
 event: response.completed
-data: {"type":"response.completed","response":{"id":"resp_01","status":"completed"}}
-
+data: {"type":"response.completed","response":{"id":"resp_01","object":"response","created_at":0,"status":"completed","error":null,"incomplete_details":null,"model":"cloud-fixture","output":[{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":"{\"city\":\"London\"}","status":"completed"}],"usage":{"input_tokens":24,"output_tokens":8,"total_tokens":32}},"sequence_number":5}
