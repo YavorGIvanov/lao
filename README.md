@@ -96,4 +96,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 architecture skeleton implemented. The implementation plan defines the remaining gates before live subscription routing, task capture, proprietary-model evaluation, or fine-tuning can be enabled.
+P0-00 and the P0-01 streaming-proxy feasibility spike are complete. P0-02 and P0-03 verify current Codex and Claude Code compatibility before live subscription routing can begin.

@@ -320,6 +320,15 @@ Acceptance:
 - no content logging;
 - native-cloud overhead below 20 milliseconds locally for the fixture.
 
+Result (2026-08-24): passed. The dependency-free `std::net` spike in `svc/gate/tests/proxy.rs` streams sanitized Responses and Messages fixtures in both directions, preserves every byte and event/tool identifier, and propagates downstream disconnect to upstream. Median measured loopback overhead was 109.874 microseconds across 21 direct and 21 proxied trials.
+
+Transport decision:
+
+- Keep the native-cloud path as a raw streaming bridge. Do not parse, buffer, or transform pass-through bodies.
+- Put local llama.cpp translation behind the gate boundary. Responses translation must handle model/input/instructions, tools and tool choice, streaming event types, response/item IDs, function-call IDs and argument deltas, status, errors, and usage. Messages translation must handle model/system/messages content blocks, tools and input schemas, tool choice, max tokens, thinking, streaming event types, message/content/tool-use IDs, JSON deltas, stop reasons, errors, and usage.
+- Preserve unknown fields only on native pass-through. Local translation must reject unsupported required capabilities rather than silently drop them.
+- A Claude Code Router sidecar is not needed for transport. P0-02 and P0-03 may still use a time-boxed compatibility sidecar only if current client behavior cannot be reproduced narrowly in Rust.
+
 ### P0-02 — Codex subscription compatibility spike
 
 Owner: A01

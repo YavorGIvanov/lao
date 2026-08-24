@@ -1,0 +1,1 @@
+{"model":"cloud-fixture","input":"Call the weather tool for London.","tools":[{"type":"function","name":"weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"stream":true}

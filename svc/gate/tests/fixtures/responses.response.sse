@@ -1,0 +1,12 @@
+event: response.output_item.added
+data: {"type":"response.output_item.added","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":""}}
+
+event: response.function_call_arguments.delta
+data: {"type":"response.function_call_arguments.delta","item_id":"fc_01","output_index":0,"delta":"{\"city\":\"London\"}"}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","output_index":0,"item":{"id":"fc_01","type":"function_call","call_id":"call_01","name":"weather","arguments":"{\"city\":\"London\"}"}}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp_01","status":"completed"}}
+

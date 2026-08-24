@@ -1,0 +1,1 @@
+{"model":"cloud-fixture","max_tokens":128,"messages":[{"role":"user","content":"Call the weather tool for London."}],"tools":[{"name":"weather","description":"Get weather","input_schema":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}],"stream":true}
