@@ -515,6 +515,8 @@ Routing and credential handling are separate state machines. A route cannot chan
 
 The first P0-04 isolated Rust policy model exercises this state shape with synthetic credentials and exact targets. It is deliberately partial and test-only: the production gate, network resolver, redirect handling, launchd activation, and configuration transaction remain unimplemented.
 
+The production gate uses one narrow HTTP stack: Hyper HTTP/1 on both sides and hyper-rustls with platform verification for native HTTPS. It builds the exact upstream URI only after route freeze and includes no redirect layer. Dependencies enter the workspace with the first measured production exchange, not before it.
+
 ### 7.5 Safe fallback
 
 Never change route after upstream bytes have been emitted or a tool side effect may have occurred.

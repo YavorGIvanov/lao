@@ -119,7 +119,12 @@ fn admit<'a>(head: Head<'a>, read: impl FnOnce() -> Vec<u8>) -> Result<In<'a>, D
     }) {
         return Err(Deny::Cors);
     }
-    if has(head.headers, "transfer-encoding") || values(head.headers, "content-length").count() > 1
+    let lengths: Vec<_> = values(head.headers, "content-length").collect();
+    if has(head.headers, "transfer-encoding")
+        || lengths.len() > 1
+        || lengths
+            .first()
+            .is_some_and(|value| value.parse::<usize>() != Ok(head.length))
     {
         return Err(Deny::Body);
     }
@@ -321,6 +326,7 @@ fn hello_is_the_only_unauthenticated_request() {
     for headers in [
         vec![("Transfer-Encoding", "chunked")],
         vec![("Content-Length", "0"), ("Content-Length", "0")],
+        vec![("Content-Length", "1")],
     ] {
         assert!(admit(head("HEAD", "/ant/api/hello", &headers), || panic!()).is_err());
     }

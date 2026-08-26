@@ -187,6 +187,7 @@
       </div>
     </div>
     <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. The firewall proof uses synthetic credentials only.</p>
+    <p class="note">Planned production transport: one narrow Hyper HTTP/1 stack on both sides, rustls for native HTTPS, and no redirect layer. It is not linked yet.</p>
   </section>
 
   <section>
