@@ -148,7 +148,7 @@
       <div class="proof"><b>Codex 0.146.0</b><br>custom provider + caller header → HTTP/SSE</div>
       <div class="proof"><b>Claude Code 2.1.223</b><br>base URL + caller header → Messages SSE</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility and separate caller-token delivery are proven for the exact modes above. Gate validation, config writes, local routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility, separate caller-token delivery, and the first isolated firewall policy model are proven. P0-04 network integration, config writes, local routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
   </section>
 
   <section class="client-page">
@@ -179,14 +179,14 @@
     <div class="flow" aria-label="The gate authenticates the local caller, then chooses a clean local request or an exact native cloud route.">
       <div class="node"><strong>client request</strong><small>caller token + native auth</small></div>
       <div class="arrow">→</div>
-      <div class="node main"><strong>gate</strong><small>P0-04 target: check · strip · freeze route</small></div>
+      <div class="node main"><strong>gate</strong><small>P0-04 model: check · strip · freeze route</small></div>
       <div class="arrow">→</div>
       <div class="split">
         <div class="node"><strong>local</strong><small>clean request; no native secrets</small></div>
         <div class="node"><strong>native cloud</strong><small>exact official origin only</small></div>
       </div>
     </div>
-    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. Early tests used no real credentials.</p>
+    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. The firewall proof uses synthetic credentials only.</p>
   </section>
 
   <section>
@@ -265,6 +265,7 @@
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
+      <div class="check"><b>firewall model</b><p>Proves caller-first checks, exact cloud targets, clean local headers and bind-before-config ordering.</p></div>
     </div>
   </section>
 

@@ -398,6 +398,8 @@ Acceptance:
 - route is immutable after egress auth is created and router code cannot inspect/clone/serialize sealed credentials;
 - firewall runs before protocol rewriting.
 
+Partial synthetic result (2026-08-26): the isolated `svc/gate/tests/firewall.rs` model passes without dependencies or real credentials. Six tests cover per-client caller authentication before body reads, strict framing for the inert Claude hello exception, immutable route materialization, exact native targets and auth classes, clean local/third-party headers, malformed host/path/CORS rejection, and binding before configuration while retaining an owner handle. This proves the policy shape only; P0-04 remains open. Production HTTP integration, DNS and redirect handling, sealed credential storage, full error/retry preservation, client-output scanning, and launchd activation are not yet proven.
+
 ### P0-05 — Transactional configuration proof
 
 Owner: A04
