@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, and P0-01 streaming proof. It does not yet contain production routing.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, streaming proof, and installed-client compatibility probes. It does not yet contain production routing.
 
 ## Manifesto
 
@@ -44,7 +44,9 @@ This repository contains the research-backed product specification, implementati
 - Own a component only when evidence justifies it.
 - Build one narrow vertical slice at a time.
 - Delete before abstracting.
+- End every change with a careful simplification pass.
 - Avoid speculative frameworks.
+- Optimize for a human reading the code tomorrow.
 - Make invalid states hard to express.
 - Fail closed at trust boundaries.
 - Test contracts and outcomes.
@@ -64,12 +66,13 @@ This repository contains the research-backed product specification, implementati
 - Implement deferred behavior only when needed.
 - Future-proof with seams and fixtures, not extra machinery.
 - Keep extraction possible, not mandatory.
+- Keep the visual architecture map current with the code.
 
 ## How to begin
 
 1. Read the product architecture and implementation plan below.
 2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Begin P0-02 and P0-03 client-compatibility work. Reuse pinned llama.cpp. Do not build inference kernels.
+3. Review the P0-02/P0-03 synthetic client proofs, then begin P0-04/P0-05 security and configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
 4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
 5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
 6. Keep capture, eval, optimization, and training disabled behind their APIs.
@@ -96,4 +99,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 and the P0-01 streaming-proxy feasibility spike are complete. P0-02 and P0-03 verify current Codex and Claude Code compatibility before live subscription routing can begin.
+P0-00 and P0-01 are complete. The synthetic installed-client portions of P0-02/P0-03 pass for Codex 0.146.0 and Claude Code 2.1.223. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Real-subscription smoke tests remain explicit and approval-gated. Production routing and real configuration writes are still off.

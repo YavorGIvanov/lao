@@ -1,6 +1,6 @@
 # Local Agent Optimizer: Product Vision and System Architecture
 
-Research snapshot: 23 August 2026
+Research snapshot: 23–26 August 2026
 
 Status: decision-complete product blueprint
 
@@ -45,16 +45,18 @@ The strongest user is a developer who already likes Codex or Claude Code, has us
 
 ### 2.2 Why a generic router is not enough
 
-Several active projects already provide gateways or routing:
+Several active projects already provide gateways or routing. The August 2026 comparison uses them as conformance references, not runtime dependencies:
 
 | Project | Strength | Gap relative to this product |
 |---|---|---|
-| [Claude Code Router](https://github.com/musistudio/claude-code-router) | Broad gateway, provider, protocol, profile, and UI support | Large Node/Electron surface; stock auth and logging behavior do not satisfy the desired native-credential boundary |
-| [CodeRouter](https://github.com/Code-Router/CodeRouter) | Task classification, repo memory, validation, outcome learning | Primarily an alternative CLI/MCP/subprocess agent, not an invisible gateway |
-| [codex-model-router](https://github.com/DrOetker747/codex-model-router) | Narrow Codex gateway and strong credential-forwarding pattern | Codex only; not the full personal-evaluation product |
-| [RouteLLM](https://github.com/lm-sys/RouteLLM) | Preference-trained weak/strong model routing | Older chat-oriented assumptions and no coding-task reproduction |
-| [Agent-as-a-Router](https://arxiv.org/abs/2606.22902) | Execution-grounded Context–Action–Feedback routing | Research framework and benchmark, not a complete private desktop product |
-| [llama-swap](https://github.com/mostlygeek/llama-swap) | Cross-platform inference process lifecycle and model swapping | Does not own client integration, personal routing, consent, or evaluation |
+| [Claude Code Router](https://github.com/musistudio/claude-code-router) | Broad Claude/Codex/provider routing, translation, profiles, UI | Large Node/Electron surface; broad credential reach and optional body logging are outside LAO's privacy target |
+| [LiteLLM](https://github.com/BerriAI/litellm) | Widest endpoint/provider coverage, tools, local providers, mature routing | Broad gateway, Python SDK, Rust core, and UI surface; its agent wrappers and virtual keys differ from LAO's native-account target |
+| [Codex Router](https://github.com/duolahypercho/codex-router) | Closest Codex precedent; native harness, HTTP/SSE, compact, local providers, rollback | Codex-specific JavaScript/Python stack; no personal evaluation loop or automatic difficulty routing |
+| [Bifrost](https://github.com/maximhq/bifrost) | Fast Go gateway, Responses/Messages/tools, Ollama, four-tier routing | Large enterprise surface; Codex requires a virtual key and content logging needs careful independent disabling |
+| [Portkey Gateway](https://github.com/Portkey-AI/gateway) | Mature provider gateway, governance, Responses/Messages streaming | API-key and hosted-observability model; no hardware orchestration or comparable Codex compatibility proof |
+| [llama-swap](https://github.com/mostlygeek/llama-swap) | Cross-platform inference process lifecycle and model swapping | Useful runtime adapter; does not own client integration, consent, routing evidence, or evaluation |
+
+LAO is in the correct technical category, but it is not more capable today. Established gateways lead on protocol breadth, providers, retries, transformations, UI, and production use. Its intended differentiation is narrower: a small low-level control plane, capture-off privacy defaults, narrow credential ownership, hardware-aware local admission, and a personal reproducible evaluation loop. Most of that remains planned. Until real subscription and API-key smoke tests pass, native-account preservation remains a design with synthetic evidence rather than a shipped advantage.
 
 The defensible layers are personal task evidence, reproducible evaluation, hardware-to-experience selection, trustworthy invisibility, and execution-grounded learning. Protocol translation and inference kernels are replaceable infrastructure.
 
@@ -457,39 +459,51 @@ EvalReport contains:
 
 ### 7.1 Codex
 
-Codex supports custom providers and local providers through its configuration. The subscription-preserving compatibility path is to keep the built-in provider and set the root OpenAI base URL to the loopback gateway. The current Codex implementation honors that base URL while attaching saved authentication, but this is not a permanent public guarantee and must be version-gated. See the [Codex configuration reference](https://developers.openai.com/codex/config-reference/) and [Codex hooks](https://developers.openai.com/codex/hooks/).
+Codex supports custom providers and local providers through its configuration. The narrow compatibility path uses a managed custom provider named `lao`, a non-secret loopback `/oai` prefix, `requires_openai_auth = true`, `supports_websockets = false`, and a separate `X-LAO-Key` caller header. This lets Codex reuse its current native authentication without LAO reading auth storage, while the private caller token authenticates payload requests to the local gateway. Codex 0.146.0 has synthetically proven this HTTP/SSE shape with a fake native credential and a separate caller token. A real ChatGPT-subscription pass-through remains an explicit later smoke test. Treat all of this as version-gated compatibility, not a permanent provider guarantee. The user-level setting is also visible to the Codex IDE extension. See the [Codex configuration reference](https://developers.openai.com/codex/config-reference/) and [Codex hooks](https://developers.openai.com/codex/hooks/).
 
 Never read, copy, or persist Codex auth files. Determine auth mode through a supported client status or behavior check. Install only managed configuration and hooks.
 
 ### 7.2 Claude Code
 
-Claude Code officially supports gateways through ANTHROPIC_BASE_URL. Setting only that URL preserves the saved claude.ai login; supplying another API key or credential helper changes the auth path. Preserve the Anthropic protocol/OAuth capability carried in anthropic-beta and unknown protocol fields only on the exact native Anthropic route. See the [gateway connection guide](https://code.claude.com/docs/en/llm-gateway-connect), [gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol), and [hooks](https://code.claude.com/docs/en/hooks).
+Claude Code officially supports gateways through `ANTHROPIC_BASE_URL`. Setting that URL without another provider credential preserves the saved claude.ai login. LAO adds a separate caller token through `ANTHROPIC_CUSTOM_HEADERS`, not through `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_API_KEY`, or a credential helper. Claude Code 2.1.223 has synthetically proven that native bearer auth and `X-LAO-Key` coexist on Messages SSE requests, but current official documentation declares custom headers supported from 2.1.227. Production support therefore requires a fresh 2.1.227-or-later probe. Its exact bodyless `HEAD /ant/api/hello` probe carries neither header, so the gateway allows only that inert probe without caller authentication; every payload endpoint requires the token. Preserve the Anthropic protocol/OAuth capability carried in `anthropic-beta` and unknown protocol fields only on the exact native Anthropic route. See the [gateway subscription rules](https://code.claude.com/docs/en/llm-gateway), [environment-variable reference](https://code.claude.com/docs/en/env-vars), [gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol), and [hooks](https://code.claude.com/docs/en/hooks/).
 
-Never import Claude credentials from files or keychains. Preflight existing ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, apiKeyHelper, workload-identity/provider settings, and shell-level base-URL overrides. Do not delete them silently and do not claim subscription preservation when effective precedence selects another credential.
+Never import Claude credentials from files or keychains. Preflight existing `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `apiKeyHelper`, custom headers, workload-identity/provider settings, and shell-level base-URL overrides. Do not delete them silently and do not claim subscription preservation when effective precedence selects another credential. A custom base URL disables Remote Control, and some nonessential, fast-mode, and WebFetch traffic may bypass the model gateway. Technical gateway support is not blanket legal authorization to relay subscription credentials; broad support requires a product/legal review of the local user-controlled design.
 
-The PoC support matrix is Codex CLI/TUI and Claude Code CLI only. Codex desktop, Claude IDE/VS Code, Claude Desktop, and background-agent surfaces require separate adapters and tests.
+The installed synthetic probes cover `codex exec` and Claude Code `--bare --print` only. The planned PoC target remains Codex CLI/TUI and Claude Code CLI, but those surfaces require their own smoke tests. This is not configuration isolation: Codex shares its user config with the IDE extension, and Claude user settings can reach background agents. Codex desktop/cloud, Claude IDE/VS Code, Claude Desktop, Remote Control, web, Slack, and other background surfaces require separate adapters and tests.
 
 ### 7.3 Local caller capability
 
-Native provider auth already occupies the normal Authorization or API-key header. Authenticate callers to the local gateway with a random 256-bit capability in the managed loopback URL path:
+Authenticate Codex and Claude Code to the local gateway with different random 256-bit `X-LAO-Key` values. Keep the URL prefixes short and non-secret:
 
-    http://127.0.0.1:PORT/c/RANDOM-CAPABILITY/v1
+    http://127.0.0.1:PORT/oai
+    http://127.0.0.1:PORT/ant
 
-Validate and strip the prefix before routing. The product never places the capability in a query string or any product-controlled log, error, telemetry, crash report, or support bundle. Supported-client induced-failure tests scan complete stdout/stderr; if a client echoes its configured URL, rotate after suspected exposure and document the residual risk. This capability does not defend against a malicious same-user process that can read client configuration.
+Validate the caller header in constant time before reading a payload body, then strip it before routing. Reject missing, wrong, duplicate, cross-client, or conflicting values. Bind only to loopback, validate `Host`, expose no CORS surface, and allow only exact methods and paths. The exact Claude hello probe is the sole unauthenticated exception and cannot carry a body or trigger state. Store managed tokens in an owner-only directory and settings files, rotate them transactionally, and never place them in product-controlled logs, errors, telemetry, crash reports, or support bundles. The normal client surfaces require plaintext custom headers in managed settings, so this boundary does not defend against a malicious same-user process that can read those files.
+
+The caller token does not authenticate the gateway to the client. Persistent activation therefore requires the OS supervisor to own the loopback socket before any client config is changed and to retain that socket across daemon crashes and restarts. On the Apple-first PoC this is a launchd socket. Setup fails closed if the candidate port is already bound; rollback finishes before the supervisor releases it. A platform without equivalent continuous socket ownership cannot enable persistent interception. Hostile pre-bind, daemon-crash, delayed-start, and rollback tests are mandatory in P0-04/P0-05.
 
 ### 7.4 Credential firewall
 
-Ingress validation consumes the local URL-path capability and seals native credential material before the router. The router receives no raw credential values. After the route becomes immutable, the egress firewall materializes the exact allowed header set before any destination-specific protocol transformation.
+Ingress validation consumes the local caller header, normalizes the non-secret client path prefix, and seals native credential material before the router. The router receives no raw credential values. After the route becomes immutable, the egress firewall materializes the exact allowed header set before any destination-specific protocol transformation.
 
 For native routes:
 
-- the local URL-path capability is never forwarded;
+- the local caller header is never forwarded;
 - forward only required native credentials;
 - preserve the Anthropic protocol/OAuth capability carried in anthropic-beta only for the exact native Anthropic route;
 - permit only exact official HTTPS origins and paths;
 - reject redirects;
 - preserve required beta, account, retry, and streaming semantics;
 - prefer byte-preserving pass-through.
+
+The pinned Codex native-route matrix is explicit and default-deny:
+
+| Effective auth mode | Exact target root | Required proof before enablement |
+|---|---|---|
+| ChatGPT | `https://chatgpt.com/backend-api/codex` | supported status, expected bearer/account header classes, and an authorized subscription smoke |
+| API key | `https://api.openai.com/v1` | supported status, bearer API-key class, and an authorized API-key smoke |
+
+Only the exact required Responses, compact, and model paths under the selected root are eligible. Unknown auth modes, header-class mismatches, redirects, and origin changes fail closed.
 
 For local or third-party routes:
 
@@ -837,7 +851,8 @@ Protected assets include source code, prompts, patches, provider credentials, lo
 
 | Threat | Required control |
 |---|---|
-| Gateway credential theft | Loopback only, path capability, no CORS, exact upstream allowlist, no credential persistence |
+| Gateway caller-token theft | Loopback only, per-client header tokens, owner-only settings, no CORS, rotation, exact upstream allowlist |
+| Fake local gateway or hostile pre-bind | Supervisor owns socket before config activation and across crashes; fail setup on collision; rollback before release |
 | Route-confusion exfiltration | Credential firewall before transforms; default-deny origin/path/redirect policy |
 | Malicious repository | No capture-time execution; path/symlink/archive limits; sandboxed replay |
 | Malicious verifier | Separate provenance, immutable hash, unprivileged sandbox, no provider keys, default-deny network |

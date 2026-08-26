@@ -1,0 +1,8 @@
+event: response.created
+data: {"type":"response.created","response":{"id":"resp-lao"}}
+
+event: response.output_item.done
+data: {"type":"response.output_item.done","item":{"type":"message","role":"assistant","id":"msg-lao","content":[{"type":"output_text","text":"LAO_P0_02_OK"}]}}
+
+event: response.completed
+data: {"type":"response.completed","response":{"id":"resp-lao","usage":{"input_tokens":0,"input_tokens_details":null,"output_tokens":0,"output_tokens_details":null,"total_tokens":0}}}

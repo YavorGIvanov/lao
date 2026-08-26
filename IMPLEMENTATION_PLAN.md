@@ -165,7 +165,7 @@ Pin the Rust compiler, Cargo.lock, llama.cpp build, optional sidecars, and relea
 | Capability | Package boundary | Default process | Owned durable state | Allowed communication |
 |---|---|---|---|---|
 | gateway/auth state machine and router | two independent components | `lao-daemon` | router policy/cache only | contract traits; supported HTTP at client edge |
-| Codex/Claude adapters | one component per client | `lao-daemon` or short-lived installer | its own config transaction journal | ClientAdapter contract only |
+| Codex/Claude adapters | one component per client | short-lived `lao` command | config transaction journal added in P0-05 | client contract only; no request bytes |
 | hardware, fit, runtimes | run component with private backend adapters | `lao-daemon` plus supervised runtime | runtime state owned by run | Run contract plus loopback HTTP to inference worker |
 | catalog and artifacts | model component | `lao-daemon` | catalog, artifact cache, and promotion state owned by model | Model contract only |
 | capture, private scrub, snapshot | one ordered component | lazy `lao-capture-worker` | encrypted staging spool owned by capture | authenticated local RPC and classified outputs only |
@@ -191,6 +191,8 @@ Required operations:
 
 Implementations: Codex and ClaudeCode.
 
+During P0-02/P0-03, version policy, precedence, conflicts, and previews remain private to each client service; `api/client` stays minimal. Add shared semantic doctor records or the full trait only when a real second consumer needs them. Client services never handle request bytes or provider credentials. In P0-05, each adapter may receive only its own caller token through a restricted transient install input, write it directly into managed settings, and never return, log, or retain another copy. Gate owns generation, runtime validation, and rotation; the app only coordinates the transaction.
+
 ### 4.2 Gate boundary
 
 Credential sealing and egress materialization are private ordered stages inside `svc/gate`; their secret-bearing types never cross a package boundary. The public gate contract exposes only sanitized routing context and the immutable route decision boundary. The router sees header classes and client metadata but never values.
@@ -210,7 +212,7 @@ Private egress-stage outputs:
 - redirect policy;
 - injected explicit-provider credential handle when applicable.
 
-Native credentials are legal only for a matching native route and exact official origin. The local URL-path capability is always consumed locally. The Anthropic protocol/OAuth capability in anthropic-beta is preserved only for the exact native Anthropic route. Local and third-party routes receive neither. A route cannot change after an egress-auth action is created.
+Native credentials are legal only for a matching native route and exact official origin. The per-client `X-LAO-Key` is always consumed locally. The Anthropic protocol/OAuth capability in `anthropic-beta` is preserved only for the exact native Anthropic route. Local and third-party routes receive neither. A route cannot change after an egress-auth action is created.
 
 ### 4.3 ManagedRuntime and ExternalEndpoint
 
@@ -335,17 +337,22 @@ Owner: A01
 
 Dependencies: P0-01
 
-Using current official Codex documentation and open-source implementation, verify the built-in-provider plus root-base-URL path against a fake upstream and a manually authorized native smoke test.
+Using current official Codex documentation and open-source implementation, verify a managed custom provider against a fake upstream. Keep the real-subscription smoke as a separate, explicitly authorized final gate.
 
 Acceptance:
 
-- no read or copy of Codex auth storage;
+- LAO never opens or copies real Codex auth storage;
 - ChatGPT-subscription versus API-key mode is determined through supported client status/behavior, never auth-file inspection, before subscription preservation is claimed;
-- config change is isolated and reversible;
+- the spike writes only to a disposable Codex home; P0-05 owns real configuration and rollback;
 - fake upstreams receive synthetic sentinel credentials only; a real credential is sent only in a manual smoke test to the exact official origin;
+- Codex 0.146.0 uses a custom `lao` provider with `requires_openai_auth = true`, `supports_websockets = false`, a non-secret `/oai` prefix, and a separate `X-LAO-Key` header;
+- synthetic native auth and caller auth coexist, but neither appears in complete client stdout or stderr;
+- the shared user setting's possible IDE-extension impact is reported before any future write;
 - any test-only origin injection exists only in test builds and cannot be configured in a release binary;
 - unsupported versions fail closed with a clear doctor result;
 - behavior is documented as compatibility, not a permanent provider guarantee.
+
+Synthetic result (2026-08-25): passed for installed `codex exec` 0.146.0. An ignored opt-in test under `svc/codex/tests` uses a disposable Codex home, synthetic native auth, and a distinct caller token. It observed an HTTP/SSE `POST /oai/responses` through the custom provider, proved both header classes arrived, completed a streamed response, and found neither token in stdout or stderr. It touched no real config or auth. Run with `cargo test -p lao-codex --test installed -- --ignored`. Tools, compact/models endpoints, errors, cancellation, configuration writes, and the explicitly authorized real-subscription smoke remain separate later gates.
 
 ### P0-03 — Claude subscription gateway spike
 
@@ -353,17 +360,21 @@ Owner: A02
 
 Dependencies: P0-01
 
-Verify base-URL-only configuration, effective credential precedence, beta capability forwarding, SSE pings, errors, and session identifiers using official gateway behavior.
+Verify base URL plus custom caller-header configuration, effective credential precedence, beta capability forwarding, SSE pings, errors, and session identifiers using official gateway behavior.
 
 Acceptance:
 
 - no API key helper or imported credential;
-- saved account remains active;
+- saved account remains active only when no other credential/provider wins effective precedence;
+- the spike writes only to a disposable Claude home; P0-05 owns real configuration and rollback;
+- Claude Code 2.1.223 preserves a non-secret `/ant` prefix and proves its unauthenticated bodyless hello probe and caller-authenticated Messages SSE request shape;
+- synthetic native auth and caller auth coexist on payload requests, but neither appears in complete client stdout or stderr;
+- because current official documentation declares `ANTHROPIC_CUSTOM_HEADERS` supported from 2.1.227, production support remains closed until that or a later version passes the same installed probe;
 - existing ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, apiKeyHelper, workload identity, provider settings, and shell base-URL overrides are detected and presented as conflicts rather than deleted;
 - effective-configuration smoke tests prove which credential/base URL wins before claiming subscription preservation;
-- unknown Anthropic fields survive pass-through;
-- required error bodies and retry headers survive;
-- local-route tests remove native auth and Anthropic protocol/OAuth capability data; the URL-path caller capability is consumed locally before routing.
+- Remote Control and unproven IDE/Desktop/background surfaces are reported unsupported; auxiliary traffic outside the model gateway is not described as intercepted.
+
+Synthetic result (2026-08-25): passed for installed Claude Code 2.1.223 in `--bare --print` mode. An ignored opt-in test under `svc/claude/tests` uses disposable homes, synthetic native auth, and a distinct caller token. It observed the unauthenticated bodyless `HEAD /ant/api/hello`, then a caller-authenticated Messages request with the native bearer still present, settings-over-shell base-URL precedence, protocol beta/version/session headers, SSE ping, and streamed text. It found neither token in stdout or stderr, touched no real config or auth, and did not prove saved-subscription behavior. Run with `cargo test -p lao-claude --test installed -- --ignored`. Errors, cancellation, configuration writes, effective-config resolution, and the explicitly authorized real-subscription smoke remain separate later gates.
 
 ### P0-04 — Credential firewall proof
 
@@ -371,13 +382,18 @@ Owner: A03
 
 Dependencies: P0-02, P0-03
 
-Implement an isolated prototype with exact route/origin/path allowlists, path capability validation, header classification, redirect rejection, and fake adversarial upstreams.
+Implement an isolated prototype with exact route/origin/path allowlists, per-client caller-header validation, header classification, redirect rejection, and fake adversarial upstreams.
 
 Acceptance:
 
 - exhaustive fixture matrix proves no native secret reaches local or third-party routes;
 - scheme, host, port, path, DNS rebinding, redirect, and case/encoding confusion fail closed;
-- path capability never appears in product-controlled logs, errors, telemetry, crash reports, or support bundles;
+- missing, wrong, duplicate, conflicting, and cross-client caller tokens fail before a payload body is read;
+- the exact Claude hello probe is the only unauthenticated path and cannot carry a body or trigger state;
+- `Host` is validated, CORS is absent, and caller tokens never appear in product-controlled logs, errors, telemetry, crash reports, or support bundles;
+- a hostile pre-bound port fails setup before configuration changes; a supervisor-held socket remains owned across daemon crashes and restarts;
+- native pass-through preserves unknown fields, error bodies, and retry-relevant headers;
+- all routes consume `X-LAO-Key`; local routes rebuild a clean request without native auth, Anthropic protocol/OAuth capability data, or client identifiers;
 - induced failures scan complete supported-client stdout/stderr; any echo is documented and triggers rotation guidance;
 - route is immutable after egress auth is created and router code cannot inspect/clone/serialize sealed credentials;
 - firewall runs before protocol rewriting.
@@ -393,6 +409,10 @@ Prototype byte-preserving backup and managed user-settings edits for Codex TOML 
 Acceptance:
 
 - failure injection after every write stage restores original bytes and permissions;
+- two independent 256-bit caller tokens are generated, stored under owner-only directory/file permissions, and rotated atomically;
+- a transaction lock and crash journal make repeated apply, repair, rollback, and interrupted replacement deterministic;
+- managed client config becomes active only after the OS supervisor owns and verifies the loopback socket, and rollback completes before that ownership is released;
+- platforms without equivalent continuous socket ownership cannot enable persistent interception;
 - concurrent installers serialize;
 - changed user files are never overwritten silently;
 - the PoC support claim is limited to Codex CLI/TUI and Claude Code CLI; IDE, desktop, and background surfaces remain unsupported until separate adapters pass;
@@ -644,7 +664,7 @@ Owner: A03
 
 Dependencies: F-02, F-03, P0-01
 
-Implement streaming ingress, path capability, request limits, cancellation, timeout, and route dispatch for the exact required Responses and Messages endpoints.
+Implement streaming ingress, per-client caller-header authentication, request limits, cancellation, timeout, and route dispatch for the exact required Responses and Messages endpoints.
 
 ### G-02 — Codex client adapter
 
@@ -660,7 +680,7 @@ Owner: A02
 
 Dependencies: G-01, F-04, P0-03, P0-05
 
-Implement base-URL-only setup, hooks, protocol headers, smoke test, pause, repair, and restoration.
+Implement base URL plus managed caller header, hooks, protocol headers, smoke test, pause, repair, and restoration.
 
 ### G-04 — Production credential firewall
 
@@ -1326,7 +1346,7 @@ Acceptance:
 ### Security
 
 - Native credentials never reach local/third-party endpoints.
-- Local path capability never appears in product-controlled output or crosses origin; supported-client stdout/stderr exposure is tested and rotated.
+- Local caller tokens never appear in product-controlled output or cross origin; supported-client stdout/stderr exposure is tested and rotation is atomic.
 - Anthropic native capability reaches only the exact native Anthropic origin.
 - Real credentials never enter fake-upstream tests.
 - Redirect, DNS, host, path, encoding, and case confusion.

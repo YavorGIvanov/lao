@@ -37,6 +37,21 @@
     .flow { min-height: 210px; }
     .control-flow { margin-top: 22px; }
     .control-target { color: var(--dim); }
+    .proofs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
+    .proof { border-left: 2px solid var(--yellow); padding: 8px 12px; color: var(--dim); }
+    .proof b { color: var(--chalk); }
+    .client-page { padding-top: 46px; }
+    .client-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .client-card { border: 2px solid var(--chalk); padding: 20px; box-shadow: 3px 3px 0 var(--line); }
+    .client-card:nth-child(2) { transform: rotate(.2deg); }
+    .client-card h3 { font-size: 1.3rem; }
+    .mini-flow { color: var(--yellow); padding: 14px 0; line-height: 1.8; }
+    .mini-flow span { color: var(--dim); }
+    .facts { margin: 0; padding-left: 20px; color: var(--dim); }
+    .facts li { margin: 7px 0; }
+    .north { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .north div { border-top: 2px solid var(--green); padding-top: 10px; color: var(--dim); }
+    .north b { display: block; color: var(--chalk); margin-bottom: 5px; }
     .stack { display: grid; gap: 10px; }
     .node {
       border: 2px solid var(--chalk);
@@ -83,7 +98,7 @@
       .flow { flex-direction: column; }
       .flow .arrow { transform: rotate(90deg); }
       .control-flow { align-items: flex-start; }
-      .layers, .grid { grid-template-columns: 1fr; display: grid; }
+      .layers, .grid, .proofs, .client-cards, .north { grid-template-columns: 1fr; display: grid; }
       .layer { width: 100%; }
       .checks { grid-template-columns: 1fr; }
       table { display: block; overflow-x: auto; }
@@ -91,30 +106,31 @@
     @media print {
       :root { color-scheme: light; --board: #fff; --chalk: #111; --dim: #333; --green: #174c28; --yellow: #644d00; --line: #777; }
       main { width: 100%; padding: 0; }
+      .client-page { break-before: page; }
     }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="note">LOCAL AGENT OPTIMIZER · CURRENT MAP · P0-01</div>
-    <h1>How the pieces fit.</h1>
-    <p>LAO sits quietly beside Codex and Claude Code. Easy work may go to a local model. Everything else keeps its normal cloud path. The harness stays in charge.</p>
+    <div class="note">LOCAL AGENT OPTIMIZER · TARGET MAP + CURRENT EVIDENCE</div>
+    <h1>How the pieces should fit.</h1>
+    <p>LAO sits quietly beside Codex and Claude Code. Easy work may go to a local model. Supported model traffic keeps its native cloud path. The harness stays in charge.</p>
   </header>
 
   <section>
     <h2>1. The runtime idea</h2>
     <div class="flow" aria-label="Codex and Claude Code use the LAO daemon, which chooses a local runtime or native cloud path.">
       <div class="stack">
-        <div class="node"><strong>Codex</strong><small>unchanged</small></div>
-        <div class="node"><strong>Claude Code</strong><small>unchanged</small></div>
+        <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
+        <div class="node"><strong>Claude Code</strong><small>same command + harness</small></div>
       </div>
       <div class="arrow">→</div>
       <div class="node main">
         <strong>lao-daemon</strong>
         <small>small, always-on coordinator</small>
         <div class="inside">
-          <span>gate</span><span>route</span><span>run</span><span>model</span><span>codex</span><span>claude</span>
+          <span>gate</span><span>route</span><span>run</span><span>model</span>
         </div>
       </div>
       <div class="arrow">→</div>
@@ -126,13 +142,55 @@
     <div class="control-flow" aria-label="The short-lived lao command configures the clients and controls the daemon, but does not carry coding requests.">
       <div class="node"><strong><code>lao</code> control</strong><small>rare: setup · doctor · off</small></div>
       <div class="arrow">⇢</div>
-      <div class="control-target"><code>client config + hooks</code><br><code>daemon control socket</code><br>then the command exits</div>
+      <div class="control-target"><code>codex + claude adapters</code><br><code>preview · doctor · smoke</code><br>then the command exits</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Codex or Claude Code remains the daily interface. Today: package boundaries and byte-exact HTTP pass-through are proven. Client compatibility is the next gate; production routing is still off.</p>
+    <div class="proofs" aria-label="Installed-client compatibility evidence">
+      <div class="proof"><b>Codex 0.146.0</b><br>custom provider + caller header → HTTP/SSE</div>
+      <div class="proof"><b>Claude Code 2.1.223</b><br>base URL + caller header → Messages SSE</div>
+    </div>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility and separate caller-token delivery are proven for the exact modes above. Gate validation, config writes, local routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
+  </section>
+
+  <section class="client-page">
+    <h2>2. How Codex and Claude connect</h2>
+    <p>P0-04/P0-05 target: the commands stay familiar. Their managed settings point model requests at one supervisor-owned loopback gate. Each client gets its own private caller token. Native provider credentials stay separate.</p>
+    <div class="client-cards">
+      <article class="client-card">
+        <h3>Codex</h3>
+        <div class="mini-flow">codex <span>→</span> provider “lao” <span>→</span> /oai + X-LAO-Key <span>→</span> gate</div>
+        <ul class="facts">
+          <li>Reuses Codex native auth. LAO does not read its auth files.</li>
+          <li>Uses HTTP/SSE first. No WebSocket fallback dance.</li>
+          <li>Proven synthetically with <code>codex exec 0.146.0</code>.</li>
+          <li>User config can also affect the Codex IDE extension.</li>
+        </ul>
+      </article>
+      <article class="client-card">
+        <h3>Claude Code</h3>
+        <div class="mini-flow">claude <span>→</span> /ant + X-LAO-Key <span>→</span> gate</div>
+        <ul class="facts">
+          <li>Uses the official gateway base URL and a custom caller header.</li>
+          <li>The harmless HEAD hello probe is the only token-free request.</li>
+          <li>Observed on 2.1.223. Re-probe the documented 2.1.227+ before support.</li>
+          <li>Remote Control is disabled by a custom base URL.</li>
+        </ul>
+      </article>
+    </div>
+    <div class="flow" aria-label="The gate authenticates the local caller, then chooses a clean local request or an exact native cloud route.">
+      <div class="node"><strong>client request</strong><small>caller token + native auth</small></div>
+      <div class="arrow">→</div>
+      <div class="node main"><strong>gate</strong><small>P0-04 target: check · strip · freeze route</small></div>
+      <div class="arrow">→</div>
+      <div class="split">
+        <div class="node"><strong>local</strong><small>clean request; no native secrets</small></div>
+        <div class="node"><strong>native cloud</strong><small>exact official origin only</small></div>
+      </div>
+    </div>
+    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. Early tests used no real credentials.</p>
   </section>
 
   <section>
-    <h2>2. Optional work sleeps</h2>
+    <h2>3. Optional work sleeps</h2>
     <p>Heavy or sensitive jobs use separate, least-authority processes. They are not loaded into the daemon.</p>
     <div class="lane" aria-label="Optional capture, vault, evaluation and training workers form a consent-gated evidence path.">
       <div class="node optional"><strong>capture worker</strong><small>scrub + snapshot</small></div>
@@ -147,7 +205,7 @@
   </section>
 
   <section>
-    <h2>3. The one dependency rule</h2>
+    <h2>4. The one dependency rule</h2>
     <div class="layers" aria-label="Applications may use services and APIs. Services may use APIs. APIs never use services.">
       <div class="layer"><b>app/*</b><span>Chooses concrete parts and wires them together.</span></div>
       <div class="arrow">→</div>
@@ -159,7 +217,7 @@
   </section>
 
   <section>
-    <h2>4. Workspace map</h2>
+    <h2>5. Workspace map</h2>
     <div class="grid">
       <pre aria-label="Repository folder tree">new/
 ├── Cargo.toml       29-package workspace
@@ -182,11 +240,11 @@
   </section>
 
   <section>
-    <h2>5. Component → code</h2>
+    <h2>6. Component → code</h2>
     <table>
       <thead><tr><th>Component</th><th>Contract</th><th>Implementation</th><th>Runs in</th><th>Owns</th></tr></thead>
       <tbody>
-        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>daemon / CLI</td><td>client config journals</td></tr>
+        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + preview</td></tr>
         <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>private credential flow</td></tr>
         <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>routing policy</td></tr>
         <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + runtime state</td></tr>
@@ -201,13 +259,28 @@
   </section>
 
   <section>
-    <h2>6. The architecture is executable</h2>
+    <h2>7. The architecture is executable</h2>
     <div class="checks">
       <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
     </div>
+  </section>
+
+  <section>
+    <h2>8. The manifesto is the north star</h2>
+    <div class="north">
+      <div><b>Keep the harness.</b>The user keeps coding in Codex or Claude.</div>
+      <div><b>Start modestly.</b>Use local only for clearly bounded work.</div>
+      <div><b>Write less.</b>Prefer one small seam over a framework.</div>
+      <div><b>Measure it.</b>Promote models and routes only from evidence.</div>
+      <div><b>Ask first.</b>Capture, spend, cloud eval, and training need consent.</div>
+      <div><b>Own boundaries.</b>Private state. Versioned APIs. No sibling imports.</div>
+      <div><b>Leave headroom.</b>Never consume the whole machine.</div>
+      <div><b>Simplify last.</b>Remove safe complexity after every change.</div>
+    </div>
+    <p class="note">The complete project and coding manifesto is the first section of <a href="README.md">README.md</a>. Every implementation agent starts there.</p>
   </section>
 
   <footer>
