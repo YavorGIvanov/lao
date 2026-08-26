@@ -99,4 +99,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 and P0-01 are complete. The synthetic installed-client portions of P0-02/P0-03 pass for Codex 0.146.0 and Claude Code 2.1.223. The first isolated P0-04 policy model passes with synthetic credentials; P0-04 network and supervisor integration remain open. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Real-subscription smoke tests remain explicit and approval-gated. Production routing and real configuration writes are still off.
+P0-00 and P0-01 are complete. The synthetic installed-client portions of P0-02/P0-03 pass for Codex 0.146.0 and Claude Code 2.1.223. The P0-04 policy model and first private Hyper exchange pass with synthetic credentials; daemon, TLS, DNS, and supervisor integration remain open. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Real-subscription smoke tests remain explicit and approval-gated. Production routing and real configuration writes are still off.

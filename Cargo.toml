@@ -11,9 +11,12 @@ authors = ["YavorGIvanov <yavorgenadiev@gmail.com>"]
 license = "MIT"
 
 [workspace.dependencies]
+hyper = { version = "=1.11.0", default-features = false, features = ["client", "http1", "server"] }
+hyper-util = { version = "=0.1.20", default-features = false, features = ["tokio"] }
 libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+tokio = { version = "=1.53.1", default-features = false, features = ["io-util", "net", "rt", "time"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"

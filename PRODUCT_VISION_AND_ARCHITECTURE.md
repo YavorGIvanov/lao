@@ -513,9 +513,9 @@ For local or third-party routes:
 
 Routing and credential handling are separate state machines. A route cannot change after an egress-auth action is created. A route confusion bug must fail closed.
 
-The first P0-04 isolated Rust policy model exercises this state shape with synthetic credentials and exact targets. It is deliberately partial and test-only: the production gate, network resolver, redirect handling, launchd activation, and configuration transaction remain unimplemented.
+The P0-04 policy model exercises this state shape with synthetic credentials and exact targets. The first private Hyper exchange also consumes its synthetic caller capability before connecting, rewrites the exact native target, and streams the request and SSE response without application body collection. Invalid caller values create no upstream connection. Policy and transport are not integrated and the exchange is not wired into the daemon: ingress policy, complete header classification, TLS, DNS policy, redirect handling, launchd activation, and configuration remain unimplemented.
 
-The production gate uses one narrow HTTP stack: Hyper HTTP/1 on both sides and hyper-rustls with platform verification for native HTTPS. It builds the exact upstream URI only after route freeze and includes no redirect layer. Dependencies enter the workspace with the first measured production exchange, not before it.
+The production gate uses one narrow HTTP stack: Hyper HTTP/1 on both sides and hyper-rustls with platform verification for native HTTPS. It builds the exact upstream URI only after route freeze and includes no redirect layer. Only the measured HTTP/1 features are enabled now; rustls enters with the first native HTTPS exchange.
 
 ### 7.5 Safe fallback
 

@@ -147,8 +147,9 @@
     <div class="proofs" aria-label="Installed-client compatibility evidence">
       <div class="proof"><b>Codex 0.146.0</b><br>custom provider + caller header → HTTP/SSE</div>
       <div class="proof"><b>Claude Code 2.1.223</b><br>base URL + caller header → Messages SSE</div>
+      <div class="proof"><b>Hyper HTTP/1</b><br>bounded synthetic loopback exchange passed</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility, separate caller-token delivery, and the first isolated firewall policy model are proven. P0-04 network integration, config writes, local routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility, caller-token delivery, the firewall model, and one private Hyper exchange are proven. Daemon wiring, TLS/DNS, config writes, local routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
   </section>
 
   <section class="client-page">
@@ -187,7 +188,7 @@
       </div>
     </div>
     <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. The firewall proof uses synthetic credentials only.</p>
-    <p class="note">Planned production transport: one narrow Hyper HTTP/1 stack on both sides, rustls for native HTTPS, and no redirect layer. It is not linked yet.</p>
+    <p class="note">Transport slice: one narrow Hyper HTTP/1 stack consumes the caller token and streams one synthetic exchange. Policy is still separate and the daemon must not call it yet. Rustls, native TLS identity, and DNS policy are next; no redirect layer will be added.</p>
   </section>
 
   <section>
@@ -267,6 +268,7 @@
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
       <div class="check"><b>firewall model</b><p>Proves caller-first checks, exact cloud targets, clean local headers and bind-before-config ordering.</p></div>
+      <div class="check"><b>Hyper exchange</b><p>Proves caller-token consumption, exact host/path rewrite, synthetic Authorization, SSE and unknown response headers.</p></div>
     </div>
   </section>
 
