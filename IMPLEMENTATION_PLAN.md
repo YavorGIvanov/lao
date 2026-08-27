@@ -398,11 +398,11 @@ Acceptance:
 - route is immutable after egress auth is created and router code cannot inspect/clone/serialize sealed credentials;
 - firewall runs before protocol rewriting.
 
-Partial synthetic result (2026-08-26): the isolated `svc/gate/tests/firewall.rs` model passes without dependencies or real credentials. Six tests cover per-client caller authentication before body reads, consistent framing for the inert Claude hello exception, immutable route materialization, exact native targets and auth classes, clean local/third-party headers, malformed host/path/CORS rejection, and binding before configuration while retaining an owner handle. This proves the policy shape only; P0-04 remains open. DNS, TLS, redirect handling, sealed credential storage, full error/retry preservation, client-output scanning, daemon wiring, and launchd activation are not yet proven.
-
 Network decision (2026-08-26): use narrowly featured [Hyper HTTP/1](https://docs.rs/hyper/latest/hyper/server/conn/http1/) for both client ingress and upstream egress, plus [hyper-rustls](https://docs.rs/hyper-rustls/latest/hyper_rustls/) with the [platform verifier](https://docs.rs/rustls-platform-verifier/latest/rustls_platform_verifier/) for native HTTPS. Build the exact URI only after route freeze, require HTTPS for native routes, and add no redirect middleware. Hyper owns HTTP framing and streams bodies without a second protocol stack.
 
-Hyper result (2026-08-27): `svc/gate/src/net.rs` implements one private HTTP/1 native exchange with no application body collection. It validates and consumes one 256-bit caller capability before connecting, rewrites the exact host and path, forwards a synthetic authorization header, and returns the SSE body and unknown response header. A negative exchange proves missing, wrong, or duplicate caller values cause no upstream connection. Hyper 1.11.0, hyper-util 0.1.20, and Tokio 1.53.1 are pinned with only client/server HTTP/1, Tokio I/O, network, current-thread runtime, and timeout support. Policy and transport remain separate: this slice does not enforce the full ingress, auth-class, or header firewall and must not be wired directly into the daemon. Rustls remains deferred until the first native HTTPS exchange.
+Integrated synthetic result (2026-08-27): `svc/gate/src/policy.rs` is the single private policy implementation and `svc/gate/src/net.rs` consumes only its frozen request. Admission validates exact Host, methods, paths, framing metadata, CORS absence, and separate caller capabilities. Freeze validates the client/native-auth matrix, strips hop-by-hop data, rebuilds local headers from an allowlist, and binds the route, semantic target, Host, and path before the first upstream connection. Synthetic Codex-cloud and Claude-local exchanges carry Hyper `Incoming` bodies without application buffering, return SSE, strip request and response hop-by-hop fields plus reflected credential headers, preserve permitted unknown native headers, and prove local bytes contain none of the credential sentinels. Missing, wrong, duplicate, cross-client, or auth-confused inputs create no upstream connection, including a rejected request with a declared but unsent body. A 3xx response is not relayed. Ten focused tests replace the duplicate test-only firewall implementation.
+
+P0-04 remains open. The code is private and unwired from the daemon. Test code maps an already-frozen semantic target to its loopback fixture. Non-test native connections fail closed until hostname-verified TLS and DNS/rebinding policy exist; direct non-test HTTP accepts only the fixed local loopback target. The exact Claude hello is admitted but has no transport response. Supervisor-held socket activation, sealed router handoff, complete errors/retries/cancellation, and client-output scanning remain unimplemented. Hyper 1.11.0, hyper-util 0.1.20, and Tokio 1.53.1 remain narrowly pinned; rustls enters only with the first native HTTPS exchange.
 
 ### P0-05 — Transactional configuration proof
 
@@ -694,7 +694,7 @@ Owner: A03
 
 Dependencies: G-01, G-02, G-03
 
-Move the proven firewall into production, with exact official origin policy, no redirects, minimal native forwarding, and total local/third-party stripping.
+Harden and wire the proven private firewall, with exact official origin policy, no redirects, minimal native forwarding, and total local/third-party stripping.
 
 ### G-05 — Protocol conformance corpus
 

@@ -72,7 +72,7 @@ This repository contains the research-backed product specification, implementati
 
 1. Read the product architecture and implementation plan below.
 2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Review the P0-02/P0-03 client probes and the first P0-04 policy model, then finish P0-04 network integration before P0-05 configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
+3. Review the P0-02/P0-03 client probes and private P0-04 gate, then finish native HTTPS, DNS, and supervisor ownership before P0-05 configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
 4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
 5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
 6. Keep capture, eval, optimization, and training disabled behind their APIs.
@@ -99,4 +99,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 and P0-01 are complete. The synthetic installed-client portions of P0-02/P0-03 pass for Codex 0.146.0 and Claude Code 2.1.223. The P0-04 policy model and first private Hyper exchange pass with synthetic credentials; daemon, TLS, DNS, and supervisor integration remain open. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Real-subscription smoke tests remain explicit and approval-gated. Production routing and real configuration writes are still off.
+P0-00 and P0-01 are complete. The synthetic installed-client portions of P0-02/P0-03 pass for Codex 0.146.0 and Claude Code 2.1.223. The private P0-04 policy-to-Hyper path passes synthetic Codex-cloud and Claude-local exchanges; non-test native connections remain disabled until TLS identity and DNS policy exist. Daemon wiring, the Claude hello response, and supervisor integration also remain open. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Real-subscription smoke tests remain explicit and approval-gated. Production routing and real configuration writes are still off.
