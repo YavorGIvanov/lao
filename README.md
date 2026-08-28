@@ -50,6 +50,7 @@ This repository contains the research-backed product specification, implementati
 - Make invalid states hard to express.
 - Fail closed at trust boundaries.
 - Test contracts and outcomes.
+- Test real paths end to end when cheap; mock only unsafe, costly, or unavailable boundaries.
 - Keep the hot path small.
 
 ### Architecture
