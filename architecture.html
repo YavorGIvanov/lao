@@ -145,11 +145,11 @@
       <div class="control-target"><code>codex + claude adapters</code><br><code>preview · doctor · smoke</code><br>then the command exits</div>
     </div>
     <div class="proofs" aria-label="Installed-client compatibility evidence">
-      <div class="proof"><b>Codex 0.146.0</b><br>custom provider + caller header → HTTP/SSE</div>
-      <div class="proof"><b>Claude Code 2.1.223</b><br>base URL + caller header → Messages SSE</div>
-      <div class="proof"><b>private gate</b><br>policy + Hyper synthetic exchanges pass</div>
+      <div class="proof"><b>Codex 0.146.0</b><br>saved ChatGPT login → gate → native cloud</div>
+      <div class="proof"><b>Claude Code 2.1.223</b><br>saved claude.ai login → gate → native cloud</div>
+      <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. Synthetic compatibility, caller-token delivery, and the private policy-to-Hyper path are proven. Daemon wiring, TLS/DNS, config writes, real routing, broader client surfaces, and real-subscription smoke tests remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed synthetic rejection/local-secret tests and one cheap native E2E through each installed harness. Daemon wiring, supervisor ownership, config writes, real routing, and broader client surfaces remain off.</p>
   </section>
 
   <section class="client-page">
@@ -162,7 +162,7 @@
         <ul class="facts">
           <li>Reuses Codex native auth. LAO does not read its auth files.</li>
           <li>Uses HTTP/SSE first. No WebSocket fallback dance.</li>
-          <li>Proven synthetically with <code>codex exec 0.146.0</code>.</li>
+          <li>One tool-free E2E passed with the saved ChatGPT login.</li>
           <li>User config can also affect the Codex IDE extension.</li>
         </ul>
       </article>
@@ -172,7 +172,7 @@
         <ul class="facts">
           <li>Uses the official gateway base URL and a custom caller header.</li>
           <li>The harmless HEAD hello probe is the only token-free request.</li>
-          <li>Observed on 2.1.223. Re-probe the documented 2.1.227+ before support.</li>
+          <li>One saved-login E2E passed on 2.1.223; re-probe 2.1.227+.</li>
           <li>Remote Control is disabled by a custom base URL.</li>
         </ul>
       </article>
@@ -187,9 +187,9 @@
         <div class="node"><strong>native cloud</strong><small>exact official origin only</small></div>
       </div>
     </div>
-    <div class="mini-flow">request <span>→</span> admit <span>→</span> frozen route + target <span>→</span> Hyper <span>→</span> selected upstream</div>
-    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. Tests use synthetic credentials only.</p>
-    <p class="note">Current private slice: policy validates the local request and freezes one semantic target before Hyper receives it. Codex-cloud and Claude-local fixtures pass; redirects and hop-by-hop fields are not relayed. Native connections are disabled outside tests until TLS identity and DNS policy exist. The daemon must not call this yet. The Claude hello response and supervisor wiring are also next.</p>
+    <div class="mini-flow">request <span>→</span> admit <span>→</span> frozen route + target <span>→</span> DNS once <span>→</span> verified TLS <span>→</span> Hyper</div>
+    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. Native E2E reuses the harness login without reading it.</p>
+    <p class="note">Current private slice: policy freezes one semantic target. Native egress resolves it once, rejects non-public answers, verifies the platform certificate and hostname, then gives the stream to Hyper. Redirects and hop-by-hop fields are not relayed. The inert Claude hello returns locally. The daemon must not call this until supervisor socket ownership is implemented.</p>
   </section>
 
   <section>
@@ -269,7 +269,7 @@
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
       <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets, clean local headers and bind-before-config ordering.</p></div>
-      <div class="check"><b>gate transport</b><p>Proves synthetic Codex-cloud and Claude-local exchanges, no application body buffering, no local secrets, SSE and redirect blocking.</p></div>
+      <div class="check"><b>gate transport</b><p>Proves synthetic rejection/local secrecy and real installed-harness HTTPS with saved native logins.</p></div>
     </div>
   </section>
 
@@ -284,6 +284,7 @@
       <div><b>Own boundaries.</b>Private state. Versioned APIs. No sibling imports.</div>
       <div><b>Leave headroom.</b>Never consume the whole machine.</div>
       <div><b>Simplify last.</b>Remove safe complexity after every change.</div>
+      <div><b>Test the real path.</b>Run cheap end-to-end checks when they are safe.</div>
     </div>
     <p class="note">The complete project and coding manifesto is the first section of <a href="README.md">README.md</a>. Every implementation agent starts there.</p>
   </section>
