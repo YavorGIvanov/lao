@@ -148,7 +148,7 @@
     </div>
     <div class="proofs" aria-label="Installed-client compatibility evidence">
       <div class="proof"><b>Codex 0.146.0</b><br>saved-login success + error → gate → cloud</div>
-      <div class="proof"><b>Claude Code 2.1.223</b><br>saved claude.ai login → gate → native cloud</div>
+      <div class="proof"><b>Claude Code 2.1.251</b><br>saved Claude.ai login → gate → cloud</div>
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
     </div>
@@ -175,7 +175,7 @@
         <ul class="facts">
           <li>Uses the official gateway base URL and a custom caller header.</li>
           <li>The harmless HEAD hello probe is the only token-free request.</li>
-          <li>One saved-login E2E passed on 2.1.223; re-probe 2.1.227+.</li>
+          <li>Protocol and saved-login E2Es passed on 2.1.251.</li>
           <li>Remote Control is disabled by a custom base URL.</li>
         </ul>
       </article>
@@ -276,7 +276,7 @@
       <div class="check"><b>early proxy proof</b><p>Measures byte streaming, keep-alive and cancellation in the small transport prototype.</p></div>
       <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets and clean local headers.</p></div>
       <div class="check"><b>router handoff</b><p>Proves rejected callers never reach routing and accepted requests expose only client and operation.</p></div>
-      <div class="check"><b>gate transport</b><p>Preserves SSE and native errors; Codex success and invalid-model E2Es reuse its saved login.</p></div>
+      <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
     </div>
   </section>

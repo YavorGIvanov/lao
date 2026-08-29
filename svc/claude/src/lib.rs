@@ -1,6 +1,6 @@
 use lao_client_api::Status;
 
-pub const OBSERVED: Version = Version(2, 1, 223);
+pub const OBSERVED: Version = Version(2, 1, 251);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Version(pub u16, pub u16, pub u16);
@@ -108,8 +108,8 @@ mod tests {
 
     #[test]
     fn owns_support_window() {
-        assert_eq!(support("2.1.223 (Claude Code)"), Support::Observed);
-        assert_eq!(support("2.1.224 (Claude Code)"), Support::Untested);
+        assert_eq!(support("2.1.251 (Claude Code)"), Support::Observed);
+        assert_eq!(support("2.1.252 (Claude Code)"), Support::Untested);
         assert_eq!(support("dev"), Support::Invalid);
     }
 

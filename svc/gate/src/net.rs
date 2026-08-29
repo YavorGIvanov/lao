@@ -341,6 +341,50 @@ mod tests {
     }
 
     #[test]
+    fn downstream_cancel_closes_upstream() {
+        rt(async {
+            let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate_addr = gate.local_addr().unwrap();
+            let plan = plan(upstream.local_addr().unwrap(), Decision::Cloud);
+            let upstream_task = tokio::spawn(async move {
+                let (mut stream, _) = upstream.accept().await.unwrap();
+                let _ = read_request(&mut stream).await;
+                stream
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 1000000\r\n\r\nx")
+                    .await
+                    .unwrap();
+                let mut byte = [0];
+                assert_eq!(
+                    tokio::time::timeout(Duration::from_secs(1), stream.read(&mut byte))
+                        .await
+                        .unwrap()
+                        .unwrap(),
+                    0
+                );
+            });
+            let gate_task = tokio::spawn(async move {
+                let (stream, _) = gate.accept().await.unwrap();
+                serve(stream, plan).await
+            });
+
+            let mut client = TcpStream::connect(gate_addr).await.unwrap();
+            let request = format!(
+                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: {CODEX}\r\nAuthorization: Bearer synthetic\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                BODY.len()
+            );
+            client.write_all(request.as_bytes()).await.unwrap();
+            client.write_all(BODY).await.unwrap();
+            let mut byte = [0];
+            client.read_exact(&mut byte).await.unwrap();
+            drop(client);
+
+            upstream_task.await.unwrap();
+            let _ = gate_task.await.unwrap();
+        });
+    }
+
+    #[test]
     fn claude_local_never_sends_secrets() {
         rt(async {
             let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -530,7 +574,7 @@ mod tests {
     #[test]
     #[ignore = "uses the installed Claude login for one cheap native request"]
     fn installed_claude_reaches_anthropic_through_gate() {
-        version("claude", "2.1.223 (Claude Code)");
+        version("claude", "2.1.251 (Claude Code)");
         let live = Live::start(Cloud::AnthropicBearer);
         let settings = format!(
             "{{\"env\":{{\"ANTHROPIC_BASE_URL\":\"http://127.0.0.1:{}/ant\",\"ANTHROPIC_CUSTOM_HEADERS\":\"X-LAO-Key: {CLAUDE}\",\"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\":\"1\"}}}}",
