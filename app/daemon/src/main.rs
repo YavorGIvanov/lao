@@ -1,8 +1,6 @@
 fn main() {
-    let _ = (
-        lao_gate::status(),
-        lao_route::status(),
-        lao_model::status(),
-        lao_run::status(),
-    );
+    if let Err(error) = lao_daemon::run() {
+        eprintln!("lao-daemon: {error}");
+        std::process::exit(1);
+    }
 }

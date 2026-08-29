@@ -120,11 +120,13 @@
 
   <section>
     <h2>1. The runtime idea</h2>
-    <div class="flow" aria-label="Codex and Claude Code use the LAO daemon, which chooses a local runtime or native cloud path.">
+    <div class="flow" aria-label="Codex and Claude Code reach the LAO daemon through a launchd-owned socket, then use a local runtime or native cloud path.">
       <div class="stack">
         <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
         <div class="node"><strong>Claude Code</strong><small>same command + harness</small></div>
       </div>
+      <div class="arrow">→</div>
+      <div class="node"><strong>launchd socket</strong><small>owns 127.0.0.1:PORT</small></div>
       <div class="arrow">→</div>
       <div class="node main">
         <strong>lao-daemon</strong>
@@ -148,8 +150,9 @@
       <div class="proof"><b>Codex 0.146.0</b><br>saved ChatGPT login → gate → native cloud</div>
       <div class="proof"><b>Claude Code 2.1.223</b><br>saved claude.ai login → gate → native cloud</div>
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
+      <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed synthetic rejection/local-secret tests and one cheap native E2E through each installed harness. Daemon wiring, supervisor ownership, config writes, real routing, and broader client surfaces remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed synthetic and installed-harness E2Es. The real daemon now adopts launchd’s listener in a closed mode: hello works; payloads do not. Config writes, real routing, and broader client surfaces remain off.</p>
   </section>
 
   <section class="client-page">
@@ -188,8 +191,8 @@
       </div>
     </div>
     <div class="mini-flow">request <span>→</span> admit <span>→</span> frozen route + target <span>→</span> DNS once <span>→</span> verified TLS <span>→</span> Hyper</div>
-    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd must own the socket before activation and through daemon crashes. Same-user malware is out of scope. Native E2E reuses the harness login without reading it.</p>
-    <p class="note">Current private slice: policy freezes one semantic target. Native egress resolves it once, rejects non-public answers, verifies the platform certificate and hostname, then gives the stream to Hyper. Redirects and hop-by-hop fields are not relayed. The inert Claude hello returns locally. The daemon must not call this until supervisor socket ownership is implemented.</p>
+    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd owns the socket before config changes and through daemon crashes. Same-user malware is out of scope. A user LaunchAgent protects only the active GUI login session—not logout or reboot.</p>
+    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file; P0-05 must also pass the exact hello before config changes. Native egress uses one DNS result and verified TLS. Redirects and hop-by-hop fields are not relayed. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
   </section>
 
   <section>
@@ -248,6 +251,7 @@
       <thead><tr><th>Component</th><th>Contract</th><th>Implementation</th><th>Runs in</th><th>Owns</th></tr></thead>
       <tbody>
         <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + preview</td></tr>
+        <tr><td>supervisor</td><td>launchd socket</td><td><a href="app/daemon/src/supervisor.rs">app/daemon/supervisor</a></td><td>launchd + daemon</td><td>loopback listener</td></tr>
         <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>private credential flow</td></tr>
         <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>routing policy</td></tr>
         <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + runtime state</td></tr>
@@ -268,8 +272,9 @@
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
-      <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets, clean local headers and bind-before-config ordering.</p></div>
+      <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets and clean local headers.</p></div>
       <div class="check"><b>gate transport</b><p>Proves synthetic rejection/local secrecy and real installed-harness HTTPS with saved native logins.</p></div>
+      <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
     </div>
   </section>
 

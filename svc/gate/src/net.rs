@@ -1,7 +1,7 @@
 use std::{
     error::Error,
     io,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener as StdListener},
     sync::Arc,
     time::Duration,
 };
@@ -17,7 +17,7 @@ use rustls::{ClientConfig, pki_types::ServerName};
 use rustls_platform_verifier::BuilderVerifierExt;
 use tokio::{
     io::{AsyncRead, AsyncWrite},
-    net::{TcpStream, lookup_host},
+    net::{TcpListener, TcpStream, lookup_host},
     time::timeout,
 };
 use tokio_rustls::TlsConnector;
@@ -45,6 +45,30 @@ async fn serve(stream: TcpStream, plan: Plan) -> Result<(), Err> {
         .serve_connection(TokioIo::new(stream), service)
         .await?;
     Ok(())
+}
+
+pub(super) async fn closed(listener: StdListener) -> Result<(), Err> {
+    let address = listener.local_addr()?;
+    let plan = Plan {
+        gate: Gate {
+            host: address.to_string().parse()?,
+            codex: [0; 32],
+            claude: [0; 32],
+        },
+        route: Route::Local,
+        #[cfg(test)]
+        fixture: None,
+        #[cfg(test)]
+        native: None,
+    };
+    let listener = TcpListener::from_std(listener)?;
+    loop {
+        let (stream, _) = listener.accept().await?;
+        let plan = plan.clone();
+        tokio::spawn(async move {
+            let _ = serve(stream, plan).await;
+        });
+    }
 }
 
 async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, Err> {
@@ -379,20 +403,6 @@ mod tests {
     }
 
     #[test]
-    fn listener_is_owned_before_configuration() {
-        let occupied = StdListener::bind(("127.0.0.1", 0)).unwrap();
-        let addr = occupied.local_addr().unwrap();
-        let mut configured = false;
-        assert!(activate(addr, || configured = true).is_err());
-        assert!(!configured);
-        drop(occupied);
-        let held = activate(addr, || configured = true).unwrap();
-        assert!(configured);
-        drop(held.try_clone().unwrap());
-        assert!(StdListener::bind(addr).is_err());
-    }
-
-    #[test]
     fn dns_policy_rejects_non_public_addresses() {
         for ip in [
             "0.0.0.0",
@@ -529,12 +539,6 @@ mod tests {
             fixture: Some(addr),
             native: None,
         }
-    }
-
-    fn activate(addr: SocketAddr, configure: impl FnOnce()) -> io::Result<StdListener> {
-        let listener = StdListener::bind(addr)?;
-        configure();
-        Ok(listener)
     }
 
     async fn read_request(stream: &mut TcpStream) -> Vec<u8> {

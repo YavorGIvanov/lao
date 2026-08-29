@@ -12,6 +12,9 @@ lao-model = { path = "../../svc/model", version = "0.1.0" }
 lao-route = { path = "../../svc/route", version = "0.1.0" }
 lao-run = { path = "../../svc/run", version = "0.1.0" }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+libc.workspace = true
+
 [lints]
 workspace = true
 

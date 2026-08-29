@@ -294,6 +294,7 @@ dependencies = [
  "lao-model",
  "lao-route",
  "lao-run",
+ "libc",
 ]
 
 [[package]]

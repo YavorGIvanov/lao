@@ -73,7 +73,7 @@ This repository contains the research-backed product specification, implementati
 
 1. Read the product architecture and implementation plan below.
 2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Review the P0-02/P0-03 client probes and private P0-04 gate, then finish supervisor ownership before P0-05 configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
+3. Review the P0-02/P0-03 client probes and private P0-04 gate, then finish the remaining firewall contracts before P0-05 configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
 4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
 5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
 6. Keep capture, eval, optimization, and training disabled behind their APIs.
@@ -100,4 +100,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 and P0-01 are complete. The private P0-04 gate now uses bounded DNS, fixed semantic targets, platform-verified TLS, and Hyper HTTP/1. Cheap opt-in E2E tests passed through installed Codex 0.146.0 with its ChatGPT login and Claude Code 2.1.223 with its claude.ai login; LAO did not read either credential store. Synthetic local-secret and rejection tests also pass. Daemon wiring and supervisor ownership remain open. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe. Production routing and real configuration writes are still off.
+P0-00 and P0-01 are complete. The private P0-04 gate uses bounded DNS, fixed semantic targets, platform-verified TLS, and Hyper HTTP/1. Cheap E2E tests passed through installed Codex 0.146.0 and Claude Code 2.1.223 without reading either credential store. An explicit opt-in launchd test proved hostile-port rejection, socket adoption, a live hello, fail-closed payloads, and socket continuity across a forced daemon crash in the active GUI login session. Development builds are ad-hoc signed and may prompt; normal installation requires one stable signed daemon identity. Logout/reboot continuity, production routing, and real configuration writes remain off. Claude's documented custom-header floor is 2.1.227, so that version still needs the same probe.
