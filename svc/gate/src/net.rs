@@ -37,7 +37,7 @@ struct Plan {
     #[cfg(test)]
     fixture: Option<SocketAddr>,
     #[cfg(test)]
-    native: Option<Arc<std::sync::atomic::AtomicBool>>,
+    status: Option<Arc<std::sync::atomic::AtomicU16>>,
 }
 
 async fn serve(stream: TcpStream, plan: Plan) -> Result<(), Err> {
@@ -65,7 +65,7 @@ pub(super) async fn closed(
         #[cfg(test)]
         fixture: None,
         #[cfg(test)]
-        native: None,
+        status: None,
     };
     let listener = TcpListener::from_std(listener)?;
     loop {
@@ -91,10 +91,11 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
     if target.tls {
         let response = relay(request, native(&target).await?).await;
         #[cfg(test)]
-        if response.is_ok()
-            && let Some(native) = plan.native
-        {
-            native.store(true, std::sync::atomic::Ordering::Relaxed);
+        if let (Ok(response), Some(status)) = (&response, plan.status) {
+            status.store(
+                response.status().as_u16(),
+                std::sync::atomic::Ordering::Relaxed,
+            );
         }
         response
     } else {
@@ -213,7 +214,7 @@ mod tests {
         process::{Command, Output, Stdio},
         sync::{
             Arc,
-            atomic::{AtomicBool, AtomicUsize, Ordering},
+            atomic::{AtomicBool, AtomicU16, AtomicUsize, Ordering},
         },
         thread,
         time::{Duration, Instant, SystemTime, UNIX_EPOCH},
@@ -231,6 +232,7 @@ mod tests {
     use super::*;
 
     const BODY: &[u8] = br#"{"model":"fixture","input":"hello"}"#;
+    const ERROR: &[u8] = br#"{"error":{"type":"rate_limit","message":"fixture"}}"#;
     const SSE: &[u8] = b"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n";
     const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
@@ -294,6 +296,47 @@ mod tests {
                     lao_route_api::Op::Responses
                 )]
             );
+        });
+    }
+
+    #[test]
+    fn native_error_is_preserved() {
+        rt(async {
+            let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate_addr = gate.local_addr().unwrap();
+            let plan = plan(upstream.local_addr().unwrap(), Decision::Cloud);
+            let upstream_task = tokio::spawn(async move {
+                let (mut stream, _) = upstream.accept().await.unwrap();
+                let _ = read_request(&mut stream).await;
+                let head = format!(
+                    "HTTP/1.1 429 Too Many Requests\r\nContent-Type: application/json\r\nContent-Length: {}\r\nRetry-After: 7\r\nX-Request-Id: req_fixture\r\nConnection: close\r\n\r\n",
+                    ERROR.len()
+                );
+                stream.write_all(head.as_bytes()).await.unwrap();
+                stream.write_all(ERROR).await.unwrap();
+            });
+            let gate_task = tokio::spawn(async move {
+                let (stream, _) = gate.accept().await.unwrap();
+                serve(stream, plan).await.unwrap();
+            });
+
+            let mut client = TcpStream::connect(gate_addr).await.unwrap();
+            let request = format!(
+                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: {CODEX}\r\nAuthorization: Bearer synthetic\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                BODY.len()
+            );
+            client.write_all(request.as_bytes()).await.unwrap();
+            client.write_all(BODY).await.unwrap();
+            let mut response = Vec::new();
+            client.read_to_end(&mut response).await.unwrap();
+
+            upstream_task.await.unwrap();
+            gate_task.await.unwrap();
+            assert!(response.starts_with(b"HTTP/1.1 429 Too Many Requests\r\n"));
+            assert!(find(&response, b"retry-after: 7"));
+            assert!(find(&response, b"x-request-id: req_fixture"));
+            assert!(response.ends_with(ERROR));
         });
     }
 
@@ -462,42 +505,26 @@ mod tests {
     fn installed_codex_reaches_chatgpt_through_gate() {
         version("codex", "codex-cli 0.146.0");
         let live = Live::start(Cloud::ChatGpt);
-        let base = format!("http://127.0.0.1:{}/oai", live.port);
-        let provider = format!(
-            "{{ name = \"LAO\", base_url = \"{base}\", requires_openai_auth = true, supports_websockets = false, http_headers = {{ X-LAO-Key = \"{CODEX}\" }}, request_max_retries = 0, stream_max_retries = 0 }}"
-        );
-        let temp = Temp::new("codex");
-        let output = exec(
-            Command::new("codex")
-                .env_remove("OPENAI_API_KEY")
-                .env_remove("CODEX_API_KEY")
-                .env_remove("CODEX_ACCESS_TOKEN")
-                .current_dir(&temp.0)
-                .args([
-                    "-c",
-                    "model_provider=\"lao_e2e\"",
-                    "-c",
-                    &format!("model_providers.lao_e2e={provider}"),
-                    "-c",
-                    "model_reasoning_effort=\"low\"",
-                    "exec",
-                    "--ignore-user-config",
-                    "--ignore-rules",
-                    "--ephemeral",
-                    "--skip-git-repo-check",
-                    "--color",
-                    "never",
-                    "--sandbox",
-                    "read-only",
-                    "--model",
-                    "gpt-5.4",
-                    "Reply exactly LAO_E2E_OK. Do not use tools.",
-                ]),
+        let output = codex(
+            &live,
+            "gpt-5.4",
+            "Reply exactly LAO_E2E_OK. Do not use tools.",
         );
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stdout).contains("LAO_E2E_OK"));
         clean_output(&output, CODEX);
-        live.assert_native();
+        live.assert_status(200);
+    }
+
+    #[test]
+    #[ignore = "uses the installed Codex login for one cheap native error"]
+    fn installed_codex_preserves_native_error() {
+        version("codex", "codex-cli 0.146.0");
+        let live = Live::start(Cloud::ChatGpt);
+        let output = codex(&live, "lao-invalid-model", "Reply exactly LAO_E2E_OK.");
+        assert!(!output.status.success());
+        clean_output(&output, CODEX);
+        live.assert_status(400);
     }
 
     #[test]
@@ -535,7 +562,7 @@ mod tests {
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stdout).contains("LAO_E2E_OK"));
         clean_output(&output, CLAUDE);
-        live.assert_native();
+        live.assert_status(200);
     }
 
     fn rt(test: impl Future<Output = ()>) {
@@ -566,7 +593,7 @@ mod tests {
             },
             policy,
             fixture: Some(addr),
-            native: None,
+            status: None,
         }
     }
 
@@ -592,7 +619,7 @@ mod tests {
 
     struct Live {
         port: u16,
-        native: Arc<AtomicBool>,
+        status: Arc<AtomicU16>,
         stop: Arc<AtomicBool>,
         thread: Option<thread::JoinHandle<()>>,
     }
@@ -604,8 +631,8 @@ mod tests {
             let port = listener.local_addr().unwrap().port();
             let stop = Arc::new(AtomicBool::new(false));
             let done = stop.clone();
-            let native = Arc::new(AtomicBool::new(false));
-            let observed = native.clone();
+            let status = Arc::new(AtomicU16::new(0));
+            let observed = status.clone();
             let thread = thread::spawn(move || {
                 Builder::new_current_thread()
                     .enable_io()
@@ -624,7 +651,7 @@ mod tests {
                             },
                             policy: Arc::new(Fixed(Decision::Cloud)),
                             fixture: None,
-                            native: Some(observed),
+                            status: Some(observed),
                         };
                         while !done.load(Ordering::Relaxed) {
                             if let Ok(Ok((stream, _))) =
@@ -638,14 +665,14 @@ mod tests {
             });
             Self {
                 port,
-                native,
+                status,
                 stop,
                 thread: Some(thread),
             }
         }
 
-        fn assert_native(&self) {
-            assert!(self.native.load(Ordering::Relaxed));
+        fn assert_status(&self, expected: u16) {
+            assert_eq!(self.status.load(Ordering::Relaxed), expected);
         }
     }
 
@@ -727,6 +754,41 @@ mod tests {
     fn clean_output(output: &Output, caller: &str) {
         assert!(!String::from_utf8_lossy(&output.stdout).contains(caller));
         assert!(!String::from_utf8_lossy(&output.stderr).contains(caller));
+    }
+
+    fn codex(live: &Live, model: &str, prompt: &str) -> Output {
+        let base = format!("http://127.0.0.1:{}/oai", live.port);
+        let provider = format!(
+            "{{ name = \"LAO\", base_url = \"{base}\", requires_openai_auth = true, supports_websockets = false, http_headers = {{ X-LAO-Key = \"{CODEX}\" }}, request_max_retries = 0, stream_max_retries = 0 }}"
+        );
+        let temp = Temp::new("codex");
+        exec(
+            Command::new("codex")
+                .env_remove("OPENAI_API_KEY")
+                .env_remove("CODEX_API_KEY")
+                .env_remove("CODEX_ACCESS_TOKEN")
+                .current_dir(&temp.0)
+                .args([
+                    "-c",
+                    "model_provider=\"lao_e2e\"",
+                    "-c",
+                    &format!("model_providers.lao_e2e={provider}"),
+                    "-c",
+                    "model_reasoning_effort=\"low\"",
+                    "exec",
+                    "--ignore-user-config",
+                    "--ignore-rules",
+                    "--ephemeral",
+                    "--skip-git-repo-check",
+                    "--color",
+                    "never",
+                    "--sandbox",
+                    "read-only",
+                    "--model",
+                    model,
+                    prompt,
+                ]),
+        )
     }
 
     fn version(bin: &str, expected: &str) {

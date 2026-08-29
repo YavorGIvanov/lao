@@ -147,7 +147,7 @@
       <div class="control-target"><code>codex + claude adapters</code><br><code>preview · doctor · smoke</code><br>then the command exits</div>
     </div>
     <div class="proofs" aria-label="Installed-client compatibility evidence">
-      <div class="proof"><b>Codex 0.146.0</b><br>saved ChatGPT login → gate → native cloud</div>
+      <div class="proof"><b>Codex 0.146.0</b><br>saved-login success + error → gate → cloud</div>
       <div class="proof"><b>Claude Code 2.1.223</b><br>saved claude.ai login → gate → native cloud</div>
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
@@ -273,10 +273,10 @@
       <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
-      <div class="check"><b>gate proxy test</b><p>Proves complete HTTP streaming, keep-alive, cancellation and the local latency budget.</p></div>
+      <div class="check"><b>early proxy proof</b><p>Measures byte streaming, keep-alive and cancellation in the small transport prototype.</p></div>
       <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets and clean local headers.</p></div>
       <div class="check"><b>router handoff</b><p>Proves rejected callers never reach routing and accepted requests expose only client and operation.</p></div>
-      <div class="check"><b>gate transport</b><p>Proves synthetic rejection/local secrecy and earlier opt-in installed-harness HTTPS with saved native logins.</p></div>
+      <div class="check"><b>gate transport</b><p>Preserves SSE and native errors; Codex success and invalid-model E2Es reuse its saved login.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
     </div>
   </section>
