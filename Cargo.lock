@@ -370,7 +370,9 @@ version = "0.1.0"
 name = "lao-run"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
  "lao-run-api",
+ "serde_json",
 ]
 
 [[package]]

@@ -575,6 +575,8 @@ The Rust supervisor launches one pinned llama-server process:
 - startup parsing plus health checks;
 - cancellation, graceful termination, crash cleanup, and no orphan ports.
 
+The first direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M fixture starts on a capability-protected ephemeral loopback port, answers a real coding-model request, and releases its process and port on stop. The measured baseline was 619 ms startup, 1.38 GiB RSS, and 157 ms for a fixed three-token response at 8K context with four threads. This intentionally small model proves lifecycle only; protocol translation, graceful/crash cleanup, cancellation, lazy unload, and useful 7B/14B selection remain open.
+
 ### 8.4 v1 runtime adapters
 
 Keep direct llama.cpp as the fallback. Add llama-swap for multi-model lifecycle and supplemental runtime telemetry while HardwareProbe remains authoritative. Add existing Ollama and LM Studio endpoints without taking over their global settings. Evaluate shoehorn as an advanced exact-fit optimizer and FreeToken for Maximum-mode NVIDIA systems.

@@ -451,6 +451,12 @@ Acceptance:
 - one local task completes through each client protocol fixture;
 - measured startup and memory are recorded.
 
+First direct result (2026-08-29): passed on this 24 GiB Apple M4 Mac with Homebrew llama.cpp build 10280 at commit `61881b1f7`. The official Apache-2.0 Qwen2.5-Coder 1.5B Instruct Q4_K_M artifact is pinned to revision `edc3bdcfdc6406d6be331753248d4ac9b463cf1b`, 1,117,320,768 bytes, and SHA-256 `cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046`. It is a small lifecycle fixture, not the recommended 24 GiB model.
+
+`svc/run::Direct` now rejects another llama.cpp build, generates a 256-bit bearer in a temporary 0600 file, lets llama-server securely select its own loopback port, removes the file after health, and owns process stop through Drop. The endpoint is non-Clone and non-Debug. An ignored installed E2E proves HTTP 401 without the bearer, a real `42` model response with it, process stop, and immediate port reuse. The manual baseline measured 619 ms startup, 1.38 GiB RSS, and 157 ms for the fixed three-token response at 8K context and four threads.
+
+P0-06 remains open for Responses and Messages translation, tool fixtures, request cancellation, graceful termination, parent-crash cleanup, lazy unload, and the larger useful-model benchmark.
+
 ### P0-07 — Resource admission proof
 
 Owner: A06

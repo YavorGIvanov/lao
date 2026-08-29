@@ -151,6 +151,7 @@
       <div class="proof"><b>Claude Code 2.1.251</b><br>saved Claude.ai login → gate → cloud</div>
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
+      <div class="proof"><b>llama.cpp 10280</b><br>M4: 619 ms start · 1.38 GiB RSS</div>
     </div>
     <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed synthetic and installed-harness E2Es. The real daemon now adopts launchd’s listener in a closed mode: hello works; payloads do not. Config writes, real routing, and broader client surfaces remain off.</p>
   </section>
@@ -278,6 +279,7 @@
       <div class="check"><b>router handoff</b><p>Proves rejected callers never reach routing and accepted requests expose only client and operation.</p></div>
       <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
+      <div class="check"><b>local runtime</b><p>Real Qwen coding GGUF: pinned build, secret ephemeral endpoint, model output, stop and port release.</p></div>
     </div>
   </section>
 

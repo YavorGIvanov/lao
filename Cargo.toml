@@ -12,6 +12,7 @@ license = "MIT"
 
 [workspace.dependencies]
 bytes = "=1.12.1"
+getrandom = "=0.2.17"
 hyper = { version = "=1.11.0", default-features = false, features = ["client", "http1", "server"] }
 http-body-util = "=0.1.5"
 hyper-util = { version = "=0.1.20", default-features = false, features = ["tokio"] }
@@ -36,5 +37,6 @@ policy = 1
 lao-gate-api = ["lao-gate", "lao-daemon", "lao-test-kit"]
 lao-capture-api = ["lao-capture", "lao-capture-worker", "lao-test-kit"]
 lao-model-api = ["lao-model", "lao-daemon", "lao-test-kit"]
+lao-run-api = ["lao-run", "lao-daemon", "lao-gate", "lao-test-kit"]
 lao-vault-api = ["lao-vault", "lao-vault-worker", "lao-test-kit"]
 lao-train-api = ["lao-train", "lao-train-worker", "lao-test-kit"]
