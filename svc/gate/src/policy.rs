@@ -7,6 +7,7 @@ use hyper::{
         PROXY_AUTHENTICATE, PROXY_AUTHORIZATION, TE, TRAILER, TRANSFER_ENCODING, UPGRADE,
     },
 };
+use lao_route_api::{Client, Context, Decision, Op};
 
 const OAI: &str = "api.openai.com";
 const CHATGPT: &str = "chatgpt.com";
@@ -19,31 +20,23 @@ type Err = io::Error;
 pub(super) struct Gate {
     pub host: HeaderValue,
     pub codex: [u8; 32],
+    pub codex_cloud: Cloud,
     pub claude: [u8; 32],
+    pub claude_cloud: Cloud,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-pub(super) enum Route {
+#[derive(Clone, Copy)]
+pub(super) enum Cloud {
     OpenAi,
     ChatGpt,
     AnthropicBearer,
     AnthropicKey,
-    Local,
-}
-
-#[derive(Clone, Copy, Eq, PartialEq)]
-enum Client {
-    Codex,
-    Claude,
 }
 
 #[derive(Clone, Copy)]
-enum Op {
-    Responses,
-    Compact,
-    Models,
-    Messages,
-    Count,
+enum Route {
+    Cloud(Cloud),
+    Local,
 }
 
 pub(super) struct Task<B> {
@@ -70,7 +63,18 @@ pub(super) struct Target {
 }
 
 impl<B> Task<B> {
-    pub fn freeze(mut self, route: Route) -> Result<Frozen<B>, Err> {
+    pub fn context(&self) -> Context {
+        Context::new(self.client, self.op)
+    }
+
+    pub fn freeze(mut self, decision: Decision, gate: &Gate) -> Result<Frozen<B>, Err> {
+        let route = match decision {
+            Decision::Local => Route::Local,
+            Decision::Cloud => Route::Cloud(match self.client {
+                Client::Codex => gate.codex_cloud,
+                Client::Claude => gate.claude_cloud,
+            }),
+        };
         if native(route) && !valid_auth(self.client, route, self.request.headers()) {
             return Err(deny("route"));
         }
@@ -184,10 +188,16 @@ fn valid_auth(client: Client, route: Route, headers: &HeaderMap) -> bool {
         .keys()
         .any(|name| starts(name, "openai-") || starts(name, "x-openai-"));
     match (client, route) {
-        (Client::Codex, Route::OpenAi) => bearer && key == 0 && account == 0 && !anthropic,
-        (Client::Codex, Route::ChatGpt) => bearer && key == 0 && account <= 1 && !anthropic,
-        (Client::Claude, Route::AnthropicBearer) => bearer && key == 0 && account == 0 && !openai,
-        (Client::Claude, Route::AnthropicKey) => {
+        (Client::Codex, Route::Cloud(Cloud::OpenAi)) => {
+            bearer && key == 0 && account == 0 && !anthropic
+        }
+        (Client::Codex, Route::Cloud(Cloud::ChatGpt)) => {
+            bearer && key == 0 && account <= 1 && !anthropic
+        }
+        (Client::Claude, Route::Cloud(Cloud::AnthropicBearer)) => {
+            bearer && key == 0 && account == 0 && !openai
+        }
+        (Client::Claude, Route::Cloud(Cloud::AnthropicKey)) => {
             auth.is_empty() && key == 1 && account == 0 && !openai
         }
         _ => false,
@@ -196,16 +206,20 @@ fn valid_auth(client: Client, route: Route, headers: &HeaderMap) -> bool {
 
 fn target(route: Route, op: Op) -> Result<Target, Err> {
     let (host, path, tls) = match (route, op) {
-        (Route::OpenAi, Op::Responses) => (OAI, "/v1/responses", true),
-        (Route::OpenAi, Op::Compact) => (OAI, "/v1/responses/compact", true),
-        (Route::OpenAi, Op::Models) => (OAI, "/v1/models", true),
-        (Route::ChatGpt, Op::Responses) => (CHATGPT, "/backend-api/codex/responses", true),
-        (Route::ChatGpt, Op::Compact) => (CHATGPT, "/backend-api/codex/responses/compact", true),
-        (Route::ChatGpt, Op::Models) => (CHATGPT, "/backend-api/codex/models", true),
-        (Route::AnthropicBearer | Route::AnthropicKey, Op::Messages) => {
+        (Route::Cloud(Cloud::OpenAi), Op::Responses) => (OAI, "/v1/responses", true),
+        (Route::Cloud(Cloud::OpenAi), Op::Compact) => (OAI, "/v1/responses/compact", true),
+        (Route::Cloud(Cloud::OpenAi), Op::Models) => (OAI, "/v1/models", true),
+        (Route::Cloud(Cloud::ChatGpt), Op::Responses) => {
+            (CHATGPT, "/backend-api/codex/responses", true)
+        }
+        (Route::Cloud(Cloud::ChatGpt), Op::Compact) => {
+            (CHATGPT, "/backend-api/codex/responses/compact", true)
+        }
+        (Route::Cloud(Cloud::ChatGpt), Op::Models) => (CHATGPT, "/backend-api/codex/models", true),
+        (Route::Cloud(Cloud::AnthropicBearer | Cloud::AnthropicKey), Op::Messages) => {
             (ANT, "/v1/messages?beta=true", true)
         }
-        (Route::AnthropicBearer | Route::AnthropicKey, Op::Count) => {
+        (Route::Cloud(Cloud::AnthropicBearer | Cloud::AnthropicKey), Op::Count) => {
             (ANT, "/v1/messages/count_tokens", true)
         }
         (Route::Local, Op::Responses) => (LOCAL, "/v1/responses", false),
@@ -219,10 +233,7 @@ fn target(route: Route, op: Op) -> Result<Target, Err> {
 }
 
 fn native(route: Route) -> bool {
-    matches!(
-        route,
-        Route::OpenAi | Route::ChatGpt | Route::AnthropicBearer | Route::AnthropicKey
-    )
+    matches!(route, Route::Cloud(_))
 }
 
 fn clean(headers: &mut HeaderMap, native: bool) -> Result<(), Err> {
@@ -384,7 +395,8 @@ mod tests {
                     ("X-Hop", "drop"),
                 ],
             ),
-            Route::OpenAi,
+            Decision::Cloud,
+            gate(),
         );
         assert_eq!(codex.uri(), "/v1/responses");
         assert_eq!(codex.headers()[HOST], OAI);
@@ -402,8 +414,10 @@ mod tests {
                 ("ChatGPT-Account-Id", "account"),
             ],
         );
-        assert!(task(account).freeze(Route::OpenAi).is_err());
+        assert!(task(account).freeze(Decision::Cloud, &gate()).is_err());
 
+        let mut key_gate = gate();
+        key_gate.claude_cloud = Cloud::AnthropicKey;
         let claude = frozen(
             request(
                 Method::POST,
@@ -414,7 +428,8 @@ mod tests {
                     ("Anthropic-Version", "2023-06-01"),
                 ],
             ),
-            Route::AnthropicKey,
+            Decision::Cloud,
+            key_gate,
         );
         assert_eq!(claude.uri(), "/v1/messages?beta=true");
         assert_eq!(claude.headers()[HOST], ANT);
@@ -429,14 +444,14 @@ mod tests {
                 ("X-Api-Key", "native-key"),
             ],
         );
-        assert!(task(mixed).freeze(Route::AnthropicBearer).is_err());
+        assert!(task(mixed).freeze(Decision::Cloud, &gate()).is_err());
         for auth in ["Basic native", "Bearer", "Bearer native extra"] {
             let bad = request(
                 Method::POST,
                 "/ant/v1/messages",
                 &[("X-LAO-Key", ANT_KEY), ("Authorization", auth)],
             );
-            assert!(task(bad).freeze(Route::AnthropicBearer).is_err());
+            assert!(task(bad).freeze(Decision::Cloud, &gate()).is_err());
         }
         let cross = request(
             Method::POST,
@@ -447,7 +462,7 @@ mod tests {
                 ("X-OpenAI-Client", "cross-provider"),
             ],
         );
-        assert!(task(cross).freeze(Route::AnthropicBearer).is_err());
+        assert!(task(cross).freeze(Decision::Cloud, &gate()).is_err());
     }
 
     #[test]
@@ -466,7 +481,8 @@ mod tests {
                     ("X-Unknown", "drop"),
                 ],
             ),
-            Route::Local,
+            Decision::Local,
+            gate(),
         );
         assert_eq!(local.uri(), "/v1/messages");
         assert_eq!(local.headers()[HOST], LOCAL);
@@ -477,27 +493,54 @@ mod tests {
 
     #[test]
     fn operation_and_route_fix_the_target() {
-        for (method, path, route, host, target) in [
+        for (method, path, cloud, host, target) in [
             (
                 Method::POST,
                 "/oai/responses/compact",
-                Route::ChatGpt,
+                Cloud::ChatGpt,
                 CHATGPT,
                 "/backend-api/codex/responses/compact",
             ),
-            (Method::GET, "/oai/models", Route::OpenAi, OAI, "/v1/models"),
+            (Method::GET, "/oai/models", Cloud::OpenAi, OAI, "/v1/models"),
         ] {
+            let mut configured = gate();
+            configured.codex_cloud = cloud;
             let ready = frozen(
                 request(
                     method,
                     path,
                     &[("X-LAO-Key", OAI_KEY), ("Authorization", "Bearer native")],
                 ),
-                route,
+                Decision::Cloud,
+                configured,
             );
             assert_eq!(ready.headers()[HOST], host);
             assert_eq!(ready.uri(), target);
         }
+
+        let mut codex = gate();
+        codex.codex_cloud = Cloud::AnthropicBearer;
+        assert!(
+            task(request(
+                Method::POST,
+                "/oai/responses",
+                &[("X-LAO-Key", OAI_KEY), ("Authorization", "Bearer native")],
+            ))
+            .freeze(Decision::Cloud, &codex)
+            .is_err()
+        );
+
+        let mut claude = gate();
+        claude.claude_cloud = Cloud::OpenAi;
+        assert!(
+            task(request(
+                Method::POST,
+                "/ant/v1/messages",
+                &[("X-LAO-Key", ANT_KEY), ("Authorization", "Bearer native")],
+            ))
+            .freeze(Decision::Cloud, &claude)
+            .is_err()
+        );
     }
 
     fn request(method: Method, path: &str, headers: &[(&str, &str)]) -> Request<Vec<u8>> {
@@ -525,7 +568,9 @@ mod tests {
         Gate {
             host: HeaderValue::from_static("lao.local"),
             codex: *OAI_KEY.as_bytes().first_chunk().unwrap(),
+            codex_cloud: Cloud::OpenAi,
             claude: *ANT_KEY.as_bytes().first_chunk().unwrap(),
+            claude_cloud: Cloud::AnthropicBearer,
         }
     }
 
@@ -533,7 +578,7 @@ mod tests {
         admit(request, &gate()).unwrap().expect("task")
     }
 
-    fn frozen(request: Request<Vec<u8>>, route: Route) -> Request<Vec<u8>> {
-        task(request).freeze(route).unwrap().take().1
+    fn frozen(request: Request<Vec<u8>>, decision: Decision, gate: Gate) -> Request<Vec<u8>> {
+        task(request).freeze(decision, &gate).unwrap().take().1
     }
 }

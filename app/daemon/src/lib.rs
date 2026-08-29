@@ -8,7 +8,7 @@ use std::{
 };
 
 pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let _ = (lao_route::status(), lao_model::status(), lao_run::status());
+    let _ = (lao_model::status(), lao_run::status());
     let listener = supervisor::listener("gate")?;
     if let Some(path) = env::var_os("LAO_ADOPTED_FILE") {
         let address = listener.local_addr()?.to_string();
@@ -27,5 +27,5 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             Err(error) => return Err(error.into()),
         }
     }
-    lao_gate::closed(listener)
+    lao_gate::closed(listener, lao_route::Router)
 }

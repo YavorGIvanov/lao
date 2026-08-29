@@ -12,6 +12,7 @@ hyper.workspace = true
 http-body-util.workspace = true
 hyper-util.workspace = true
 lao-gate-api = { path = "../../api/gate", version = "0.1.0" }
+lao-route-api = { path = "../../api/route", version = "0.1.0" }
 rustls.workspace = true
 rustls-platform-verifier.workspace = true
 tokio.workspace = true

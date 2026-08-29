@@ -195,7 +195,7 @@ During P0-02/P0-03, version policy, precedence, conflicts, and previews remain p
 
 ### 4.2 Gate boundary
 
-Credential sealing and egress materialization are private ordered stages inside `svc/gate`; their secret-bearing types never cross a package boundary. The public gate contract exposes only sanitized routing context and the immutable route decision boundary. The router sees header classes and client metadata but never values.
+Credential sealing and egress materialization are private ordered stages inside `svc/gate`; their secret-bearing types never cross a package boundary. The public gate contract exposes only sanitized routing context and the immutable route decision boundary. The current P0 context contains only client and operation. Headers, bodies, credentials, auth mode, and native target remain private to the gate.
 
 Private egress-stage inputs:
 
@@ -238,7 +238,7 @@ Input TaskContext includes:
 - client/session/turn/repository fingerprints;
 - task type and cognitive-shape scores;
 - risk class;
-- prompt and estimated context size;
+- bounded prompt-derived facts and estimated context size;
 - required protocol/tool/media capabilities;
 - local benchmark and circuit state;
 - repository and user override;
@@ -406,7 +406,9 @@ Native E2E result (2026-08-28): opt-in tests ran the installed harnesses against
 
 Supervisor E2E result (2026-08-29): the real `lao-daemon` adopts one launchd socket named `gate`, requires exactly one nonzero IPv4 loopback listener, and has no production self-bind fallback. An explicit opt-in test uses a temporary 0700 directory and 0600 plist for an active-session LaunchAgent. It proved a hostile pre-bound port never produces an adoption signal, the unconfigured daemon serves only the inert Claude hello, payloads fail closed, launchd retains the port after `SIGKILL`, and a later hello starts a replacement daemon. The fresh 0600 file proves socket adoption only; P0-05 must also pass the hello before changing client configuration. Bootstrap status alone is insufficient. Cleanup uses `bootout` and preserves diagnostics if that fails. Ad-hoc development binaries may trigger macOS approval; release installation requires one stable signed and notarized daemon identity and must prove upgrades do not create repeated prompts.
 
-P0-04 remains open. Native TLS, bounded DNS, active-session supervisor ownership, and the closed daemon are implemented. Test code can still map a frozen target to a loopback fixture. Sealed router handoff, complete errors/retries/cancellation, client-output failure scanning, boot-wide ownership, and real configuration remain unimplemented. A per-user LaunchAgent does not own the socket across logout or reboot; production persistence requires a privileged system LaunchDaemon or explicit rollback/re-activation. Hyper 1.11.0, hyper-util 0.1.20, Tokio 1.53.1, rustls 0.23.43, tokio-rustls 0.26.4, and rustls-platform-verifier 0.7.0 remain narrowly pinned.
+Router handoff result (2026-08-29): `api/route` now defines only `Context(client, operation)`, `Decision(Local, Cloud)`, and a synchronous `Policy`. `svc/route` always returns Cloud. After caller validation, the gate invokes the policy once, then consumes the decision and its private non-cloneable task into the frozen exact target. The router receives no body, header, credential, auth mode, or provider target. Rejected callers never invoke it. Codex 0.146.0 passed another saved-login E2E through this seam. The Claude recheck could not run because `claude auth status` reports `loggedIn: false`; its synthetic path remains green.
+
+P0-04 remains open. Native TLS, bounded DNS, active-session supervisor ownership, the closed daemon, and the sanitized router handoff are implemented. Test code can still map a frozen target to a loopback fixture. Complete errors/retries/cancellation, client-output failure scanning, boot-wide ownership, and real configuration remain unimplemented. A per-user LaunchAgent does not own the socket across logout or reboot; production persistence requires a privileged system LaunchDaemon or explicit rollback/re-activation. Hyper 1.11.0, hyper-util 0.1.20, Tokio 1.53.1, rustls 0.23.43, tokio-rustls 0.26.4, and rustls-platform-verifier 0.7.0 remain narrowly pinned.
 
 ### P0-05 — Transactional configuration proof
 

@@ -6,9 +6,6 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 
-[dependencies]
-lao-core-api = { path = "../core", version = "0.1.0" }
-
 [lints]
 workspace = true
 

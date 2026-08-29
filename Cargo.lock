@@ -327,6 +327,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "lao-gate-api",
+ "lao-route-api",
  "rustls",
  "rustls-platform-verifier",
  "tokio",
@@ -364,9 +365,6 @@ dependencies = [
 [[package]]
 name = "lao-route-api"
 version = "0.1.0"
-dependencies = [
- "lao-core-api",
-]
 
 [[package]]
 name = "lao-run"

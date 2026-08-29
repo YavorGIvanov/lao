@@ -13,6 +13,7 @@ use hyper::{
     server::conn::http1 as server, service::service_fn,
 };
 use hyper_util::rt::TokioIo;
+use lao_route_api::Policy;
 use rustls::{ClientConfig, pki_types::ServerName};
 use rustls_platform_verifier::BuilderVerifierExt;
 use tokio::{
@@ -23,7 +24,7 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 
 use crate::policy::Target;
-use crate::policy::{Gate, Route, admit, clean_response};
+use crate::policy::{Cloud, Gate, admit, clean_response};
 
 type Err = Box<dyn Error + Send + Sync>;
 type Body = UnsyncBoxBody<Bytes, Err>;
@@ -32,7 +33,7 @@ const WAIT: Duration = Duration::from_secs(5);
 #[derive(Clone)]
 struct Plan {
     gate: Gate,
-    route: Route,
+    policy: Arc<dyn Policy>,
     #[cfg(test)]
     fixture: Option<SocketAddr>,
     #[cfg(test)]
@@ -47,15 +48,20 @@ async fn serve(stream: TcpStream, plan: Plan) -> Result<(), Err> {
     Ok(())
 }
 
-pub(super) async fn closed(listener: StdListener) -> Result<(), Err> {
+pub(super) async fn closed(
+    listener: StdListener,
+    policy: impl Policy + 'static,
+) -> Result<(), Err> {
     let address = listener.local_addr()?;
     let plan = Plan {
         gate: Gate {
             host: address.to_string().parse()?,
             codex: [0; 32],
+            codex_cloud: Cloud::OpenAi,
             claude: [0; 32],
+            claude_cloud: Cloud::AnthropicBearer,
         },
-        route: Route::Local,
+        policy: Arc::new(policy),
         #[cfg(test)]
         fixture: None,
         #[cfg(test)]
@@ -75,7 +81,8 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
     let Some(task) = admit(request, &plan.gate)? else {
         return Ok(Response::new(empty()));
     };
-    let (target, request) = task.freeze(plan.route)?.take();
+    let decision = plan.policy.decide(task.context());
+    let (target, request) = task.freeze(decision, &plan.gate)?.take();
     #[cfg(test)]
     if let Some(fixture) = plan.fixture {
         let _ = target;
@@ -206,13 +213,14 @@ mod tests {
         process::{Command, Output, Stdio},
         sync::{
             Arc,
-            atomic::{AtomicBool, Ordering},
+            atomic::{AtomicBool, AtomicUsize, Ordering},
         },
         thread,
         time::{Duration, Instant, SystemTime, UNIX_EPOCH},
     };
 
     use hyper::header::HeaderValue;
+    use lao_route_api::{Context, Decision};
 
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
@@ -233,7 +241,14 @@ mod tests {
             let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate_addr = gate.local_addr().unwrap();
-            let plan = plan(upstream.local_addr().unwrap(), Route::OpenAi);
+            let seen = Arc::new(std::sync::Mutex::new(Vec::new()));
+            let plan = plan_with(
+                upstream.local_addr().unwrap(),
+                Arc::new(Spy {
+                    decision: Decision::Cloud,
+                    seen: seen.clone(),
+                }),
+            );
             let upstream_task = tokio::spawn(async move {
                 let (mut stream, _) = upstream.accept().await.unwrap();
                 let request = read_request(&mut stream).await;
@@ -272,6 +287,13 @@ mod tests {
             assert!(!find(&response, b"x-lao-key"));
             assert!(!find(&response, b"authorization"));
             assert!(response.ends_with(SSE));
+            assert_eq!(
+                *seen.lock().unwrap(),
+                [Context::new(
+                    lao_route_api::Client::Codex,
+                    lao_route_api::Op::Responses
+                )]
+            );
         });
     }
 
@@ -281,7 +303,7 @@ mod tests {
             let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate_addr = gate.local_addr().unwrap();
-            let plan = plan(upstream.local_addr().unwrap(), Route::Local);
+            let plan = plan(upstream.local_addr().unwrap(), Decision::Local);
             let upstream_task = tokio::spawn(async move {
                 let (mut stream, _) = upstream.accept().await.unwrap();
                 let request = read_request(&mut stream).await;
@@ -324,30 +346,30 @@ mod tests {
     #[test]
     fn rejected_requests_never_connect_upstream() {
         rt(async {
-            for (line, route, length) in [
-                ("", Route::OpenAi, 999),
-                ("X-LAO-Key: wrong\r\n", Route::OpenAi, 0),
-                (
-                    "X-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\n",
-                    Route::OpenAi,
-                    0,
-                ),
+            for (line, length, expected) in [
+                ("", 999, 0),
+                ("X-LAO-Key: wrong\r\n", 0, 0),
+                ("X-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\n", 0, 0),
                 (
                     "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\n",
-                    Route::OpenAi,
+                    0,
                     0,
                 ),
                 (
                     "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Basic wrong\r\n",
-                    Route::OpenAi,
                     0,
+                    1,
                 ),
             ] {
                 let upstream = StdListener::bind(("127.0.0.1", 0)).unwrap();
                 upstream.set_nonblocking(true).unwrap();
                 let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
                 let gate_addr = gate.local_addr().unwrap();
-                let plan = plan(upstream.local_addr().unwrap(), route);
+                let calls = Arc::new(AtomicUsize::new(0));
+                let plan = plan_with(
+                    upstream.local_addr().unwrap(),
+                    Arc::new(Count(calls.clone())),
+                );
                 let task = tokio::spawn(async move {
                     let (stream, _) = gate.accept().await.unwrap();
                     serve(stream, plan).await
@@ -364,6 +386,7 @@ mod tests {
                     upstream.accept(),
                     Err(error) if error.kind() == io::ErrorKind::WouldBlock
                 ));
+                assert_eq!(calls.load(Ordering::Relaxed), expected);
             }
         });
     }
@@ -374,7 +397,7 @@ mod tests {
             let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate_addr = gate.local_addr().unwrap();
-            let plan = plan(upstream.local_addr().unwrap(), Route::OpenAi);
+            let plan = plan(upstream.local_addr().unwrap(), Decision::Cloud);
             let upstream_task = tokio::spawn(async move {
                 let (mut stream, _) = upstream.accept().await.unwrap();
                 let _ = read_request(&mut stream).await;
@@ -438,7 +461,7 @@ mod tests {
     #[ignore = "uses the installed Codex login for one cheap native request"]
     fn installed_codex_reaches_chatgpt_through_gate() {
         version("codex", "codex-cli 0.146.0");
-        let live = Live::start(Route::ChatGpt);
+        let live = Live::start(Cloud::ChatGpt);
         let base = format!("http://127.0.0.1:{}/oai", live.port);
         let provider = format!(
             "{{ name = \"LAO\", base_url = \"{base}\", requires_openai_auth = true, supports_websockets = false, http_headers = {{ X-LAO-Key = \"{CODEX}\" }}, request_max_retries = 0, stream_max_retries = 0 }}"
@@ -481,7 +504,7 @@ mod tests {
     #[ignore = "uses the installed Claude login for one cheap native request"]
     fn installed_claude_reaches_anthropic_through_gate() {
         version("claude", "2.1.223 (Claude Code)");
-        let live = Live::start(Route::AnthropicBearer);
+        let live = Live::start(Cloud::AnthropicBearer);
         let settings = format!(
             "{{\"env\":{{\"ANTHROPIC_BASE_URL\":\"http://127.0.0.1:{}/ant\",\"ANTHROPIC_CUSTOM_HEADERS\":\"X-LAO-Key: {CLAUDE}\",\"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC\":\"1\"}}}}",
             live.port
@@ -528,14 +551,20 @@ mod tests {
             });
     }
 
-    fn plan(addr: SocketAddr, route: Route) -> Plan {
+    fn plan(addr: SocketAddr, decision: Decision) -> Plan {
+        plan_with(addr, Arc::new(Fixed(decision)))
+    }
+
+    fn plan_with(addr: SocketAddr, policy: Arc<dyn Policy>) -> Plan {
         Plan {
             gate: Gate {
                 host: HeaderValue::from_static("lao.local"),
                 codex: *b"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                codex_cloud: Cloud::OpenAi,
                 claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+                claude_cloud: Cloud::AnthropicBearer,
             },
-            route,
+            policy,
             fixture: Some(addr),
             native: None,
         }
@@ -569,7 +598,7 @@ mod tests {
     }
 
     impl Live {
-        fn start(route: Route) -> Self {
+        fn start(cloud: Cloud) -> Self {
             let listener = StdListener::bind(("127.0.0.1", 0)).unwrap();
             listener.set_nonblocking(true).unwrap();
             let port = listener.local_addr().unwrap().port();
@@ -589,9 +618,11 @@ mod tests {
                             gate: Gate {
                                 host: HeaderValue::from_str(&format!("127.0.0.1:{port}")).unwrap(),
                                 codex: *CODEX.as_bytes().first_chunk().unwrap(),
+                                codex_cloud: cloud,
                                 claude: *CLAUDE.as_bytes().first_chunk().unwrap(),
+                                claude_cloud: cloud,
                             },
-                            route,
+                            policy: Arc::new(Fixed(Decision::Cloud)),
                             fixture: None,
                             native: Some(observed),
                         };
@@ -622,6 +653,35 @@ mod tests {
         fn drop(&mut self) {
             self.stop.store(true, Ordering::Relaxed);
             self.thread.take().unwrap().join().unwrap();
+        }
+    }
+
+    struct Fixed(Decision);
+
+    impl Policy for Fixed {
+        fn decide(&self, _: Context) -> Decision {
+            self.0
+        }
+    }
+
+    struct Spy {
+        decision: Decision,
+        seen: Arc<std::sync::Mutex<Vec<Context>>>,
+    }
+
+    impl Policy for Spy {
+        fn decide(&self, context: Context) -> Decision {
+            self.seen.lock().unwrap().push(context);
+            self.decision
+        }
+    }
+
+    struct Count(Arc<AtomicUsize>);
+
+    impl Policy for Count {
+        fn decide(&self, _: Context) -> Decision {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Decision::Cloud
         }
     }
 
