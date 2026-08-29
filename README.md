@@ -19,6 +19,9 @@ This repository contains the research-backed product specification, implementati
 
 - Keep the user's harness.
 - Stay invisible by default.
+- Keep setup to one command.
+- Ask only at real trust boundaries.
+- Never ask twice for the same consent.
 - Improve a little at first.
 - Learn from measured outcomes.
 - Use local only when it helps.
@@ -40,6 +43,7 @@ This repository contains the research-backed product specification, implementati
 - Comment why, not what.
 - Reuse before rebuilding.
 - Pin what we reuse.
+- Add code only for a proven need.
 - Hide upstream details behind our API.
 - Own a component only when evidence justifies it.
 - Build one narrow vertical slice at a time.
