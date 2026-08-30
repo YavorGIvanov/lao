@@ -6,7 +6,10 @@ use std::{
     fs::{self, OpenOptions},
     io::{self, Write},
     path::PathBuf,
+    sync::{Arc, Mutex},
 };
+
+use lao_run_api::{Endpoint, Local};
 
 pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     let _ = (lao_model::status(), lao_run::status());
@@ -38,33 +41,50 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 Ok("chatgpt") => lao_gate::CodexCloud::ChatGpt,
                 _ => return Err("LAO_CODEX_CLOUD".into()),
             };
-            let root = match env::var_os("LAO_MODEL_DIR") {
-                Some(root) => PathBuf::from(root),
-                None => PathBuf::from(env::var_os("HOME").ok_or("HOME")?)
-                    .join("Library/Caches/lao/models"),
-            };
-            let model = lao_model::open(&root)?;
-            let bin = env::var_os("LAO_LLAMA_SERVER")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
-            let (_runtime, endpoint) = lao_run::Direct::start(lao_run::Config {
-                bin: &bin,
-                model: &model.path,
-                mode: lao_run::Mode::Light,
-                working_set: model.artifact.working_set,
-                context: model.artifact.context,
-                threads: 2,
-            })?;
             lao_gate::installed(
                 listener,
                 lao_route::Router,
-                endpoint,
+                Arc::new(Lazy::default()),
                 codex,
                 claude,
                 codex_cloud,
             )
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
+    }
+}
+
+/// The runtime starts on the first Local request, so cloud work never waits for a model load
+/// and an install that never routes Local never loads one.
+#[derive(Default)]
+struct Lazy(Mutex<Option<(lao_run::Direct, Arc<Endpoint>)>>);
+
+impl Local for Lazy {
+    fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
+        let mut started = self.0.lock().map_err(|_| io::Error::other("local"))?;
+        if let Some((_, endpoint)) = started.as_ref() {
+            return Ok(endpoint.clone());
+        }
+        let root = match env::var_os("LAO_MODEL_DIR") {
+            Some(root) => PathBuf::from(root),
+            None => PathBuf::from(env::var_os("HOME").ok_or_else(|| io::Error::other("HOME"))?)
+                .join("Library/Caches/lao/models"),
+        };
+        let model = lao_model::open(&root)?;
+        let bin = env::var_os("LAO_LLAMA_SERVER")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
+        let (runtime, endpoint) = lao_run::Direct::start(lao_run::Config {
+            bin: &bin,
+            model: &model.path,
+            mode: lao_run::Mode::Light,
+            working_set: model.artifact.working_set,
+            context: model.artifact.context,
+            threads: 2,
+        })?;
+        let endpoint = Arc::new(endpoint);
+        *started = Some((runtime, endpoint.clone()));
+        Ok(endpoint)
     }
 }
 

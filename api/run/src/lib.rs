@@ -1,4 +1,4 @@
-use std::net::SocketAddr;
+use std::{io, net::SocketAddr, sync::Arc};
 
 pub use lao_core_api::{Fault, Status};
 
@@ -36,4 +36,9 @@ impl Endpoint {
     pub fn bearer(&self) -> &str {
         &self.bearer
     }
+}
+
+/// Blocking: the first call may verify a model and spawn a runtime process.
+pub trait Local: Send + Sync {
+    fn endpoint(&self) -> io::Result<Arc<Endpoint>>;
 }

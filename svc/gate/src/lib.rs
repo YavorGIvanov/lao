@@ -5,8 +5,9 @@ mod policy;
 
 use lao_gate_api::Status;
 use lao_route_api::Policy;
-use lao_run_api::Endpoint;
-use std::{error::Error, net::TcpListener};
+use std::{error::Error, io, net::TcpListener, sync::Arc};
+
+use lao_run_api::{Endpoint, Local};
 
 #[derive(Clone, Copy)]
 pub enum CodexCloud {
@@ -18,11 +19,7 @@ pub fn closed(
     listener: TcpListener,
     policy: impl Policy + 'static,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?
-        .block_on(net::closed(listener, policy))
+    serve(listener, policy, None, [0; 32], [0; 32], CodexCloud::Api)
 }
 
 pub fn canary(
@@ -32,17 +29,31 @@ pub fn canary(
     codex: [u8; 32],
     claude: [u8; 32],
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_io()
-        .enable_time()
-        .build()?
-        .block_on(net::canary(listener, policy, endpoint, codex, claude))
+    serve(
+        listener,
+        policy,
+        Some(Arc::new(Ready(Arc::new(endpoint)))),
+        codex,
+        claude,
+        CodexCloud::Api,
+    )
 }
 
 pub fn installed(
     listener: TcpListener,
     policy: impl Policy + 'static,
-    endpoint: Endpoint,
+    local: Arc<dyn Local>,
+    codex: [u8; 32],
+    claude: [u8; 32],
+    codex_cloud: CodexCloud,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    serve(listener, policy, Some(local), codex, claude, codex_cloud)
+}
+
+fn serve(
+    listener: TcpListener,
+    policy: impl Policy + 'static,
+    local: Option<Arc<dyn Local>>,
     codex: [u8; 32],
     claude: [u8; 32],
     codex_cloud: CodexCloud,
@@ -51,10 +62,10 @@ pub fn installed(
         .enable_io()
         .enable_time()
         .build()?
-        .block_on(net::installed(
+        .block_on(net::configured(
             listener,
             policy,
-            endpoint,
+            local,
             codex,
             claude,
             codex_cloud,
@@ -62,5 +73,13 @@ pub fn installed(
 }
 
 pub fn status() -> Status {
-    Status::Stub
+    Status::Active
+}
+
+pub(crate) struct Ready(pub Arc<Endpoint>);
+
+impl Local for Ready {
+    fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
+        Ok(self.0.clone())
+    }
 }

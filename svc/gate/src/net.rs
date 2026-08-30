@@ -13,8 +13,8 @@ use hyper::{
     server::conn::http1 as server, service::service_fn,
 };
 use hyper_util::rt::TokioIo;
-use lao_route_api::Policy;
-use lao_run_api::Endpoint;
+use lao_route_api::{Decision, Policy};
+use lao_run_api::{Endpoint, Local};
 use rustls::{ClientConfig, pki_types::ServerName};
 use rustls_platform_verifier::BuilderVerifierExt;
 use tokio::{
@@ -50,46 +50,10 @@ async fn serve(stream: TcpStream, plan: Plan) -> Result<(), Err> {
     Ok(())
 }
 
-pub(super) async fn closed(
+pub(super) async fn configured(
     listener: StdListener,
     policy: impl Policy + 'static,
-) -> Result<(), Err> {
-    configured(listener, policy, None, [0; 32], [0; 32], CodexCloud::Api).await
-}
-
-pub(super) async fn canary(
-    listener: StdListener,
-    policy: impl Policy + 'static,
-    endpoint: Endpoint,
-    codex: [u8; 32],
-    claude: [u8; 32],
-) -> Result<(), Err> {
-    configured(
-        listener,
-        policy,
-        Some(endpoint),
-        codex,
-        claude,
-        CodexCloud::Api,
-    )
-    .await
-}
-
-pub(super) async fn installed(
-    listener: StdListener,
-    policy: impl Policy + 'static,
-    endpoint: Endpoint,
-    codex: [u8; 32],
-    claude: [u8; 32],
-    codex_cloud: CodexCloud,
-) -> Result<(), Err> {
-    configured(listener, policy, Some(endpoint), codex, claude, codex_cloud).await
-}
-
-async fn configured(
-    listener: StdListener,
-    policy: impl Policy + 'static,
-    local: Option<Endpoint>,
+    local: Option<Arc<dyn Local>>,
     codex: [u8; 32],
     claude: [u8; 32],
     codex_cloud: CodexCloud,
@@ -106,7 +70,7 @@ async fn configured(
             },
             claude,
             claude_cloud: Cloud::AnthropicBearer,
-            local: local.map(Arc::new),
+            local,
         },
         policy: Arc::new(policy),
         #[cfg(test)]
@@ -115,12 +79,19 @@ async fn configured(
         status: None,
     };
     let listener = TcpListener::from_std(listener)?;
+    let mut failures = 0;
     loop {
-        let (stream, _) = listener.accept().await?;
-        let plan = plan.clone();
-        tokio::spawn(async move {
-            let _ = serve(stream, plan).await;
-        });
+        match listener.accept().await {
+            Ok((stream, _)) => {
+                failures = 0;
+                let plan = plan.clone();
+                tokio::spawn(async move {
+                    let _ = serve(stream, plan).await;
+                });
+            }
+            Err(_) if failures < 16 => failures += 1,
+            Err(error) => return Err(error.into()),
+        }
     }
 }
 
@@ -129,7 +100,13 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
         return Ok(Response::new(empty()));
     };
     let decision = plan.policy.decide(task.context());
-    let (target, request) = task.freeze(decision, &plan.gate)?.take();
+    let endpoint = match decision {
+        Decision::Local => Some(resolve(&plan.gate.local).await?),
+        Decision::Cloud => None,
+    };
+    let (target, request) = task
+        .freeze(decision, &plan.gate, endpoint.as_deref())?
+        .take();
     #[cfg(test)]
     if let Some(fixture) = plan.fixture {
         let _ = target;
@@ -147,6 +124,15 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
         response
     } else {
         relay(request, local(&target).await?).await
+    }
+}
+
+// Starting the runtime blocks, so it must never run on the gate's single thread.
+async fn resolve(local: &Option<Arc<dyn Local>>) -> Result<Arc<Endpoint>, Err> {
+    let local = local.clone().ok_or_else(|| deny("local"))?;
+    match tokio::task::spawn_blocking(move || local.endpoint()).await {
+        Ok(Ok(endpoint)) => Ok(endpoint),
+        _ => Err(deny("local")),
     }
 }
 
@@ -440,10 +426,7 @@ mod tests {
             let upstream_addr = upstream.local_addr().unwrap();
             let mut plan = plan(upstream_addr, Decision::Local);
             plan.fixture = None;
-            plan.gate.local = Some(Arc::new(lao_run_api::Endpoint::new(
-                upstream_addr,
-                "runtime",
-            )));
+            plan.gate.local = Some(ready(upstream_addr));
             let upstream_task = tokio::spawn(async move {
                 let (mut stream, _) = upstream.accept().await.unwrap();
                 let request = read_request(&mut stream).await;
@@ -481,6 +464,51 @@ mod tests {
             upstream_task.await.unwrap();
             gate_task.await.unwrap();
             assert!(response.ends_with(SSE));
+        });
+    }
+
+    #[test]
+    fn local_runtime_is_requested_only_for_a_local_route() {
+        rt(async {
+            for (decision, selector, expected) in [
+                (Decision::Cloud, "", 0),
+                (Decision::Local, "X-LAO-Local: canary\r\n", 1),
+            ] {
+                let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+                let upstream_addr = upstream.local_addr().unwrap();
+                let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+                let gate_addr = gate.local_addr().unwrap();
+                let starts = Arc::new(AtomicUsize::new(0));
+                let mut plan = plan(upstream_addr, decision);
+                plan.gate.local = Some(Arc::new(Started(
+                    starts.clone(),
+                    Arc::new(Endpoint::new(upstream_addr, "runtime")),
+                )));
+                let upstream_task = tokio::spawn(async move {
+                    let (mut stream, _) = upstream.accept().await.unwrap();
+                    let _ = read_request(&mut stream).await;
+                    let head = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", SSE.len());
+                    stream.write_all(head.as_bytes()).await.unwrap();
+                    stream.write_all(SSE).await.unwrap();
+                });
+                let gate_task = tokio::spawn(async move {
+                    let (stream, _) = gate.accept().await.unwrap();
+                    serve(stream, plan).await.unwrap();
+                });
+                let mut client = TcpStream::connect(gate_addr).await.unwrap();
+                let request = format!(
+                    "POST /ant/v1/messages HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: {CLAUDE}\r\n{selector}Authorization: Bearer synthetic\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                    BODY.len()
+                );
+                client.write_all(request.as_bytes()).await.unwrap();
+                client.write_all(BODY).await.unwrap();
+                let mut response = Vec::new();
+                client.read_to_end(&mut response).await.unwrap();
+                upstream_task.await.unwrap();
+                gate_task.await.unwrap();
+                assert!(response.ends_with(SSE));
+                assert_eq!(starts.load(Ordering::Relaxed), expected);
+            }
         });
     }
 
@@ -688,15 +716,16 @@ mod tests {
                 codex_cloud: Cloud::OpenAi,
                 claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
                 claude_cloud: Cloud::AnthropicBearer,
-                local: Some(Arc::new(lao_run_api::Endpoint::new(
-                    "127.0.0.1:10000".parse().unwrap(),
-                    "runtime",
-                ))),
+                local: Some(ready("127.0.0.1:10000".parse().unwrap())),
             },
             policy,
             fixture: Some(addr),
             status: None,
         }
+    }
+
+    fn ready(addr: SocketAddr) -> Arc<dyn Local> {
+        Arc::new(crate::Ready(Arc::new(Endpoint::new(addr, "runtime"))))
     }
 
     async fn read_request(stream: &mut TcpStream) -> Vec<u8> {
@@ -803,6 +832,15 @@ mod tests {
         fn decide(&self, context: Context) -> Decision {
             self.seen.lock().unwrap().push(context);
             self.decision
+        }
+    }
+
+    struct Started(Arc<AtomicUsize>, Arc<Endpoint>);
+
+    impl Local for Started {
+        fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Ok(self.1.clone())
         }
     }
 
