@@ -23,7 +23,7 @@ Clone the project, install the command, and let LAO finish setup:
 git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh && lao install
 ```
 
-That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported local runtime and model, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
+That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
 
 Setup stops with a specific error when a prerequisite or existing configuration is unsupported. It verifies or downloads the immutable Qwen inference model and MiniLM router model (1,208,656,003 bytes total), so allow about 1.21 GB of network traffic and cache space on the first run.
 

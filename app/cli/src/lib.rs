@@ -552,8 +552,8 @@ fn status() -> Result<()> {
         }
     );
     if codex && claude && service {
-        println!("default route: cloud");
-        println!("local route: explicit canary only");
+        println!("safe fallback: cloud");
+        println!("local route: selected policy or explicit canary");
         Ok(())
     } else {
         Err(invalid("installation needs attention").into())
