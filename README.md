@@ -17,6 +17,13 @@ This repository contains the research-backed product specification, implementati
 
 This is a research proof for the 24 GiB Apple M4 Mac used by the project. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store, and `lao off` restores the original settings exactly.
 
+Use two separate directories: a fresh LAO clone that owns the build and installer, and an existing project where you normally work with Codex. In one terminal, set their absolute paths without exporting them:
+
+```sh
+LAO_CHECKOUT=/absolute/path/to/your/lao-clone
+WORK_REPO=/absolute/path/to/your/existing-project
+```
+
 Before starting, confirm the exact tested tools and existing saved logins:
 
 ```sh
@@ -33,12 +40,20 @@ The tested versions are Rust/Cargo 1.98.0, Codex 0.146.0, Claude Code 2.1.251, a
 Build both required binaries, review the proposed model and resource ceiling, then install:
 
 ```sh
+cd "$LAO_CHECKOUT"
 cargo build -p lao-cli -p lao-daemon
 ./target/debug/lao preview
 ./target/debug/lao install
 ```
 
-Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings; use a new process for the checks below.
+Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:
+
+```sh
+cd "$WORK_REPO"
+env -u LAO_LOCAL_SELECTOR codex
+```
+
+This is the intended cloud-safe experience: continue using Codex normally in the work repository while model requests traverse LAO and stay on the saved-login cloud path. The interactive TUI is useful for evaluating setup feel, but it is not yet part of the accepted Stage 1 compatibility evidence.
 
 First prove that an ordinary Codex request still uses the saved-login cloud path. This consumes one normal Codex turn:
 
@@ -67,13 +82,13 @@ The final line must be `42`. Keep `LAO_LOCAL_SELECTOR=canary` inline exactly as 
 To repeat the local canary through both installed harnesses with sanitized pass/fail output:
 
 ```sh
-./target/debug/lao smoke
+"$LAO_CHECKOUT/target/debug/lao" smoke
 ```
 
 An install failure rolls back automatically. After a successful install, when finished—or immediately if a later check fails—restore both clients and stop LAO:
 
 ```sh
-./target/debug/lao off
+"$LAO_CHECKOUT/target/debug/lao" off
 ```
 
 Do not edit the managed Codex or Claude settings between `install` and `off`; the transaction refuses to overwrite unexpected user changes. A successful `off` reports exact restoration and leaves no daemon, worker, listener, plist, runtime key, or log.
