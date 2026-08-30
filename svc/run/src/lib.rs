@@ -1,9 +1,9 @@
 use std::{
-    fs::{OpenOptions, remove_file},
+    fs::{self, OpenOptions, remove_file},
     io::{self, BufRead, BufReader, Read, Write},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream},
     os::unix::fs::OpenOptionsExt,
-    path::Path,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     sync::mpsc,
     thread::{self, JoinHandle},
@@ -19,6 +19,10 @@ mod resource;
 pub use resource::{plan, pressured};
 
 pub const BUILD: &str = "version: 10280 (61881b1f7)";
+pub const DOWNLOAD_BYTES: u64 = 10_973_563;
+pub const DOWNLOAD_URL: &str = "https://github.com/ggml-org/llama.cpp/releases/download/b10280/llama-b10280-bin-macos-arm64.tar.gz";
+const DOWNLOAD_SHA256: &str = "5dc4b11192ef34895c7f92a9f1dd3bd3d5864a63976ea2327fe2e0944891cb75";
+const DIRECTORY: &str = "llama-b10280";
 
 pub struct Config<'a> {
     pub bin: &'a Path,
@@ -35,6 +39,112 @@ pub struct Direct {
 }
 
 struct Key(std::path::PathBuf);
+
+pub fn prepare(root: &Path) -> io::Result<PathBuf> {
+    fs::create_dir_all(root)?;
+    let bin = binary(root);
+    if bin.exists() {
+        verify_bin(&bin)?;
+        return Ok(bin);
+    }
+
+    let archive = root.join(format!(".{DIRECTORY}.tar.gz.part"));
+    let directory = root.join(format!(".{DIRECTORY}.part"));
+    let mut pending = Pending {
+        archive: Some(archive.clone()),
+        directory: Some(directory.clone()),
+    };
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&archive)?;
+    let status = Command::new("/usr/bin/curl")
+        .args(["--fail", "--location", "--silent", "--show-error"])
+        .args(["--proto", "=https", "--proto-redir", "=https"])
+        .args(["--max-filesize", &DOWNLOAD_BYTES.to_string()])
+        .args(["--connect-timeout", "30", "--max-time", "300"])
+        .arg("--output")
+        .arg(&archive)
+        .arg(DOWNLOAD_URL)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+    if !status.success() {
+        return Err(invalid("runtime download"));
+    }
+    verify_archive(&archive)?;
+    fs::create_dir(&directory)?;
+    let status = Command::new("/usr/bin/tar")
+        .args(["-xzf"])
+        .arg(&archive)
+        .args(["-C"])
+        .arg(&directory)
+        .arg("--strip-components=1")
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?;
+    if !status.success() {
+        return Err(invalid("runtime archive"));
+    }
+    verify_bin(&directory.join("llama-server"))?;
+    fs::rename(&directory, root.join(DIRECTORY))?;
+    pending.directory = None;
+    fs::remove_file(&archive)?;
+    pending.archive = None;
+    Ok(bin)
+}
+
+pub fn binary(root: &Path) -> PathBuf {
+    root.join(DIRECTORY).join("llama-server")
+}
+
+fn verify_archive(path: &Path) -> io::Result<()> {
+    let meta = fs::symlink_metadata(path)?;
+    if !meta.file_type().is_file() || meta.len() != DOWNLOAD_BYTES {
+        return Err(invalid("runtime archive"));
+    }
+    let output = Command::new("/usr/bin/shasum")
+        .args(["-a", "256"])
+        .arg(path)
+        .output()?;
+    let hash = String::from_utf8(output.stdout).map_err(|_| invalid("runtime archive"))?;
+    if !output.status.success() || hash.split_whitespace().next() != Some(DOWNLOAD_SHA256) {
+        return Err(invalid("runtime archive"));
+    }
+    Ok(())
+}
+
+fn verify_bin(path: &Path) -> io::Result<()> {
+    let meta = fs::symlink_metadata(path)?;
+    if !meta.file_type().is_file() {
+        return Err(invalid("runtime binary"));
+    }
+    let output = Command::new(path).arg("--version").output()?;
+    let observed = [output.stdout, output.stderr].concat();
+    if !output.status.success() || !String::from_utf8_lossy(&observed).contains(BUILD) {
+        return Err(invalid("runtime build"));
+    }
+    Ok(())
+}
+
+struct Pending {
+    archive: Option<PathBuf>,
+    directory: Option<PathBuf>,
+}
+
+impl Drop for Pending {
+    fn drop(&mut self) {
+        if let Some(path) = &self.archive {
+            let _ = fs::remove_file(path);
+        }
+        if let Some(path) = &self.directory {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
+}
 
 impl Key {
     // The name is independent of the bearer: a directory listing is readable by
@@ -227,5 +337,13 @@ mod tests {
         let path = key.0.clone();
         drop(key);
         assert!(!path.exists());
+    }
+
+    #[test]
+    fn wrong_runtime_archive_is_rejected() {
+        let path = std::env::temp_dir().join(format!("lao-runtime-{}.tar.gz", std::process::id()));
+        fs::write(&path, b"wrong").unwrap();
+        assert!(verify_archive(&path).is_err());
+        fs::remove_file(path).unwrap();
     }
 }

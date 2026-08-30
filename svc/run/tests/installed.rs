@@ -14,7 +14,17 @@ use lao_run_api::Mode;
 fn direct_llama_cpp_serves_and_stops() {
     let bin = env::var_os("LAO_LLAMA_SERVER")
         .map(PathBuf::from)
-        .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
+        .map(Ok)
+        .unwrap_or_else(|| {
+            let root = env::var_os("LAO_RUNTIME_DIR")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| {
+                    PathBuf::from(env::var_os("HOME").unwrap())
+                        .join("Library/Caches/lao/runtimes")
+                });
+            lao_run::prepare(&root)
+        })
+        .unwrap();
     let model = env::var_os("LAO_MODEL")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
