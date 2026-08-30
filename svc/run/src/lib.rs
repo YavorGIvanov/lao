@@ -231,7 +231,8 @@ impl Direct {
                 "--fit",
                 "off",
                 "--cache-ram",
-                "0",
+                // Retain both harness prefixes within the model's 3 GiB working-set estimate.
+                "384",
                 "--no-webui",
                 "--metrics",
                 "--jinja",
