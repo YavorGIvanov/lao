@@ -31,9 +31,9 @@ struct Paths {
     plist: PathBuf,
     adopted: PathBuf,
     model: PathBuf,
+    runtime: PathBuf,
     daemon_source: PathBuf,
     daemon: PathBuf,
-    llama: PathBuf,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -257,13 +257,18 @@ pub fn run() -> Result<()> {
 
 fn preview() -> Result<()> {
     let paths = paths()?;
-    let budget = lao_run::plan(&paths.llama, lao_run::Mode::Light)?;
+    let llama = lao_run::prepare(&paths.runtime)?;
+    let budget = lao_run::plan(&llama, lao_run::Mode::Light)?;
     let model = &lao_model::QWEN;
     println!("model: {}", model.id);
     println!("source: {} @ {}", model.url, model.revision);
     println!("download: {} bytes", model.bytes);
     println!("license: {}", model.license);
-    println!("runtime: {}", model.runtime);
+    println!(
+        "runtime: {} ({} bytes)",
+        model.runtime,
+        lao_run::DOWNLOAD_BYTES
+    );
     println!("context: {}", model.context);
     println!(
         "Light: {:.2} GiB, {} threads",
@@ -293,8 +298,11 @@ fn install() -> Result<()> {
     }
 
     let codex_cloud = preflight_clients()?;
+    println!("preparing local runtime...");
+    let llama = lao_run::prepare(&paths.runtime)?;
+    lao_run::plan(&llama, lao_run::Mode::Light)?;
+    println!("preparing local model...");
     lao_model::prepare(&paths.model)?;
-    lao_run::plan(&paths.llama, lao_run::Mode::Light)?;
     if !paths.daemon_source.is_file() {
         return Err(invalid("lao-daemon binary").into());
     }
@@ -328,7 +336,14 @@ fn install() -> Result<()> {
     let claude_after = lao_claude::configure(claude_original.as_deref(), port, &claude_caller)?;
 
     let mut transaction = Transaction::prepare(&paths, port, &codex_after, &claude_after)?;
-    let plist = plist(&paths, port, &codex_caller, &claude_caller, codex_cloud)?;
+    let plist = plist(
+        &paths,
+        &llama,
+        port,
+        &codex_caller,
+        &claude_caller,
+        codex_cloud,
+    )?;
     write_atomic(&paths.state.join(PLIST_AFTER), plist.as_bytes(), 0o600)?;
     let result = (|| -> Result<()> {
         remove_optional(&paths.adopted)?;
@@ -662,11 +677,9 @@ fn paths() -> io::Result<Paths> {
             .join(format!("{LABEL}.plist")),
         adopted: state.join("adopted"),
         model: home.join("Library/Caches/lao/models"),
+        runtime: home.join("Library/Caches/lao/runtimes"),
         daemon_source,
         daemon: state.join("lao-daemon"),
-        llama: env::var_os("LAO_LLAMA_SERVER")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into()),
     })
 }
 
@@ -864,6 +877,7 @@ fn free_port() -> io::Result<u16> {
 #[cfg(target_os = "macos")]
 fn plist(
     paths: &Paths,
+    llama: &Path,
     port: u16,
     codex: &str,
     claude: &str,
@@ -874,7 +888,7 @@ fn plist(
         paths.daemon.to_str(),
         paths.adopted.to_str(),
         paths.model.to_str(),
-        paths.llama.to_str(),
+        llama.to_str(),
         error_path.to_str(),
     ];
     if values.iter().any(Option::is_none) {
@@ -1064,9 +1078,9 @@ mod tests {
                 plist: self.0.join("daemon.plist"),
                 adopted: state.join("adopted"),
                 model: self.0.join("models"),
+                runtime: self.0.join("runtimes"),
                 daemon_source: self.0.join("lao-daemon-source"),
                 daemon: self.0.join("lao-daemon"),
-                llama: self.0.join("llama-server"),
             }
         }
     }

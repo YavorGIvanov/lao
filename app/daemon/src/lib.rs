@@ -106,9 +106,9 @@ fn start() -> io::Result<(lao_run::Direct, Arc<Endpoint>)> {
             .join("Library/Caches/lao/models"),
     };
     let model = lao_model::open(&root)?;
-    let bin = env::var_os("LAO_LLAMA_SERVER")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
+    let bin = PathBuf::from(
+        env::var_os("LAO_LLAMA_SERVER").ok_or_else(|| io::Error::other("local runtime"))?,
+    );
     let (runtime, endpoint) = lao_run::Direct::start(lao_run::Config {
         bin: &bin,
         model: &model.path,

@@ -26,7 +26,13 @@ fn installed_clients_complete_one_local_canary() {
     let model = lao_model::open(&root).expect("verified cached model");
     let bin = env::var_os("LAO_LLAMA_SERVER")
         .map(PathBuf::from)
-        .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
+        .map(Ok)
+        .unwrap_or_else(|| {
+            let root = PathBuf::from(env::var_os("HOME").expect("HOME"))
+                .join("Library/Caches/lao/runtimes");
+            lao_run::prepare(&root)
+        })
+        .expect("verified local runtime");
     let (runtime, endpoint) = lao_run::Direct::start(lao_run::Config {
         bin: &bin,
         model: &model.path,

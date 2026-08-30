@@ -19,8 +19,7 @@ fn direct_llama_cpp_serves_and_stops() {
             let root = env::var_os("LAO_RUNTIME_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|| {
-                    PathBuf::from(env::var_os("HOME").unwrap())
-                        .join("Library/Caches/lao/runtimes")
+                    PathBuf::from(env::var_os("HOME").unwrap()).join("Library/Caches/lao/runtimes")
                 });
             lao_run::prepare(&root)
         })
