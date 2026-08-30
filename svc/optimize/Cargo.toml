@@ -1,0 +1,21 @@
+[package]
+name = "lao-optimize"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+lao-optimize-api = { path = "../../api/optimize", version = "0.1.0" }
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "svc"
+owner = "A13"
+api = "lao-optimize-api"
+state = "none"
+isolate = "linked"
+status = "active"

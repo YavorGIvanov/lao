@@ -1366,6 +1366,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "lao-optimize"
+version = "0.1.0"
+dependencies = [
+ "lao-optimize-api",
+]
+
+[[package]]
+name = "lao-optimize-api"
+version = "0.1.0"
+
+[[package]]
 name = "lao-route"
 version = "0.1.0"
 dependencies = [

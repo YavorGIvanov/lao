@@ -1,0 +1,17 @@
+[package]
+name = "lao-optimize-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "api"
+owner = "A13"
+state = "none"
+isolate = "contract"
+status = "active"
