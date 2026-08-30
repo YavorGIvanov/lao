@@ -16,7 +16,7 @@ esac
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 home=${HOME:?HOME is required}
 prefix=${LAO_PREFIX:-"$home/.local/libexec/lao"}
-bin_dir=${LAO_BIN_DIR:-"$home/.cargo/bin"}
+bin_dir=${LAO_BIN_DIR:-"$home/.local/bin"}
 
 for path in "$prefix" "$bin_dir"; do
     case "$path" in
