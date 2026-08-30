@@ -1404,6 +1404,13 @@ fn deactivate(paths: &Paths) -> io::Result<()> {
         if !status.success() {
             return Err(invalid("launchd bootout"));
         }
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while service_loaded()? {
+            if Instant::now() >= deadline {
+                return Err(invalid("launchd shutdown"));
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
     }
     remove_optional(&paths.plist)?;
     lao_optimize::Store::new(paths.optimize.clone()).remove()
