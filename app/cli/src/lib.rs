@@ -30,6 +30,7 @@ struct Paths {
     plist: PathBuf,
     adopted: PathBuf,
     model: PathBuf,
+    daemon_source: PathBuf,
     daemon: PathBuf,
     llama: PathBuf,
 }
@@ -293,9 +294,10 @@ fn install() -> Result<()> {
     let codex_cloud = preflight_clients()?;
     lao_model::prepare(&paths.model)?;
     lao_run::plan(&paths.llama, lao_run::Mode::Light)?;
-    if !paths.daemon.is_file() {
+    if !paths.daemon_source.is_file() {
         return Err(invalid("lao-daemon binary").into());
     }
+    let daemon = fs::read(&paths.daemon_source)?;
 
     let codex_original = read_optional(&paths.codex)?;
     let claude_original = read_optional(&paths.claude)?;
@@ -310,6 +312,7 @@ fn install() -> Result<()> {
     write_atomic(&paths.state.join(PLIST_AFTER), plist.as_bytes(), 0o600)?;
     let result = (|| -> Result<()> {
         remove_optional(&paths.adopted)?;
+        write_atomic(&paths.daemon, &daemon, 0o700)?;
         write_atomic(&paths.plist, plist.as_bytes(), 0o600)?;
         bootstrap(&paths)?;
         verify_ready(&paths, port)?;
@@ -319,6 +322,7 @@ fn install() -> Result<()> {
     if let Err(error) = result {
         let _ = transaction.restore_changed();
         let _ = deactivate(&paths);
+        let _ = remove_optional(&paths.daemon);
         let _ = transaction.discard();
         return Err(error);
     }
@@ -348,6 +352,7 @@ fn off() -> Result<()> {
         Phase::Restored => {}
     }
     deactivate(&paths)?;
+    remove_optional(&paths.daemon)?;
     transaction.discard()?;
     remove_optional(&paths.adopted)?;
     println!("off: original Codex and Claude settings restored exactly");
@@ -605,7 +610,7 @@ fn paths() -> io::Result<Paths> {
     if !home.is_absolute() || !codex_root.is_absolute() || !claude_root.is_absolute() {
         return Err(invalid("client configuration path"));
     }
-    let daemon = env::current_exe()?
+    let daemon_source = env::current_exe()?
         .parent()
         .ok_or_else(|| invalid("lao binary"))?
         .join("lao-daemon");
@@ -618,7 +623,8 @@ fn paths() -> io::Result<Paths> {
             .join(format!("{LABEL}.plist")),
         adopted: state.join("adopted"),
         model: home.join("Library/Caches/lao/models"),
-        daemon,
+        daemon_source,
+        daemon: state.join("lao-daemon"),
         llama: env::var_os("LAO_LLAMA_SERVER")
             .map(PathBuf::from)
             .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into()),
@@ -628,6 +634,7 @@ fn paths() -> io::Result<Paths> {
 fn recover(paths: &Paths, transaction: &Transaction) -> io::Result<()> {
     transaction.restore_changed()?;
     deactivate(paths)?;
+    remove_optional(&paths.daemon)?;
     transaction.discard()?;
     remove_optional(&paths.adopted)
 }
@@ -1017,6 +1024,7 @@ mod tests {
                 plist: self.0.join("daemon.plist"),
                 adopted: state.join("adopted"),
                 model: self.0.join("models"),
+                daemon_source: self.0.join("lao-daemon-source"),
                 daemon: self.0.join("lao-daemon"),
                 llama: self.0.join("llama-server"),
             }
