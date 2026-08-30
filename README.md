@@ -191,12 +191,12 @@ The clean R2 install also routed the no-canary spelling request through the laun
 
 The first post-Stage 1 resource slice is implemented: each local response holds a runtime lease until its stream completes or is dropped. After the final lease ends, a five-second watcher unloads the worker after roughly five observed idle minutes or as soon as it observes macOS memory pressure; a pressure-probe error also unloads safely. A later local request cold-starts the verified runtime again. Cloud traffic never acquires a lease, and background preload remains deferred.
 
-The default selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
+The default `lao install` selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
 
 To select a running vLLM or SGLang server without giving LAO ownership of it:
 
 ```sh
 LAO_EXTERNAL_ADDR=127.0.0.1:8000 \
 LAO_EXTERNAL_KEY_FILE=/absolute/path/to/owner-only/runtime.key \
-./install.sh --runtime external
+lao install --runtime external
 ```
