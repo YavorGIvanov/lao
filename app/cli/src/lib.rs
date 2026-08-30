@@ -790,7 +790,17 @@ fn smoke() -> Result<()> {
     let claude = fs::read(&paths.claude)?;
     let (codex_caller, claude_caller) = managed_callers(&codex, &claude, transaction.record.port)?;
 
-    let codex_elapsed = lao_optimize::codex("codex", transaction.record.port, &codex_caller)?;
+    let codex_catalog = paths
+        .codex
+        .parent()
+        .ok_or_else(|| invalid("Codex model catalog"))?
+        .join("models_cache.json");
+    let codex_elapsed = lao_optimize::codex(
+        "codex",
+        codex_catalog,
+        transaction.record.port,
+        &codex_caller,
+    )?;
     println!("Codex local: ok ({} ms)", codex_elapsed.as_millis());
     let claude_elapsed = lao_optimize::claude("claude", transaction.record.port, &claude_caller)?;
     println!("Claude local: ok ({} ms)", claude_elapsed.as_millis());
@@ -1250,6 +1260,11 @@ fn plist(
     clients: &Clients,
 ) -> io::Result<String> {
     let error_path = paths.state.join(DAEMON_ERROR);
+    let codex_catalog = paths
+        .codex
+        .parent()
+        .ok_or_else(|| invalid("non-UTF-8 install path"))?
+        .join("models_cache.json");
     let values = [
         paths.daemon.to_str(),
         paths.adopted.to_str(),
@@ -1258,7 +1273,7 @@ fn plist(
         clients.claude.to_str(),
         paths.optimize.to_str(),
     ];
-    if values.iter().any(Option::is_none) {
+    if values.iter().any(Option::is_none) || codex_catalog.to_str().is_none() {
         return Err(invalid("non-UTF-8 install path"));
     }
     let mut adapters = adapter_env(paths, selected)?;
@@ -1276,6 +1291,13 @@ fn plist(
         &mut adapters,
         "LAO_OPTIMIZE_STATE",
         values[5].ok_or_else(|| invalid("non-UTF-8 install path"))?,
+    );
+    env_entry(
+        &mut adapters,
+        "LAO_CODEX_CATALOG",
+        codex_catalog
+            .to_str()
+            .ok_or_else(|| invalid("non-UTF-8 install path"))?,
     );
     Ok(format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
@@ -1769,6 +1791,7 @@ mod tests {
             };
             let bytes = plist(&paths, &selected, 8765, "codex", "claude", &clients).unwrap();
             for expected in [
+                "<key>LAO_CODEX_CATALOG</key>",
                 "<key>LAO_ROUTER</key><string>vllm-semantic</string>",
                 "<key>LAO_RUNTIME</key><string>external</string>",
                 "<key>LAO_VLLM_ROUTER_ADDR</key><string>127.0.0.1:8080</string>",

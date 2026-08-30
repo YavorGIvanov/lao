@@ -129,12 +129,13 @@ fn warm(
     optimizer: lao_optimize::Optimizer,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let codex_bin = env::var_os("LAO_CODEX_BIN").ok_or("LAO_CODEX_BIN")?;
+    let codex_catalog = env::var_os("LAO_CODEX_CATALOG").ok_or("LAO_CODEX_CATALOG")?;
     let claude_bin = env::var_os("LAO_CLAUDE_BIN").ok_or("LAO_CLAUDE_BIN")?;
     let codex = String::from_utf8(codex.to_vec())?;
     let claude = String::from_utf8(claude.to_vec())?;
     let plan = Plan::new(
         move || lao_optimize::claude(claude_bin, port, &claude).map(|_| ()),
-        move || lao_optimize::codex(codex_bin, port, &codex).map(|_| ()),
+        move || lao_optimize::codex(codex_bin, codex_catalog, port, &codex).map(|_| ()),
     );
     optimizer.start(plan)?;
     Ok(())

@@ -22,6 +22,7 @@ const READY: u8 = 2;
 const FAILED: u8 = 3;
 const CALLER_ENV: &str = "LAO_OPTIMIZE_CODEX_CALLER";
 const SELECTOR_ENV: &str = "LAO_OPTIMIZE_LOCAL";
+const LOCAL_AUTH: &[u8] = b"{\"auth_mode\":\"apikey\",\"OPENAI_API_KEY\":\"lao-local-only\"}\n";
 const OUTPUT_LIMIT: u64 = 1 << 20;
 const TIMEOUT: Duration = Duration::from_secs(180);
 
@@ -176,15 +177,43 @@ fn probe(probe: Probe) -> bool {
     panic::catch_unwind(AssertUnwindSafe(probe)).is_ok_and(|result| result.is_ok())
 }
 
-pub fn codex(bin: impl AsRef<OsStr>, port: u16, caller: &str) -> io::Result<Duration> {
+pub fn codex(
+    bin: impl AsRef<OsStr>,
+    catalog: impl AsRef<Path>,
+    port: u16,
+    caller: &str,
+) -> io::Result<Duration> {
     valid(port, caller)?;
     let scratch = Scratch::new("codex")?;
+    let catalog_path = scratch.0.join("models_cache.json");
+    let catalog_source = fs::symlink_metadata(catalog.as_ref())?;
+    if !catalog_source.file_type().is_file()
+        || catalog_source.len() == 0
+        || catalog_source.len() > OUTPUT_LIMIT
+    {
+        return Err(invalid("Codex model catalog"));
+    }
+    let catalog_bytes = fs::read(catalog.as_ref())?;
+    if catalog_bytes.is_empty() || catalog_bytes.len() as u64 > OUTPUT_LIMIT {
+        return Err(invalid("Codex model catalog"));
+    }
+    write_private(&catalog_path, &catalog_bytes, 0o600)?;
+    write_private(&scratch.0.join("auth.json"), LOCAL_AUTH, 0o600)?;
+    let catalog_path = catalog_path
+        .to_str()
+        .filter(|value| {
+            !value
+                .bytes()
+                .any(|byte| byte.is_ascii_control() || matches!(byte, b'"' | b'\\'))
+        })
+        .ok_or_else(|| invalid("Codex model catalog path"))?;
     let config = format!(
-        "model_provider = \"lao\"\n\
+        "model_catalog_json = \"{catalog_path}\"\n\
+         model_provider = \"lao\"\n\
          [model_providers.lao]\n\
          name = \"LAO\"\n\
          base_url = \"http://127.0.0.1:{port}/oai\"\n\
-         requires_openai_auth = false\n\
+         requires_openai_auth = true\n\
          supports_websockets = false\n\
          env_http_headers = {{ X-LAO-Key = \"{CALLER_ENV}\", X-LAO-Local = \"{SELECTOR_ENV}\" }}\n"
     );
@@ -541,6 +570,7 @@ mod tests {
         let fixture = Scratch::new("probe-test").unwrap();
         let codex_bin = fixture.0.join("codex");
         let claude_bin = fixture.0.join("claude");
+        let catalog = fixture.0.join("models_cache.json");
         let codex_script = format!(
             r#"#!/bin/sh
 for value in "$@"; do
@@ -549,9 +579,13 @@ done
 [ "$LAO_OPTIMIZE_CODEX_CALLER" = "{caller}" ] || exit 11
 [ "$LAO_OPTIMIZE_LOCAL" = "canary" ] || exit 12
 grep -F 'base_url = "http://127.0.0.1:8765/oai"' "$CODEX_HOME/config.toml" >/dev/null || exit 13
-grep -F 'requires_openai_auth = false' "$CODEX_HOME/config.toml" >/dev/null || exit 14
+grep -F 'requires_openai_auth = true' "$CODEX_HOME/config.toml" >/dev/null || exit 14
 grep -F 'X-LAO-Key = "LAO_OPTIMIZE_CODEX_CALLER"' "$CODEX_HOME/config.toml" >/dev/null || exit 15
 if grep -F '{caller}' "$CODEX_HOME/config.toml" >/dev/null; then exit 16; fi
+[ "$(stat -f %Lp "$CODEX_HOME/models_cache.json")" = "600" ] || exit 17
+grep -F 'model_catalog_json = ' "$CODEX_HOME/config.toml" >/dev/null || exit 18
+[ "$(stat -f %Lp "$CODEX_HOME/auth.json")" = "600" ] || exit 19
+grep -F '"OPENAI_API_KEY":"lao-local-only"' "$CODEX_HOME/auth.json" >/dev/null || exit 20
 printf '42\n'
 "#
         );
@@ -573,8 +607,9 @@ printf '42\n'
         );
         write_private(&codex_bin, codex_script.as_bytes(), 0o700).unwrap();
         write_private(&claude_bin, claude_script.as_bytes(), 0o700).unwrap();
+        write_private(&catalog, b"{}\n", 0o600).unwrap();
 
-        codex(&codex_bin, 8765, caller).unwrap();
+        codex(&codex_bin, &catalog, 8765, caller).unwrap();
         claude(&claude_bin, 8765, caller).unwrap();
     }
 
