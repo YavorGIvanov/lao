@@ -133,7 +133,7 @@
       <div class="arrow">⇢</div>
       <div class="control-target"><code>verified runtime + model</code><br><code>client adapters · launchd</code><br>then the command exits</div>
     </div>
-    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model, or verifies and reuses an existing healthy setup; launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
+    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model, or verifies and reuses an existing healthy setup; <code>lao status</code> checks the service and both client routes without printing their values. Launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
   </section>
 
   <section>

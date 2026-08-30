@@ -248,6 +248,7 @@ Status: complete (2026-08-30).
 Current evidence:
 
 - the final pass removed the unimplemented `doctor` claim and retained only exercised CLI operations;
+- `lao status` reports service and per-client readiness without exposing configuration values, caller capabilities, or credentials;
 - formatting, all workspace tests, workspace Clippy with warnings denied, the 29-package architecture check, extraction/conformance, and diff hygiene pass;
 - README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
 

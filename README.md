@@ -35,9 +35,17 @@ Setup stops with a specific error when a prerequisite or existing configuration 
 
 Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
 
+At any time, check the whole installed path without consuming a model request:
+
+```sh
+lao status
+```
+
+`LAO: ready` means the service is running, both clients are routed through LAO, ordinary work still defaults to cloud, and only the explicit canary selects the local model. No credential or configuration value is printed.
+
 ## Optional end-to-end test
 
-Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:
+Before testing, `lao status` must report `LAO: ready`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:
 
 ```sh
 cd /absolute/path/to/your/existing-project

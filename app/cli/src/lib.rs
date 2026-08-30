@@ -141,6 +141,7 @@ impl Selected {
 enum Action {
     Preview(Choice),
     Install(Choice),
+    Status,
     Smoke,
     Off,
 }
@@ -290,7 +291,8 @@ impl Transaction {
     }
 
     fn validate_installed(&self) -> io::Result<()> {
-        self.installed_clients().map(|_| ())
+        self.validate_codex()?;
+        self.validate_claude().map(|_| ())
     }
 
     fn validate_originals(&self) -> io::Result<()> {
@@ -346,10 +348,12 @@ impl Transaction {
     }
 
     fn installed_clients(&self) -> io::Result<(Vec<u8>, Vec<u8>)> {
+        Ok((self.validate_codex()?, self.validate_claude()?))
+    }
+
+    fn validate_codex(&self) -> io::Result<Vec<u8>> {
         let codex = read_managed(&self.record.codex)?;
-        let claude = read_managed(&self.record.claude)?;
         let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
-        let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
         let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
         lao_codex::verify(
             &codex,
@@ -357,9 +361,15 @@ impl Transaction {
             self.record.codex.existed.then_some(codex_before.as_slice()),
         )
         .map_err(|_| conflict("managed Codex settings changed"))?;
+        Ok(codex)
+    }
+
+    fn validate_claude(&self) -> io::Result<Vec<u8>> {
+        let claude = read_managed(&self.record.claude)?;
+        let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
         lao_claude::verify(&claude, &claude_after)
             .map_err(|_| conflict("managed Claude settings changed"))?;
-        Ok((codex, claude))
+        Ok(claude)
     }
 
     fn restore_changed(&self) -> io::Result<()> {
@@ -399,12 +409,13 @@ pub fn run() -> Result<()> {
     match parse(env::args_os().skip(1))? {
         Some(Action::Preview(choice)) => preview(&Selected::load(choice)?),
         Some(Action::Install(choice)) => install(&Selected::load(choice)?),
+        Some(Action::Status) => status(),
         Some(Action::Smoke) => smoke(),
         Some(Action::Off) => off(),
         None => {
             println!(
                 "usage: lao <preview|install> [--router semantic|safe|vllm-semantic] \
-                 [--runtime llama-cpp|external]\n       lao <smoke|off>"
+                 [--runtime llama-cpp|external]\n       lao <status|smoke|off>"
             );
             Ok(())
         }
@@ -425,14 +436,14 @@ fn parse(mut args: impl Iterator<Item = OsString>) -> io::Result<Option<Action>>
                 Action::Install(choice)
             }))
         }
-        "smoke" | "off" => {
+        "status" | "smoke" | "off" => {
             if args.next().is_some() {
                 return Err(invalid("unexpected option"));
             }
-            Ok(Some(if command == "smoke" {
-                Action::Smoke
-            } else {
-                Action::Off
+            Ok(Some(match command.as_str() {
+                "status" => Action::Status,
+                "smoke" => Action::Smoke,
+                _ => Action::Off,
             }))
         }
         _ => Err(invalid("command")),
@@ -474,6 +485,66 @@ fn choice(args: &mut impl Iterator<Item = OsString>) -> io::Result<Choice> {
         router: router.unwrap_or(defaults.router),
         runtime: runtime.unwrap_or(defaults.runtime),
     })
+}
+
+#[cfg(target_os = "macos")]
+fn status() -> Result<()> {
+    let paths = paths()?;
+    if !paths.state.join(RECORD).is_file() {
+        println!("LAO: off");
+        return Ok(());
+    }
+    let _lock = Lock::acquire(&paths.state)?;
+    let transaction = Transaction::load(&paths.state)?;
+    if transaction.record.phase != Phase::Installed {
+        println!("LAO: needs recovery");
+        return Err(invalid("run lao off, then lao install").into());
+    }
+    let codex = transaction.validate_codex().is_ok();
+    let claude = transaction.validate_claude().is_ok();
+    let plist = validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600).is_ok();
+    let service =
+        plist && service_loaded().unwrap_or(false) && hello(transaction.record.port).is_ok();
+    println!(
+        "LAO: {}",
+        if codex && claude && service {
+            "ready"
+        } else {
+            "needs attention"
+        }
+    );
+    println!(
+        "service: {}",
+        if service { "running" } else { "unavailable" }
+    );
+    println!(
+        "Codex: {}",
+        if codex {
+            "routed through LAO"
+        } else {
+            "not routed through LAO"
+        }
+    );
+    println!(
+        "Claude: {}",
+        if claude {
+            "routed through LAO"
+        } else {
+            "not routed through LAO"
+        }
+    );
+    if codex && claude && service {
+        println!("default route: cloud");
+        println!("local route: explicit canary only");
+        Ok(())
+    } else {
+        Err(invalid("installation needs attention").into())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn status() -> Result<()> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "macOS only").into())
 }
 
 fn preview(selected: &Selected) -> Result<()> {
