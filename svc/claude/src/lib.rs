@@ -1,4 +1,6 @@
 use lao_client_api::Status;
+use serde_json::{Map, Value};
+use std::{error::Error, fmt};
 
 pub const OBSERVED: Version = Version(2, 1, 251);
 
@@ -30,8 +32,25 @@ pub struct Preview {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PreviewError;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum ConfigError {
+    Conflict,
+    Invalid,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Conflict => "conflicting Claude provider configuration",
+            Self::Invalid => "invalid Claude settings",
+        })
+    }
+}
+
+impl Error for ConfigError {}
+
 pub fn status() -> Status {
-    Status::Stub
+    Status::Active
 }
 
 pub fn support(output: &str) -> Support {
@@ -67,6 +86,41 @@ pub fn preview(port: u16) -> Result<Preview, PreviewError> {
         base_url: format!("http://127.0.0.1:{port}/ant"),
         caller_header: "X-LAO-Key: <redacted>",
     })
+}
+
+pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec<u8>, ConfigError> {
+    if port == 0 || !valid_caller(caller) {
+        return Err(ConfigError::Invalid);
+    }
+    let mut root = match original {
+        Some(bytes) => serde_json::from_slice::<Value>(bytes).map_err(|_| ConfigError::Invalid)?,
+        None => Value::Object(Map::new()),
+    };
+    let object = root.as_object_mut().ok_or(ConfigError::Invalid)?;
+    if object.contains_key("apiKeyHelper") {
+        return Err(ConfigError::Conflict);
+    }
+    let env = object
+        .entry("env")
+        .or_insert_with(|| Value::Object(Map::new()))
+        .as_object_mut()
+        .ok_or(ConfigError::Invalid)?;
+    if env.keys().any(|key| classify(key).is_some()) {
+        return Err(ConfigError::Conflict);
+    }
+    env.insert(
+        "ANTHROPIC_BASE_URL".into(),
+        Value::String(format!("http://127.0.0.1:{port}/ant")),
+    );
+    env.insert(
+        "ANTHROPIC_CUSTOM_HEADERS".into(),
+        Value::String(format!("X-LAO-Key: {caller}")),
+    );
+    serde_json::to_vec_pretty(&root).map_err(|_| ConfigError::Invalid)
+}
+
+fn valid_caller(value: &str) -> bool {
+    value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn parse(raw: &str) -> Option<Version> {
@@ -150,5 +204,26 @@ mod tests {
             }
         );
         assert_eq!(preview(0), Err(PreviewError));
+
+        let configured = configure(
+            Some(br#"{"permissions":{"defaultMode":"default"}}"#),
+            8765,
+            "0123456789abcdef0123456789abcdef",
+        )
+        .unwrap();
+        let configured: serde_json::Value = serde_json::from_slice(&configured).unwrap();
+        assert_eq!(configured["permissions"]["defaultMode"], "default");
+        assert_eq!(
+            configured["env"]["ANTHROPIC_BASE_URL"],
+            "http://127.0.0.1:8765/ant"
+        );
+        assert_eq!(
+            configure(
+                Some(br#"{"env":{"ANTHROPIC_API_KEY":"existing"}}"#),
+                8765,
+                "0123456789abcdef0123456789abcdef",
+            ),
+            Err(ConfigError::Conflict)
+        );
     }
 }

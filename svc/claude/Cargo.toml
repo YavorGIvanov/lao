@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 lao-client-api = { path = "../../api/client", version = "0.1.0" }
+serde_json.workspace = true
 
 [lints]
 workspace = true
@@ -18,4 +19,4 @@ owner = "A02"
 api = "lao-client-api"
 state = "client-claude"
 isolate = "linked"
-status = "stub"
+status = "active"

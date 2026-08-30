@@ -8,6 +8,7 @@ license.workspace = true
 
 [dependencies]
 lao-client-api = { path = "../../api/client", version = "0.1.0" }
+toml_edit.workspace = true
 
 [lints]
 workspace = true
@@ -18,4 +19,4 @@ owner = "A01"
 api = "lao-client-api"
 state = "client-codex"
 isolate = "linked"
-status = "stub"
+status = "active"

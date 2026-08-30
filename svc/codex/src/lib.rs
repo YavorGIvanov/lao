@@ -1,4 +1,5 @@
 use lao_client_api::Status;
+use std::{error::Error, fmt};
 
 pub const OBSERVED: Version = Version(0, 146, 0);
 
@@ -41,8 +42,25 @@ pub struct Preview {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PreviewError;
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum ConfigError {
+    Conflict,
+    Invalid,
+}
+
+impl fmt::Display for ConfigError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            Self::Conflict => "conflicting Codex provider configuration",
+            Self::Invalid => "invalid Codex configuration",
+        })
+    }
+}
+
+impl Error for ConfigError {}
+
 pub fn status() -> Status {
-    Status::Stub
+    Status::Active
 }
 
 pub fn support(output: &str) -> Support {
@@ -92,6 +110,45 @@ pub fn preview(port: u16) -> Result<Preview, PreviewError> {
         native_auth: true,
         websockets: false,
     })
+}
+
+pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec<u8>, ConfigError> {
+    if port == 0 || !valid_caller(caller) {
+        return Err(ConfigError::Invalid);
+    }
+    let raw = original.unwrap_or_default();
+    let text = std::str::from_utf8(raw).map_err(|_| ConfigError::Invalid)?;
+    let document = text
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|_| ConfigError::Invalid)?;
+    if [
+        "openai_base_url",
+        "model_provider",
+        "model_providers",
+        "profile",
+        "profiles",
+    ]
+    .iter()
+    .any(|key| document.contains_key(key))
+    {
+        return Err(ConfigError::Conflict);
+    }
+
+    let mut configured = text.to_owned();
+    if !configured.is_empty() && !configured.ends_with('\n') {
+        configured.push('\n');
+    }
+    configured.push_str(&format!(
+        "model_provider = \"lao\"\n\n[model_providers.lao]\nname = \"LAO\"\nbase_url = \"http://127.0.0.1:{port}/oai\"\nrequires_openai_auth = true\nsupports_websockets = false\nhttp_headers = {{ X-LAO-Key = \"{caller}\" }}\n"
+    ));
+    configured
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|_| ConfigError::Invalid)?;
+    Ok(configured.into_bytes())
+}
+
+fn valid_caller(value: &str) -> bool {
+    value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn parse(raw: &str) -> Option<Version> {
@@ -188,5 +245,21 @@ mod tests {
             }
         );
         assert_eq!(preview(0), Err(PreviewError));
+
+        let original = b"model = \"gpt-5.4\"\n";
+        let configured =
+            configure(Some(original), 8765, "0123456789abcdef0123456789abcdef").unwrap();
+        assert!(configured.starts_with(original));
+        let configured = String::from_utf8(configured).unwrap();
+        assert!(configured.contains("model_provider = \"lao\""));
+        assert!(configured.contains("base_url = \"http://127.0.0.1:8765/oai\""));
+        assert_eq!(
+            configure(
+                Some(b"model_provider = \"other\"\n"),
+                8765,
+                "0123456789abcdef0123456789abcdef",
+            ),
+            Err(ConfigError::Conflict)
+        );
     }
 }
