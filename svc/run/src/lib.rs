@@ -37,8 +37,10 @@ pub struct Direct {
 struct Key(std::path::PathBuf);
 
 impl Key {
+    // The name is independent of the bearer: a directory listing is readable by
+    // any process, and a managed token must never appear in one.
     fn new(bearer: &str) -> io::Result<Self> {
-        let path = std::env::temp_dir().join(format!("lao-{}.key", &bearer[..16]));
+        let path = std::env::temp_dir().join(format!("lao-{}.key", hex::<8>()?));
         let key = Self(path);
         let mut file = OpenOptions::new()
             .write(true)
@@ -67,12 +69,7 @@ impl Direct {
         {
             return Err(invalid("config"));
         }
-        let mut bytes = [0; 32];
-        getrandom::getrandom(&mut bytes).map_err(|_| invalid("random"))?;
-        let bearer = bytes
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
+        let bearer = hex::<32>()?;
         let key = Key::new(&bearer)?;
 
         let mut child = Command::new(config.bin)
@@ -124,23 +121,17 @@ impl Direct {
                 }
             }
         });
-        let port = match receive.recv_timeout(Duration::from_secs(15)) {
-            Ok(port) => port,
-            Err(_) => {
-                let _ = child.kill();
-                let _ = child.wait();
-                let _ = log.join();
-                return Err(invalid("startup"));
-            }
+        let Ok(port) = receive.recv_timeout(Duration::from_secs(15)) else {
+            return Err(fail(child, log, "startup"));
         };
         let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), port);
         if !matches!(health(addr), Ok(true)) {
-            let _ = child.kill();
-            let _ = child.wait();
-            let _ = log.join();
-            return Err(invalid("health"));
+            return Err(fail(child, log, "health"));
         }
         drop(key);
+        if !matches!(rss(child.id()), Ok(bytes) if bytes <= budget.bytes) {
+            return Err(fail(child, log, "memory"));
+        }
         Ok((
             Self {
                 child,
@@ -184,10 +175,55 @@ fn health(addr: SocketAddr) -> io::Result<bool> {
     Ok(response.starts_with("HTTP/1.1 200"))
 }
 
+// Loaded weights, KV cache, and compute buffers are resident, so RSS is the
+// cheapest honest reading of what the child took from the shared Apple pool.
+fn rss(pid: u32) -> io::Result<u64> {
+    let observed = Command::new("/bin/ps")
+        .args(["-o", "rss=", "-p", &pid.to_string()])
+        .output()?;
+    String::from_utf8_lossy(&observed.stdout)
+        .trim()
+        .parse::<u64>()
+        .map(|kib| kib << 10)
+        .map_err(|_| invalid("memory"))
+}
+
+fn fail(mut child: Child, log: JoinHandle<()>, message: &'static str) -> io::Error {
+    let _ = child.kill();
+    let _ = child.wait();
+    let _ = log.join();
+    invalid(message)
+}
+
+fn hex<const N: usize>() -> io::Result<String> {
+    let mut bytes = [0; N];
+    getrandom::getrandom(&mut bytes).map_err(|_| invalid("random"))?;
+    Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
+}
+
 fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
 pub fn status() -> Status {
     Status::Active
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // S1-01 "stop leaves no key file" and vision 7.3: a managed token never
+    // reaches a product-controlled name, and the file goes away on drop.
+    #[test]
+    fn key_hides_the_bearer_and_is_removed() {
+        let bearer = hex::<32>().unwrap();
+        let key = Key::new(&bearer).unwrap();
+        let other = Key::new(&bearer).unwrap();
+        assert_ne!(key.0, other.0);
+        assert!(!key.0.to_string_lossy().contains(&bearer));
+        let path = key.0.clone();
+        drop(key);
+        assert!(!path.exists());
+    }
 }
