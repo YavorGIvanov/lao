@@ -13,27 +13,25 @@ The product is intended to let people continue using Codex and Claude Code norma
 
 This repository contains the research-backed product specification, implementation plan, architecture skeleton, and complete Stage 1 installed proof. It does not yet contain production automatic routing or release packaging.
 
-## One-line Stage 1 setup
+## Install
 
-This is a research proof for the 24 GiB Apple M4 Mac used by the project. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store, and `lao off` restores the original settings exactly.
+This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store, and `lao off` restores the original settings exactly.
 
-From any directory, run the complete first-time setup as one line:
+Clone the project and install the `lao` command:
 
 ```sh
-mkdir -p "$HOME/.local/src" && git clone https://github.com/YavorGIvanov/lao.git "$HOME/.local/src/lao" && "$HOME/.local/src/lao/install.sh"
+git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh
 ```
 
-The script builds locked release binaries, installs `lao` in the existing Cargo PATH, prints the model and resource preview, and runs the transactional install. It never overwrites an unrelated `lao` command. An install failure rolls client settings back automatically.
+Then run the complete setup:
 
-The exact tested prerequisites are:
+```sh
+lao install
+```
 
-- Apple Silicon macOS on the 24 GiB M4 test machine;
-- Rust/Cargo 1.98.0;
-- Codex 0.151.0 with an existing ChatGPT login;
-- Claude Code 2.1.251 with its existing saved login;
-- `/opt/homebrew/bin/llama-server` at llama.cpp 10280 (`61881b1f7`).
+That command detects the installed clients and machine, downloads and verifies the supported local runtime and model, applies the client settings transactionally, and starts the service. There are no separate runtime packages or prerequisite checks to run. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
 
-Setup stops with a specific error when a prerequisite or existing configuration is unsupported. It verifies or downloads the immutable 1,117,320,768-byte Qwen model, so allow about 1.1 GB of network traffic and cache space on the first run.
+## Optional end-to-end test
 
 Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:
 
@@ -171,7 +169,7 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 The cloud-safe baseline is complete: the private gate retains request bodies, headers, credentials, and targets, and gives the router only `Context(client, operation, canary)`. Normal contexts route to native cloud. Only an exact, non-secret canary selector may produce Local; the gate consumes it, removes native secrets, and binds the request to the runtime's loopback endpoint and private bearer.
 
-Stage 1 is complete on the supported 24 GiB M4 Mac. Pinned llama.cpp 10280 serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. Installed Codex 0.151.0 and Claude Code 2.1.251 each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
+Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
 `lao install` generates separate 256-bit caller keys, installs the daemon in owner-only product state, verifies launchd adoption and the exact inert hello before either client write, and applies the supported settings under one owner-only lock and crash record. The local runtime starts only for an explicit canary. Its measured restart-run peak was about 2.05 GiB RSS under the 6 GiB Light ceiling. `lao off` restored the original client bytes and permissions and left no daemon, worker, listener, plist, runtime key, or log. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
 

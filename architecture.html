@@ -134,9 +134,9 @@
     <div class="control-flow" aria-label="The short-lived lao command configures the clients and controls the daemon, but does not carry coding requests.">
       <div class="node"><strong><code>lao</code> control</strong><small>rare: install · smoke · off</small></div>
       <div class="arrow">⇢</div>
-      <div class="control-target"><code>codex + claude adapters</code><br><code>preview · install · smoke · off</code><br>then the command exits</div>
+      <div class="control-target"><code>verified runtime + model</code><br><code>client adapters · launchd</code><br>then the command exits</div>
     </div>
-    <p class="note">LAO installs per user—no root service is needed. launchd keeps the local door available through daemon restarts; one stable signed release avoids repeated macOS identity prompts.</p>
+    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model; launchd keeps the local door available through daemon restarts.</p>
   </section>
 
   <section>

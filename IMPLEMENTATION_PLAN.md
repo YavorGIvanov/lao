@@ -151,6 +151,7 @@ Manage only the exact supported Codex and Claude Code settings.
 - Generate separate caller tokens for Codex and Claude.
 - Never open either harness's auth store.
 - Detect conflicting provider/auth configuration and fail without writes.
+- Download and verify the pinned local runtime behind `lao install`; require no separately installed runtime package.
 - Preserve original bytes and permissions.
 - Use one owner-only lock and a minimal crash record.
 - Apply each client independently and roll back partial failure.
@@ -167,6 +168,7 @@ Acceptance:
 
 Current evidence:
 
+- a clean `lao install` downloaded the official runtime archive, verified its exact size, SHA-256, binary build, and Metal visibility, then completed both installed local canaries;
 - the Codex adapter performs a structural TOML edit and the Claude adapter preserves unrelated JSON settings;
 - the CLI stores byte-exact before/after files with original modes, while its crash record contains paths and phase but no caller key;
 - launchd bootstrap must produce a fresh 0600 adoption file and pass the exact inert hello before the first client write;
