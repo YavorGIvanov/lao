@@ -9,8 +9,8 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
 
 #[test]
 #[ignore = "uses the cached model and installed Codex and Claude saved logins"]

@@ -150,7 +150,7 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
 }
 
 fn valid_caller(value: &str) -> bool {
-    value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn parse(raw: &str) -> Option<Version> {
@@ -249,8 +249,12 @@ mod tests {
         assert_eq!(preview(0), Err(PreviewError));
 
         let original = b"model = \"gpt-5.4\"\n[mcp_servers.fixture]\ncommand = \"true\"\n";
-        let configured =
-            configure(Some(original), 8765, "0123456789abcdef0123456789abcdef").unwrap();
+        let configured = configure(
+            Some(original),
+            8765,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .unwrap();
         let configured = String::from_utf8(configured).unwrap();
         let configured = configured.parse::<toml_edit::DocumentMut>().unwrap();
         assert_eq!(configured["model"].as_str(), Some("gpt-5.4"));
@@ -267,7 +271,7 @@ mod tests {
             configure(
                 Some(b"model_provider = \"other\"\n"),
                 8765,
-                "0123456789abcdef0123456789abcdef",
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             ),
             Err(ConfigError::Conflict)
         );

@@ -88,10 +88,10 @@ impl Local for Lazy {
     }
 }
 
-fn caller(name: &str) -> Result<[u8; 32], Box<dyn Error + Send + Sync>> {
+fn caller(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
     let value = env::var(name)?;
     value
         .as_bytes()
         .try_into()
-        .map_err(|_| format!("{name} must be 32 bytes").into())
+        .map_err(|_| format!("{name} must be 64 bytes").into())
 }

@@ -606,7 +606,7 @@ fn remove_optional(path: &Path) -> io::Result<()> {
 }
 
 fn caller() -> io::Result<String> {
-    let mut bytes = [0_u8; 16];
+    let mut bytes = [0_u8; 32];
     getrandom::getrandom(&mut bytes).map_err(|_| invalid("random"))?;
     Ok(bytes.iter().map(|byte| format!("{byte:02x}")).collect())
 }
@@ -843,10 +843,18 @@ mod tests {
         fs::set_permissions(&paths.codex, fs::Permissions::from_mode(0o640)).unwrap();
         fs::set_permissions(&paths.claude, fs::Permissions::from_mode(0o600)).unwrap();
         private_dir(&paths.state).unwrap();
-        let codex_after =
-            lao_codex::configure(Some(&codex), 8765, "0123456789abcdef0123456789abcdef").unwrap();
-        let claude_after =
-            lao_claude::configure(Some(&claude), 8765, "fedcba9876543210fedcba9876543210").unwrap();
+        let codex_after = lao_codex::configure(
+            Some(&codex),
+            8765,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .unwrap();
+        let claude_after = lao_claude::configure(
+            Some(&claude),
+            8765,
+            "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+        )
+        .unwrap();
         let transaction = Transaction::prepare(&paths, 8765, &codex_after, &claude_after).unwrap();
         (paths, transaction, codex, claude)
     }

@@ -19,9 +19,9 @@ type Err = io::Error;
 #[derive(Clone)]
 pub(super) struct Gate {
     pub host: HeaderValue,
-    pub codex: [u8; 32],
+    pub codex: [u8; 64],
     pub codex_cloud: Cloud,
-    pub claude: [u8; 32],
+    pub claude: [u8; 64],
     pub claude_cloud: Cloud,
     pub local: Option<Arc<dyn Local>>,
 }
@@ -388,7 +388,7 @@ fn is_bearer(value: &HeaderValue) -> bool {
     })
 }
 
-fn constant_time(value: &[u8], expected: &[u8; 32]) -> bool {
+fn constant_time(value: &[u8], expected: &[u8; 64]) -> bool {
     let mut different = value.len() ^ expected.len();
     for (index, byte) in expected.iter().enumerate() {
         different |= usize::from(value.get(index).copied().unwrap_or_default() ^ byte);
@@ -414,8 +414,8 @@ fn deny(name: &'static str) -> Err {
 mod tests {
     use super::*;
 
-    const OAI_KEY: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    const ANT_KEY: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+    const OAI_KEY: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    const ANT_KEY: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
 
     #[test]
     fn ingress_is_exact_and_hello_is_inert() {

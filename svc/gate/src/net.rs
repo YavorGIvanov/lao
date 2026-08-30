@@ -54,8 +54,8 @@ pub(super) async fn configured(
     listener: StdListener,
     policy: impl Policy + 'static,
     local: Option<Arc<dyn Local>>,
-    codex: [u8; 32],
-    claude: [u8; 32],
+    codex: [u8; 64],
+    claude: [u8; 64],
     codex_cloud: CodexCloud,
 ) -> Result<(), Err> {
     listener.set_nonblocking(true)?;
@@ -267,8 +267,8 @@ mod tests {
     const BODY: &[u8] = br#"{"model":"fixture","input":"hello"}"#;
     const ERROR: &[u8] = br#"{"error":{"type":"rate_limit","message":"fixture"}}"#;
     const SSE: &[u8] = b"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n";
-    const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
-    const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+    const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
+    const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
 
     #[test]
     fn codex_cloud_streams_after_policy() {
@@ -306,7 +306,7 @@ mod tests {
 
             let mut client = TcpStream::connect(gate_addr).await.unwrap();
             let request = format!(
-                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Bearer synthetic\r\nX-Unknown: keep\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Bearer synthetic\r\nX-Unknown: keep\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                 BODY.len()
             );
             client.write_all(request.as_bytes()).await.unwrap();
@@ -440,7 +440,7 @@ mod tests {
                     b"anthropic-beta",
                     b"x-claude-code-session-id",
                     b"native-secret",
-                    b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+                    b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
                 ] {
                     assert!(!find(&request, secret));
                 }
@@ -454,7 +454,7 @@ mod tests {
             });
             let mut client = TcpStream::connect(gate_addr).await.unwrap();
             let request = format!(
-                "POST /ant/v1/messages?beta=true HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\nX-LAO-Local: canary\r\nAuthorization: Bearer native-secret\r\nAnthropic-Beta: oauth-capability\r\nX-Claude-Code-Session-Id: session-secret\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                "POST /ant/v1/messages?beta=true HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\nX-LAO-Local: canary\r\nAuthorization: Bearer native-secret\r\nAnthropic-Beta: oauth-capability\r\nX-Claude-Code-Session-Id: session-secret\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                 BODY.len()
             );
             client.write_all(request.as_bytes()).await.unwrap();
@@ -518,14 +518,18 @@ mod tests {
             for (line, length, expected) in [
                 ("", 999, 0),
                 ("X-LAO-Key: wrong\r\n", 0, 0),
-                ("X-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\n", 0, 0),
                 (
-                    "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\n",
+                    "X-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\n",
                     0,
                     0,
                 ),
                 (
-                    "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Basic wrong\r\n",
+                    "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\n",
+                    0,
+                    0,
+                ),
+                (
+                    "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Basic wrong\r\n",
                     0,
                     1,
                 ),
@@ -581,7 +585,7 @@ mod tests {
             });
             let mut client = TcpStream::connect(gate_addr).await.unwrap();
             let request = format!(
-                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Bearer synthetic\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Bearer synthetic\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                 BODY.len()
             );
             client.write_all(request.as_bytes()).await.unwrap();
@@ -712,9 +716,9 @@ mod tests {
         Plan {
             gate: Gate {
                 host: HeaderValue::from_static("lao.local"),
-                codex: *b"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+                codex: *b"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
                 codex_cloud: Cloud::OpenAi,
-                claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+                claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
                 claude_cloud: Cloud::AnthropicBearer,
                 local: Some(ready("127.0.0.1:10000".parse().unwrap())),
             },

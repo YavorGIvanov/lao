@@ -120,7 +120,7 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
 }
 
 fn valid_caller(value: &str) -> bool {
-    value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
 fn parse(raw: &str) -> Option<Version> {
@@ -208,7 +208,7 @@ mod tests {
         let configured = configure(
             Some(br#"{"permissions":{"defaultMode":"default"}}"#),
             8765,
-            "0123456789abcdef0123456789abcdef",
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
         )
         .unwrap();
         let configured: serde_json::Value = serde_json::from_slice(&configured).unwrap();
@@ -221,7 +221,7 @@ mod tests {
             configure(
                 Some(br#"{"env":{"ANTHROPIC_API_KEY":"existing"}}"#),
                 8765,
-                "0123456789abcdef0123456789abcdef",
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             ),
             Err(ConfigError::Conflict)
         );
