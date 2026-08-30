@@ -7,7 +7,7 @@ use std::{
     net::{Ipv4Addr, TcpListener, TcpStream},
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -244,9 +244,10 @@ pub fn run() -> Result<()> {
     match env::args_os().nth(1).as_deref() {
         Some(command) if command == "preview" => preview(),
         Some(command) if command == "install" => install(),
+        Some(command) if command == "smoke" => smoke(),
         Some(command) if command == "off" => off(),
         _ => {
-            println!("usage: lao <preview|install|off>");
+            println!("usage: lao <preview|install|smoke|off>");
             Ok(())
         }
     }
@@ -356,6 +357,202 @@ fn off() -> Result<()> {
 #[cfg(not(target_os = "macos"))]
 fn off() -> Result<()> {
     Err(io::Error::new(io::ErrorKind::Unsupported, "macOS only").into())
+}
+
+#[cfg(target_os = "macos")]
+fn smoke() -> Result<()> {
+    let paths = paths()?;
+    let _lock = Lock::acquire(&paths.state)?;
+    let transaction = Transaction::load(&paths.state)?;
+    if transaction.record.phase != Phase::Installed {
+        return Err(conflict("lao is not installed").into());
+    }
+    transaction.validate_installed()?;
+    validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600)?;
+    if !service_loaded()? {
+        return Err(invalid("launchd service").into());
+    }
+    let codex = fs::read(&paths.codex)?;
+    let claude = fs::read(&paths.claude)?;
+    let (codex_caller, claude_caller) = managed_callers(&codex, &claude, transaction.record.port)?;
+
+    let codex_elapsed = codex_smoke(&codex_caller)?;
+    println!("Codex local: ok ({} ms)", codex_elapsed.as_millis());
+    let claude_elapsed = claude_smoke(&claude_caller, transaction.record.port)?;
+    println!("Claude local: ok ({} ms)", claude_elapsed.as_millis());
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn smoke() -> Result<()> {
+    Err(io::Error::new(io::ErrorKind::Unsupported, "macOS only").into())
+}
+
+fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String, String)> {
+    let codex = std::str::from_utf8(codex)
+        .map_err(|_| invalid("managed Codex settings"))?
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|_| invalid("managed Codex settings"))?;
+    let provider = &codex["model_providers"]["lao"];
+    let codex_caller = provider["http_headers"]["X-LAO-Key"]
+        .as_str()
+        .ok_or_else(|| invalid("managed Codex settings"))?;
+    if codex["model_provider"].as_str() != Some("lao")
+        || provider["base_url"].as_str() != Some(&format!("http://127.0.0.1:{port}/oai"))
+        || provider["env_http_headers"]["X-LAO-Local"].as_str() != Some("LAO_LOCAL_SELECTOR")
+    {
+        return Err(invalid("managed Codex settings"));
+    }
+
+    let claude: serde_json::Value =
+        serde_json::from_slice(claude).map_err(|_| invalid("managed Claude settings"))?;
+    let env = claude["env"]
+        .as_object()
+        .ok_or_else(|| invalid("managed Claude settings"))?;
+    let claude_caller = env
+        .get("ANTHROPIC_CUSTOM_HEADERS")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| value.strip_prefix("X-LAO-Key: "))
+        .ok_or_else(|| invalid("managed Claude settings"))?;
+    if env
+        .get("ANTHROPIC_BASE_URL")
+        .and_then(serde_json::Value::as_str)
+        != Some(&format!("http://127.0.0.1:{port}/ant"))
+        || !managed_caller(codex_caller)
+        || !managed_caller(claude_caller)
+        || codex_caller == claude_caller
+    {
+        return Err(invalid("managed client settings"));
+    }
+    Ok((codex_caller.to_owned(), claude_caller.to_owned()))
+}
+
+fn managed_caller(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn codex_smoke(caller: &str) -> io::Result<Duration> {
+    let scratch = Scratch::new("codex")?;
+    let mut command = Command::new("codex");
+    command
+        .env("LAO_LOCAL_SELECTOR", "canary")
+        .current_dir(&scratch.0)
+        .args([
+            "-c",
+            "model_reasoning_effort=\"low\"",
+            "exec",
+            "--strict-config",
+            "--ignore-rules",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--color",
+            "never",
+            "--sandbox",
+            "read-only",
+            "--model",
+            "lao-local",
+            "Reply exactly 42. Do not use tools.",
+        ]);
+    client_smoke(&mut command, caller, "Codex local smoke")
+}
+
+fn claude_smoke(caller: &str, port: u16) -> io::Result<Duration> {
+    let scratch = Scratch::new("claude")?;
+    let settings = scratch.0.join("settings.json");
+    let bytes = serde_json::to_vec(&serde_json::json!({
+        "env": {
+            "ANTHROPIC_BASE_URL": format!("http://127.0.0.1:{port}/ant"),
+            "ANTHROPIC_CUSTOM_HEADERS": format!("X-LAO-Key: {caller}\nX-LAO-Local: canary"),
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+        }
+    }))
+    .map_err(|_| invalid("Claude smoke settings"))?;
+    write_atomic(&settings, &bytes, 0o600)?;
+    let settings = settings
+        .to_str()
+        .ok_or_else(|| invalid("Claude smoke settings"))?;
+    let mut command = Command::new("claude");
+    command.current_dir(&scratch.0).args([
+        "--safe-mode",
+        "--settings",
+        settings,
+        "--no-session-persistence",
+        "--disable-slash-commands",
+        "--strict-mcp-config",
+        "--tools",
+        "",
+        "--effort",
+        "low",
+        "-p",
+        "--model",
+        "lao-local",
+        "Reply exactly 42. Do not use tools.",
+    ]);
+    client_smoke(&mut command, caller, "Claude local smoke")
+}
+
+fn client_smoke(
+    command: &mut Command,
+    caller: &str,
+    failure: &'static str,
+) -> io::Result<Duration> {
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let started = Instant::now();
+    let output = client_output(command, Duration::from_secs(180))?;
+    if !output.status.success()
+        || output.stdout.trim_ascii() != b"42"
+        || contains(&output.stdout, caller.as_bytes())
+        || contains(&output.stderr, caller.as_bytes())
+    {
+        return Err(invalid(failure));
+    }
+    Ok(started.elapsed())
+}
+
+fn client_output(command: &mut Command, timeout: Duration) -> io::Result<Output> {
+    let mut child = command.spawn()?;
+    let deadline = Instant::now() + timeout;
+    loop {
+        if child.try_wait()?.is_some() {
+            return child.wait_with_output();
+        }
+        if Instant::now() >= deadline {
+            child.kill()?;
+            let _ = child.wait();
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "client smoke"));
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    !needle.is_empty() && haystack.windows(needle.len()).any(|part| part == needle)
+}
+
+struct Scratch(PathBuf);
+
+impl Scratch {
+    fn new(name: &str) -> io::Result<Self> {
+        let mut random = [0_u8; 8];
+        getrandom::getrandom(&mut random).map_err(|_| invalid("random"))?;
+        let suffix = random
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        let path = env::temp_dir().join(format!("lao-{name}-{suffix}"));
+        fs::create_dir(&path)?;
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
 }
 
 fn preflight_clients() -> Result<&'static str> {
@@ -900,5 +1097,22 @@ mod tests {
             assert_eq!(fs::read(&paths.codex).unwrap(), codex);
             assert_eq!(fs::read(&paths.claude).unwrap(), claude);
         }
+    }
+
+    #[test]
+    fn smoke_accepts_only_the_installed_client_settings() {
+        let codex_caller = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let claude_caller = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
+        let codex = lao_codex::configure(None, 8765, codex_caller).unwrap();
+        let claude = lao_claude::configure(None, 8765, claude_caller).unwrap();
+        assert_eq!(
+            managed_callers(&codex, &claude, 8765).unwrap(),
+            (codex_caller.into(), claude_caller.into())
+        );
+
+        let changed = String::from_utf8(codex)
+            .unwrap()
+            .replace("LAO_LOCAL_SELECTOR", "UNMANAGED_SELECTOR");
+        assert!(managed_callers(changed.as_bytes(), &claude, 8765).is_err());
     }
 }
