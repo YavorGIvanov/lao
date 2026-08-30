@@ -1,10 +1,10 @@
-use lao_optimize_api::{Optimize, Plan, Probe, Start, State};
+use lao_optimize_api::{Optimize, Plan, Probe, Start, State, StateStore};
 use std::{
     env,
     ffi::OsStr,
-    fs::{self, OpenOptions},
+    fs::{self, File, OpenOptions},
     io::{self, Read, Write},
-    os::unix::fs::{DirBuilderExt, OpenOptionsExt},
+    os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
     panic::{self, AssertUnwindSafe},
     path::{Path, PathBuf},
     process::{Command, ExitStatus, Stdio},
@@ -25,9 +25,88 @@ const SELECTOR_ENV: &str = "LAO_OPTIMIZE_LOCAL";
 const OUTPUT_LIMIT: u64 = 1 << 20;
 const TIMEOUT: Duration = Duration::from_secs(180);
 
-#[derive(Default)]
+#[derive(Clone)]
+pub struct Store {
+    path: PathBuf,
+}
+
+impl Store {
+    pub fn new(path: impl Into<PathBuf>) -> Self {
+        Self { path: path.into() }
+    }
+
+    fn save(&self, state: State) -> io::Result<()> {
+        let parent = self
+            .path
+            .parent()
+            .ok_or_else(|| invalid("optimize state path"))?;
+        if !fs::symlink_metadata(parent)?.file_type().is_dir() {
+            return Err(invalid("optimize state parent"));
+        }
+        match fs::symlink_metadata(&self.path) {
+            Ok(metadata) if !metadata.file_type().is_file() || metadata.mode() & 0o777 != 0o600 => {
+                return Err(invalid("optimize state file"));
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+            Err(error) => return Err(error),
+        }
+        let pending = pending(&self.path)?;
+        remove_state(&pending)?;
+        let mut cleanup = Pending(Some(pending.clone()));
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(&pending)?;
+        file.write_all(encoded(state))?;
+        file.sync_all()?;
+        fs::rename(&pending, &self.path)?;
+        File::open(parent)?.sync_all()?;
+        cleanup.0 = None;
+        Ok(())
+    }
+}
+
+impl StateStore for Store {
+    fn load(&self) -> io::Result<Option<State>> {
+        let metadata = match fs::symlink_metadata(&self.path) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error),
+        };
+        if !metadata.file_type().is_file() || metadata.mode() & 0o777 != 0o600 || metadata.len() > 8
+        {
+            return Err(invalid("optimize state file"));
+        }
+        match fs::read(&self.path)?.as_slice() {
+            b"idle\n" => Ok(Some(State::Idle)),
+            b"warming\n" => Ok(Some(State::Warming)),
+            b"ready\n" => Ok(Some(State::Ready)),
+            b"failed\n" => Ok(Some(State::Failed)),
+            _ => Err(invalid("optimize state file")),
+        }
+    }
+
+    fn remove(&self) -> io::Result<()> {
+        remove_state(&self.path)?;
+        remove_state(&pending(&self.path)?)
+    }
+}
+
 pub struct Optimizer {
     state: Arc<AtomicU8>,
+    store: Store,
+}
+
+impl Optimizer {
+    pub fn new(store: Store) -> io::Result<Self> {
+        store.save(State::Idle)?;
+        Ok(Self {
+            state: Arc::new(AtomicU8::new(IDLE)),
+            store,
+        })
+    }
 }
 
 impl Optimize for Optimizer {
@@ -45,15 +124,21 @@ impl Optimize for Optimizer {
                 break state;
             }
         };
+        if let Err(error) = self.store.save(State::Warming) {
+            self.state.store(previous, Ordering::Release);
+            return Err(error);
+        }
 
         let state = Arc::clone(&self.state);
+        let store = self.store.clone();
         match thread::Builder::new()
             .name("lao-warm".into())
-            .spawn(move || warm(state, plan))
+            .spawn(move || warm(state, store, plan))
         {
             Ok(_) => Ok(Start::Started),
             Err(error) => {
                 self.state.store(previous, Ordering::Release);
+                self.store.save(decoded(previous))?;
                 Err(error)
             }
         }
@@ -70,14 +155,21 @@ impl Optimize for Optimizer {
     }
 }
 
-fn warm(state: Arc<AtomicU8>, plan: Plan) {
+fn warm(state: Arc<AtomicU8>, store: Store, plan: Plan) {
     let (claude, codex) = plan.into_probes();
     let claude = probe(claude);
     let codex = probe(codex);
-    state.store(
-        if claude && codex { READY } else { FAILED },
-        Ordering::Release,
-    );
+    let complete = if claude && codex {
+        State::Ready
+    } else {
+        State::Failed
+    };
+    if store.save(complete).is_ok() {
+        state.store(encoded_state(complete), Ordering::Release);
+    } else {
+        state.store(FAILED, Ordering::Release);
+        let _ = store.save(State::Failed);
+    }
 }
 
 fn probe(probe: Probe) -> bool {
@@ -302,6 +394,66 @@ impl Drop for Scratch {
     }
 }
 
+fn encoded(state: State) -> &'static [u8] {
+    match state {
+        State::Idle => b"idle\n",
+        State::Warming => b"warming\n",
+        State::Ready => b"ready\n",
+        State::Failed => b"failed\n",
+    }
+}
+
+fn encoded_state(state: State) -> u8 {
+    match state {
+        State::Idle => IDLE,
+        State::Warming => WARMING,
+        State::Ready => READY,
+        State::Failed => FAILED,
+    }
+}
+
+fn decoded(state: u8) -> State {
+    match state {
+        IDLE => State::Idle,
+        WARMING => State::Warming,
+        READY => State::Ready,
+        FAILED => State::Failed,
+        _ => unreachable!(),
+    }
+}
+
+fn pending(path: &Path) -> io::Result<PathBuf> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| invalid("optimize state path"))?;
+    let name = path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .ok_or_else(|| invalid("optimize state path"))?;
+    Ok(parent.join(format!(".{name}.pending")))
+}
+
+fn remove_state(path: &Path) -> io::Result<()> {
+    match fs::symlink_metadata(path) {
+        Ok(metadata) if metadata.file_type().is_file() && metadata.mode() & 0o777 == 0o600 => {
+            fs::remove_file(path)
+        }
+        Ok(_) => Err(invalid("optimize state file")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(error),
+    }
+}
+
+struct Pending(Option<PathBuf>);
+
+impl Drop for Pending {
+    fn drop(&mut self) {
+        if let Some(path) = &self.0 {
+            let _ = fs::remove_file(path);
+        }
+    }
+}
+
 fn invalid(message: &'static str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidData, message)
 }
@@ -316,7 +468,11 @@ mod tests {
 
     #[test]
     fn warm_is_single_flight_and_claude_runs_first() {
-        let optimizer = Optimizer::default();
+        let fixture = Scratch::new("state-test").unwrap();
+        let store = Store::new(fixture.0.join("optimize.state"));
+        store.save(State::Warming).unwrap();
+        let optimizer = Optimizer::new(store.clone()).unwrap();
+        assert_eq!(store.load().unwrap(), Some(State::Idle));
         let order = Arc::new(Mutex::new(Vec::new()));
         let (started_tx, started_rx) = mpsc::channel();
         let (release_tx, release_rx) = mpsc::channel();
@@ -336,6 +492,7 @@ mod tests {
         );
 
         assert_eq!(optimizer.start(plan).unwrap(), Start::Started);
+        assert_eq!(store.load().unwrap(), Some(State::Warming));
         started_rx.recv_timeout(Duration::from_secs(1)).unwrap();
         assert_eq!(
             optimizer.start(Plan::new(|| Ok(()), || Ok(()))).unwrap(),
@@ -343,12 +500,16 @@ mod tests {
         );
         release_tx.send(()).unwrap();
         wait_for(&optimizer, State::Ready);
+        assert_eq!(store.load().unwrap(), Some(State::Ready));
+        assert_eq!(fs::metadata(&store.path).unwrap().mode() & 0o777, 0o600);
         assert_eq!(*order.lock().unwrap(), ["claude", "codex"]);
     }
 
     #[test]
     fn a_failed_probe_does_not_skip_codex_or_block_retry() {
-        let optimizer = Optimizer::default();
+        let fixture = Scratch::new("retry-test").unwrap();
+        let store = Store::new(fixture.0.join("optimize.state"));
+        let optimizer = Optimizer::new(store.clone()).unwrap();
         let codex_runs = Arc::new(AtomicU8::new(0));
         let runs = Arc::clone(&codex_runs);
         optimizer
@@ -361,6 +522,7 @@ mod tests {
             ))
             .unwrap();
         wait_for(&optimizer, State::Failed);
+        assert_eq!(store.load().unwrap(), Some(State::Failed));
         assert_eq!(codex_runs.load(Ordering::Relaxed), 1);
 
         assert_eq!(
@@ -368,6 +530,9 @@ mod tests {
             Start::Started
         );
         wait_for(&optimizer, State::Ready);
+        assert_eq!(store.load().unwrap(), Some(State::Ready));
+        store.remove().unwrap();
+        assert_eq!(store.load().unwrap(), None);
     }
 
     #[test]

@@ -17,6 +17,6 @@ workspace = true
 kind = "svc"
 owner = "A13"
 api = "lao-optimize-api"
-state = "none"
+state = "optimize"
 isolate = "linked"
 status = "active"

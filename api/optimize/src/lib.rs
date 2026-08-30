@@ -41,3 +41,8 @@ pub trait Optimize: Send + Sync {
     fn start(&self, plan: Plan) -> io::Result<Start>;
     fn state(&self) -> State;
 }
+
+pub trait StateStore: Send + Sync {
+    fn load(&self) -> io::Result<Option<State>>;
+    fn remove(&self) -> io::Result<()>;
+}

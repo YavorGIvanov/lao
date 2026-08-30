@@ -1263,6 +1263,7 @@ dependencies = [
  "lao-codex",
  "lao-model",
  "lao-optimize",
+ "lao-optimize-api",
  "lao-route",
  "lao-run",
  "libc",

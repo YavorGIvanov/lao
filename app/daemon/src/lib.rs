@@ -59,7 +59,9 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 Ok("vllm-semantic") => Arc::new(vllm()?),
                 _ => return Err("LAO_ROUTER".into()),
             };
-            warm(port, codex, claude);
+            let optimize = env::var_os("LAO_OPTIMIZE_STATE").ok_or("LAO_OPTIMIZE_STATE")?;
+            let optimizer = lao_optimize::Optimizer::new(lao_optimize::Store::new(optimize))?;
+            warm(port, codex, claude, optimizer)?;
             lao_gate::installed(listener, policy, local, codex, claude, codex_cloud)
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
@@ -120,23 +122,22 @@ fn key(name: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     Ok(value)
 }
 
-fn warm(port: u16, codex: [u8; 64], claude: [u8; 64]) {
-    let (Some(codex_bin), Some(claude_bin)) =
-        (env::var_os("LAO_CODEX_BIN"), env::var_os("LAO_CLAUDE_BIN"))
-    else {
-        return;
-    };
-    let (Ok(codex), Ok(claude)) = (
-        String::from_utf8(codex.to_vec()),
-        String::from_utf8(claude.to_vec()),
-    ) else {
-        return;
-    };
+fn warm(
+    port: u16,
+    codex: [u8; 64],
+    claude: [u8; 64],
+    optimizer: lao_optimize::Optimizer,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let codex_bin = env::var_os("LAO_CODEX_BIN").ok_or("LAO_CODEX_BIN")?;
+    let claude_bin = env::var_os("LAO_CLAUDE_BIN").ok_or("LAO_CLAUDE_BIN")?;
+    let codex = String::from_utf8(codex.to_vec())?;
+    let claude = String::from_utf8(claude.to_vec())?;
     let plan = Plan::new(
         move || lao_optimize::claude(claude_bin, port, &claude).map(|_| ()),
         move || lao_optimize::codex(codex_bin, port, &codex).map(|_| ()),
     );
-    let _ = lao_optimize::Optimizer::default().start(plan);
+    optimizer.start(plan)?;
+    Ok(())
 }
 
 /// The optimizer may start the runtime in the background; requests never wait on that policy.

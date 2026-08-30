@@ -38,6 +38,7 @@ policy = 1
 lao-gate-api = ["lao-gate", "lao-daemon", "lao-test-kit"]
 lao-capture-api = ["lao-capture", "lao-capture-worker", "lao-test-kit"]
 lao-model-api = ["lao-model", "lao-daemon", "lao-test-kit"]
+lao-optimize-api = ["lao-optimize", "lao-daemon", "lao-cli"]
 lao-run-api = ["lao-run", "lao-daemon", "lao-gate", "lao-test-kit"]
 lao-vault-api = ["lao-vault", "lao-vault-worker", "lao-test-kit"]
 lao-train-api = ["lao-train", "lao-train-worker", "lao-test-kit"]

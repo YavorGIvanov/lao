@@ -1,3 +1,4 @@
+use lao_optimize_api::{State as OptimizeState, StateStore};
 use serde::{Deserialize, Serialize};
 use std::{
     env,
@@ -40,6 +41,7 @@ struct Paths {
     router: PathBuf,
     daemon_source: PathBuf,
     daemon: PathBuf,
+    optimize: PathBuf,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -511,6 +513,7 @@ fn status() -> Result<()> {
     let plist = validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600).is_ok();
     let service =
         plist && service_loaded().unwrap_or(false) && hello(transaction.record.port).is_ok();
+    let optimize = lao_optimize::Store::new(paths.optimize.clone()).load()?;
     println!(
         "LAO: {}",
         if codex && claude && service {
@@ -537,6 +540,15 @@ fn status() -> Result<()> {
             "routed through LAO"
         } else {
             "not routed through LAO"
+        }
+    );
+    println!(
+        "local cache: {}",
+        match optimize {
+            Some(OptimizeState::Idle | OptimizeState::Warming) => "warming",
+            Some(OptimizeState::Ready) => "ready",
+            Some(OptimizeState::Failed) => "failed",
+            None => "not started",
         }
     );
     if codex && claude && service {
@@ -922,6 +934,7 @@ fn paths() -> io::Result<Paths> {
         router: home.join("Library/Caches/lao/routers/minilm"),
         daemon_source,
         daemon: state.join("lao-daemon"),
+        optimize: state.join("optimize.state"),
     })
 }
 
@@ -1221,6 +1234,7 @@ fn plist(
         error_path.to_str(),
         clients.codex.to_str(),
         clients.claude.to_str(),
+        paths.optimize.to_str(),
     ];
     if values.iter().any(Option::is_none) {
         return Err(invalid("non-UTF-8 install path"));
@@ -1235,6 +1249,11 @@ fn plist(
         &mut adapters,
         "LAO_CLAUDE_BIN",
         values[4].ok_or_else(|| invalid("non-UTF-8 install path"))?,
+    );
+    env_entry(
+        &mut adapters,
+        "LAO_OPTIMIZE_STATE",
+        values[5].ok_or_else(|| invalid("non-UTF-8 install path"))?,
     );
     Ok(format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
@@ -1364,7 +1383,8 @@ fn deactivate(paths: &Paths) -> io::Result<()> {
             return Err(invalid("launchd bootout"));
         }
     }
-    remove_optional(&paths.plist)
+    remove_optional(&paths.plist)?;
+    lao_optimize::Store::new(paths.optimize.clone()).remove()
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -1503,6 +1523,7 @@ mod tests {
                 router: self.0.join("router"),
                 daemon_source: self.0.join("lao-daemon-source"),
                 daemon: self.0.join("lao-daemon"),
+                optimize: state.join("optimize.state"),
             }
         }
     }
