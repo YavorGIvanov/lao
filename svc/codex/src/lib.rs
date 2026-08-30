@@ -137,12 +137,15 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
     document["model_provider"] = toml_edit::value("lao");
     let mut headers = toml_edit::InlineTable::new();
     headers.insert("X-LAO-Key", caller.into());
+    let mut environment_headers = toml_edit::InlineTable::new();
+    environment_headers.insert("X-LAO-Local", "LAO_LOCAL_SELECTOR".into());
     let mut provider = toml_edit::Table::new();
     provider["name"] = toml_edit::value("LAO");
     provider["base_url"] = toml_edit::value(format!("http://127.0.0.1:{port}/oai"));
     provider["requires_openai_auth"] = toml_edit::value(true);
     provider["supports_websockets"] = toml_edit::value(false);
     provider["http_headers"] = toml_edit::Item::Value(headers.into());
+    provider["env_http_headers"] = toml_edit::Item::Value(environment_headers.into());
     let mut providers = toml_edit::Table::new();
     providers["lao"] = toml_edit::Item::Table(provider);
     document["model_providers"] = toml_edit::Item::Table(providers);
@@ -262,6 +265,10 @@ mod tests {
         assert_eq!(
             configured["model_providers"]["lao"]["base_url"].as_str(),
             Some("http://127.0.0.1:8765/oai")
+        );
+        assert_eq!(
+            configured["model_providers"]["lao"]["env_http_headers"]["X-LAO-Local"].as_str(),
+            Some("LAO_LOCAL_SELECTOR")
         );
         assert_eq!(
             configured["mcp_servers"]["fixture"]["command"].as_str(),
