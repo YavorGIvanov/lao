@@ -23,9 +23,9 @@ Stage 1 targets this 24 GiB Apple M4 Mac. It is a working end-to-end proof, not 
 - Finish every task with focused adversarial review and simplification.
 - Keep [architecture.html](architecture.html), this plan, the README, and the [product architecture](PRODUCT_VISION_AND_ARCHITECTURE.md) consistent.
 
-## Active components
+## Implemented components
 
-Only these components may grow during Stage 1:
+Only these components are active in the current proof:
 
 | Component | Responsibility |
 |---|---|
@@ -34,8 +34,9 @@ Only these components may grow during Stage 1:
 | `svc/route` | cloud-safe decision; one explicit local canary |
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
+| `svc/optimize` | single-flight background harness warming and non-secret readiness state |
 | `app/daemon` | compose the request path and adopt the launchd listener |
-| `app/cli` | `install`, preview, smoke, and `off` only |
+| `app/cli` | `install`, preview, status, smoke, and `off` only |
 
 The matching `api/*` packages remain the semantic boundaries. Services never import sibling implementations; applications wire them.
 
@@ -45,7 +46,7 @@ The matching `api/*` packages remain the semantic boundaries. Services never imp
 
 Already proven and retained:
 
-- the 29-package boundary skeleton and architecture checker;
+- the 31-package boundary skeleton and architecture checker;
 - streaming/keep-alive transport prototype;
 - isolated installed-client probes for Codex and Claude Code;
 - saved-login native cloud E2Es through the private gate for both clients;
@@ -249,7 +250,7 @@ Current evidence:
 
 - the final pass removed the unimplemented `doctor` claim and retained only exercised CLI operations;
 - `lao status` reports service and per-client readiness without exposing configuration values, caller capabilities, or credentials;
-- formatting, all workspace tests, workspace Clippy with warnings denied, the 29-package architecture check, extraction/conformance, and diff hygiene pass;
+- formatting, all workspace tests, workspace Clippy with warnings denied, the 31-package architecture check, extraction/conformance, and diff hygiene pass;
 - README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
 
 ## Stage 1 exit gate
@@ -266,12 +267,12 @@ The result must use saved harness authentication without LAO reading the real to
 
 Status: complete (2026-08-30).
 
-This is the first measured post-Stage 1 slice. The installed local worker used about 2.05 GiB RSS and previously remained resident until daemon shutdown, while the measured cold start was 23.5 seconds. Release memory safely before considering preload or wider local routing.
+This was the first measured post-Stage 1 slice. The installed local worker used about 2.05 GiB RSS and previously remained resident until daemon shutdown, while the measured cold start was 23.5 seconds. R2 keeps its response lease and pressure-safety behavior but supersedes the idle timeout so useful warmed state remains resident on a healthy machine.
 
 - Acquire one response-held runtime reference only after a Local route decision.
 - Hold the lease through the complete response stream, including cancellation.
 - Begin the idle window only after the last concurrent local lease ends.
-- Stop the worker at the first five-second check after five observed idle minutes, or as soon as an idle check observes macOS pressure.
+- Stop the worker as soon as a five-second idle check observes macOS pressure.
 - Treat a failed pressure probe as pressure; never interrupt an active local stream.
 - Let the next Local request perform the existing fresh fit check and cold start.
 
@@ -279,14 +280,14 @@ Acceptance:
 
 - cloud requests never start or retain the runtime;
 - an active or partially streamed local response cannot be evicted;
-- idle timeout and memory pressure both select eviction only with zero active leases;
+- memory pressure selects eviction only with zero active leases;
 - eviction uses the proven owned stop path, which releases the child, key, and listener;
-- no preload, user setting, status surface, new model, or automatic routing is added.
+- no user setting, new model, or automatic routing is added.
 
 Current evidence:
 
 - the gate fixture proves Cloud acquires no lease, Local acquires exactly one, the lease remains held after response headers, and it releases after the response completes;
-- the daemon residency test proves pressure and the five-minute boundary select eviction;
+- the daemon residency test proves pressure selects eviction only when no response lease is active;
 - the existing real runtime lifecycle proof covers owned stop, process cleanup, key removal, and port release;
 - focused tests, workspace checks, extraction, Clippy, and diff hygiene pass.
 
@@ -320,6 +321,39 @@ Current evidence:
 - fixture tests prove the vLLM Semantic Router adapter is IPv4-loopback-only, deadline- and length-bounded, accepts exact `lao-local` or `lao-cloud`, handles normal and chunked JSON, and fails Cloud;
 - unit tests prove the external runtime rejects non-loopback and invalid bearer configuration and never takes ownership of the user-managed engine; no vLLM or SGLang inference E2E is claimed.
 
+## R3 — Background latency optimizer
+
+Status: complete (2026-08-30).
+
+Keep optimization outside the request components and move reusable cold work off the user's critical path.
+
+- Give latency optimization its own API, implementation, private state, and package ownership.
+- Run fixed loopback-only Claude and Codex warm canaries after daemon startup without blocking install or normal cloud work.
+- Keep caller capabilities out of arguments, environment dumps, logs, and output; retain no raw harness output.
+- Enforce one warm plan at a time and expose only `idle`, `warming`, `ready`, or `failed` through `lao status`.
+- Retain both harness prompt prefixes in bounded RAM while the machine is healthy; pressure eviction still wins.
+- Reuse integrity-checked binaries for the exact same clean source revision.
+- Do not widen the R2 routing policy; the fixed warm canaries bypass semantic classification.
+
+Acceptance:
+
+- install returns while warming continues and Codex remains immediately usable on cloud;
+- repeated install, status, and same-revision source setup complete below 100 ms on the test Mac;
+- gateway p95 overhead remains below 20 ms;
+- warmed real Codex and Claude canaries complete without a cold prefill;
+- off and recovery stop the process tree and remove optimizer state;
+- optimization imports no sibling service implementation and adds no policy to gate, route, or run.
+
+Current evidence:
+
+- direct pinned runtime inference measured 0.67–2.16 seconds while a cold Codex harness request spent about 46 seconds prefilling 10,550 uncached input tokens, identifying harness prefix preparation rather than the gateway as the dominant wait;
+- a 384 MiB llama.cpp prompt cache retained both harness prefixes; alternating warmed Codex and Claude runs completed in 1.55–2.27 seconds with about 2.31 GiB peak RSS under the 6 GiB Light ceiling;
+- the final installed smoke completed Codex in 1.43 seconds and Claude in 0.95 seconds after background warming;
+- five paired gateway benchmarks measured 197–335 microsecond median overhead and at most 3.48 ms p95, so no gateway change was justified;
+- repeated `lao install` measured 6.2 ms, `lao status` 5.6 ms, and integrity-checked same-revision source setup 52.5 ms;
+- the optimizer owns bounded probes, loopback pinning, single-flight state, 0600 atomic readiness state, failure isolation, and retry; the applications only compose or inspect it through its API;
+- focused tests, strict Clippy, and the 31-package architecture check pass.
+
 ## Deferred backlog
 
 After the exit gate, choose the next measured bottleneck. The long-term contracts and constraints remain in the product architecture.
@@ -328,7 +362,7 @@ Deferred product work:
 
 - certified independent difficulty routing, task stickiness, repair, escalation, and circuit breakers;
 - model catalog signatures, multiple models, preferences, recommendations, and llama-swap;
-- remaining runtime residency in this order: background preload only for installs with useful local routing enabled; only then parallel verification and start if measured cold latency still warrants it;
+- broader cache policy for multiple models, machines, battery states, and thermal conditions;
 - Ollama, LM Studio, ShoeHorn, FreeToken, NVIDIA, Linux, and Windows;
 - hooks and task-boundary tracking;
 - consented capture, scrub, snapshots, encrypted vault, retention, export, and deletion;

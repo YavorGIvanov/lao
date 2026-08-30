@@ -118,7 +118,7 @@
           <strong>lao-daemon</strong>
           <small>resident gate + lazy classifier</small>
           <div class="inside">
-            <span>gate</span><span>MiniLM router</span><span>runtime API</span>
+            <span>gate</span><span>MiniLM router</span><span>runtime API</span><span>optimizer</span>
           </div>
         </div>
       </div>
@@ -129,11 +129,11 @@
       </div>
     </div>
     <div class="control-flow" aria-label="The short-lived lao command configures the clients and controls the daemon, but does not carry coding requests.">
-      <div class="node"><strong><code>lao</code> control</strong><small>rare: install · smoke · off</small></div>
+      <div class="node"><strong><code>lao</code> control</strong><small>install · status · smoke · off</small></div>
       <div class="arrow">⇢</div>
       <div class="control-target"><code>verified runtime + model</code><br><code>client adapters · launchd</code><br>then the command exits</div>
     </div>
-    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model, or verifies and reuses an existing healthy setup; <code>lao status</code> checks the service and both client routes without printing their values. Launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
+    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the runtime and models, or reuses a healthy setup, then returns while the optimizer warms both harness paths. <code>lao status</code> reads non-secret readiness state without a model request. Launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
   </section>
 
   <section>
@@ -202,6 +202,7 @@
         <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
         <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Use the default pinned MiniLM semantic classifier or an optional vLLM Semantic Router; automatic failures stay Cloud.</td></tr>
         <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Own verified llama.cpp by default, or connect to an uncertified protected loopback endpoint.</td></tr>
+        <tr><td>Latency optimizer</td><td><a href="api/optimize/Cargo.toml">api/optimize</a> · <a href="svc/optimize/Cargo.toml">svc/optimize</a></td><td>Own single-flight background harness warming and non-secret readiness state.</td></tr>
         <tr><td>Applications</td><td><a href="app/daemon/Cargo.toml">app/daemon</a> · <a href="app/cli/Cargo.toml">app/cli</a></td><td>Wire components; own the long- and short-lived process roots.</td></tr>
         <tr><td>Deferred data path</td><td><code>capture · vault · eval · train</code></td><td>Disabled contract stubs; not active in this slice.</td></tr>
       </tbody>

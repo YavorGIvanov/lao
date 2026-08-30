@@ -175,8 +175,8 @@ Admission is calculated during setup and repeated immediately before every cold 
 
 | Mode | User-facing promise | Maximum inference allocation | CPU policy | Context target | Residency | Disk policy |
 |---|---|---|---|---:|---|---|
-| Light | Stay out of the way | min(25% of T, A minus max(8 GiB, 35% of T)) | At most 25% of logical CPUs, capped at 4 threads, low priority | 32K | Unload after 2 idle minutes and immediately on pressure | One artifact normally at most 6 GiB; 12 GiB total cache |
-| Auto | Recommended balance | min(45% of T, A minus max(8 GiB, 30% of T)) | At most 50% of logical CPUs, normal-low priority | 64K | Unload after 5 idle minutes and adapt to pressure, battery, and thermal state | One artifact normally at most 16 GiB; 24 GiB total cache |
+| Light | Stay out of the way | min(25% of T, A minus max(8 GiB, 35% of T)) | At most 25% of logical CPUs, capped at 4 threads, low priority | 32K | Keep a useful bounded cache while healthy; unload immediately on idle pressure | One artifact normally at most 6 GiB; 12 GiB total cache |
+| Auto | Recommended balance | min(45% of T, A minus max(8 GiB, 30% of T)) | At most 50% of logical CPUs, normal-low priority | 64K | Keep useful bounded caches while healthy; adapt to pressure, battery, and thermal state | One artifact normally at most 16 GiB; 24 GiB total cache |
 | Maximum | Strongest practical local option while retaining an OS reserve | min(70% of T, A minus max(6 GiB, 15% of T)) | Up to 90% of logical CPUs while active | 128K where supported | May remain resident only after explicit opt-in; pressure eviction still wins | Confirm any artifact above 32 GiB and show total cache impact |
 
 Illustrative resolved ceilings when A initially equals T; reserve binding explains the 16 GiB Maximum value:
@@ -211,15 +211,16 @@ Model parameter count is not the selection rule. Active parameters affect comput
 
 ### 4.3 Performance gates
 
-There is no universal industry threshold for usable coding inference. The initial product defaults are:
+Model throughput and product latency are different budgets. LAO-controlled work must meet these product targets:
 
-| Experience target | Median warm decode | 8K-prompt time to first token | Cold readiness |
-|---|---:|---:|---:|
-| Quality | at least 8 tokens/sec | at most 60 sec | at most 120 sec |
-| Balanced | at least 15 tokens/sec | at most 30 sec | at most 60 sec |
-| Fast | at least 25 tokens/sec | at most 15 sec | at most 30 sec |
+| Path | Target |
+|---|---:|
+| Warm setup and status controls | under 100 ms |
+| Gateway p95 added latency | under 20 ms |
+| Warm local time to first token | under 1 sec |
+| Cold preparation | background only; cloud remains immediately usable |
 
-Auto targets Balanced and accepts Quality only when the catalog evidence predicts a meaningful capability gain. Light prefers Fast or Balanced. Maximum may use Quality.
+The model's full response time is measured and reported separately. Slow model work may not be disguised as LAO overhead, and cold loading or prompt-prefix preparation may not block setup or ordinary cloud work.
 
 Every active configuration must:
 
@@ -400,7 +401,7 @@ Normal contexts resolve to Cloud. Local is possible only when the gate consumed 
 
 The first automatic slice extends that proven path without replacing it. After caller authentication, the gate buffers only a non-empty, length-bounded JSON Responses or Messages body and extracts the bounded current user text. The default router uses vLLM Semantic Router's pinned Candle engine with a separate MiniLM embedding model and conservative easy/hard prototype banks. Classifier errors and unsupported bodies remain Cloud. A final Local decision builds a tool-free body from only the final user text and model name `lao-local`; Cloud preserves the original body. The credential firewall and native streaming path remain unchanged. A bounded adapter can instead consume decisions from a user-managed full vLLM Semantic Router `/api/v1/eval` endpoint.
 
-The first post-Stage 1 resource slice adds leased residency without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. After the final concurrent reference ends, a five-second watcher stops the worker after roughly five observed idle minutes or as soon as it observes macOS memory pressure. Pressure-probe failure evicts safely; active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud never acquires a runtime reference, and preload remains deferred.
+The first post-Stage 1 latency slice adds leased residency and background warming without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. The healthy worker and two harness prompt prefixes remain in a bounded RAM cache; a five-second watcher stops them when it observes idle macOS memory pressure. Pressure-probe failure evicts safely and active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud requests never acquire runtime leases. A separate optimizer component owns single-flight Claude-then-Codex warm probes and exposes only `idle`, `warming`, `ready`, or `failed` state.
 
 ### 6.1 Core interfaces
 
@@ -414,6 +415,7 @@ The implementation must keep the public boundaries stable. Each public interface
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
 - ModelCatalog: return signed and revocable manifests, licenses, compatibility, artifacts, and quality priors.
 - ArtifactManager: preview, download, verify, cache, promote, roll back, and remove model artifacts.
+- LatencyOptimizer: run bounded background warm plans, enforce single flight, and expose non-secret readiness state without entering the request path.
 - Capture: expose only classified/redacted artifacts or opaque references; raw ingress, scrub, snapshot, and commit remain private ordered stages inside `svc/capture`.
 - ArtifactStore: reject unclassified plaintext, encrypt metadata and blobs, enforce retention, export, and delete.
 - EvalRunner: reconstruct a task, run a pinned agent in isolation, collect verifiers, and produce comparable trials.
@@ -546,7 +548,7 @@ The gate uses one implementation for policy and transport. `admit` validates the
 
 Hyper owns HTTP/1 framing. Semantic mode collects only authenticated exact `application/json` Responses or Messages bodies with a declared length from 1 byte through 2 MiB; parsing and Local reconstruction run off the gate reactor. Cloud retains the original bytes. Test code may map the already-frozen semantic target to a loopback fixture. A real-socket test proves that dropping the downstream client mid-response closes the upstream stream without added cancellation machinery. Native connections resolve once under a deadline, reject the full result if any address is non-public, connect the resolved address directly, and complete platform certificate and hostname verification before Hyper can send native authentication. Private-address enterprise interception therefore fails closed in the PoC. Direct HTTP accepts only the fixed local loopback target.
 
-The real daemon adopts exactly one launchd-owned IPv4 loopback listener and never self-binds. An unactivated daemon serves only the exact empty Claude hello and loads no model. The installed semantic router verifies and loads MiniLM lazily on its first eligible request; llama.cpp and Qwen start only after a final Local decision. Install owns the internal canary activation, separate generated caller keys, model/runtime paths, and the saved-login-specific Codex cloud target. It copies the daemon into owner-only product state before bootstrap so launchd never executes from a protected development folder. Repeating install verifies and reuses a healthy installation without rotating capabilities or rewriting settings. The status command reports only service and client-route readiness, never configuration values or capabilities. Client verification protects the routing fields LAO owns while allowing unrelated settings that Codex or Claude add during normal use; off preserves those additions and remains byte-exact when nothing changed. An explicit opt-in LaunchAgent E2E proved a pre-bound port produces no adoption signal, the actual daemon serves the hello, a forced daemon death does not release the listener, and the next hello starts a replacement daemon. The clean installed run additionally proved that cloud work leaves llama.cpp unloaded, post-restart local work starts it, and restart/off reap the worker and listener. Accepted and in-flight connections do not survive the crash and are never replayed automatically. Ad-hoc development builds may prompt; a release installer still needs one stable signed and notarized daemon identity and prompt-free upgrade evidence. Automatic retries, upstream truncation propagation, and boot-wide ownership remain unimplemented.
+The real daemon adopts exactly one launchd-owned IPv4 loopback listener and never self-binds. An unactivated daemon serves only the exact empty Claude hello and loads no model. The installed semantic router verifies and loads MiniLM lazily. Install owns the internal canary activation, caller keys, model/runtime paths, and native Codex cloud target. It copies the daemon into owner-only product state before bootstrap and reuses a healthy installation without rotating capabilities or rewriting settings. The daemon asks the separate latency optimizer to warm fixed local Claude and Codex canaries in the background; the optimizer owns probe policy and non-secret atomic state. Status reports service, client-route, and optimizer readiness without printing values or capabilities. Client verification protects LAO-owned routing fields while allowing unrelated client edits; off preserves those additions and removes the worker, listener, and optimizer state. Accepted and in-flight connections do not survive a daemon crash and are never replayed automatically. A release installer still needs one stable signed and notarized daemon identity and prompt-free upgrade evidence.
 
 The production gate uses one narrow HTTP stack: Hyper HTTP/1 on both sides, direct tokio-rustls, and the platform verifier for native HTTPS. Direct tokio-rustls keeps DNS, the connected address, SNI, and the frozen host in one small path without a general HTTP connector. The gate builds the exact upstream URI only after route freeze and includes no redirect layer.
 
@@ -602,7 +604,7 @@ The Rust supervisor launches one pinned llama-server process:
 - startup parsing plus health checks;
 - cancellation, graceful termination, crash cleanup, and no orphan ports.
 
-The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies the pinned size and SHA-256 before extraction, and verifies the exact binary build and Metal device before model download. No separately installed runtime or package-manager path participates. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 32K context, answers real Responses and Messages HTTP/SSE requests, and releases its process and port on explicit stop. The 32K fixture used about 2.03 GiB RSS. Installed Codex and Claude both completed the real local canary and the eligible no-canary spelling fixture against one load. The daemon leases that load through active response streams and unloads it after roughly five observed idle minutes or safe idle pressure detection. This intentionally small model proves fit, lifecycle, protocol compatibility, bounded residency, and the automatic control loop; useful 7B/14B selection and routing-quality certification remain open.
+The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies its size, SHA-256, binary build, and Metal device, then downloads the model. No separately installed runtime participates. The verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact runs at 32K behind a capability-protected loopback endpoint. With a 384 MiB prompt cache retaining both harness prefixes, the worker peaked at about 2.31 GiB RSS. Installed Codex and Claude completed both the fixed canary and eligible no-canary spelling fixture. The daemon leases the load through active responses, retains it while healthy, and unloads it on safe idle pressure detection. This proves fit, lifecycle, protocol compatibility, bounded residency, and the automatic control loop; useful 7B/14B selection and routing-quality certification remain open.
 
 ### 8.4 v1 runtime adapters
 
