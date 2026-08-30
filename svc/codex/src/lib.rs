@@ -1,7 +1,7 @@
 use lao_client_api::Status;
 use std::{error::Error, fmt};
 
-pub const OBSERVED: Version = Version(0, 146, 0);
+pub const OBSERVED: Version = Version(0, 151, 0);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Version(pub u16, pub u16, pub u16);
@@ -192,9 +192,9 @@ mod tests {
 
     #[test]
     fn owns_support_window() {
-        assert_eq!(support("codex-cli 0.146.0\n"), Support::Observed);
-        assert_eq!(support("codex-cli 0.147.0"), Support::Untested);
-        assert_eq!(support("codex 0.146.0"), Support::Invalid);
+        assert_eq!(support("codex-cli 0.151.0\n"), Support::Observed);
+        assert_eq!(support("codex-cli 0.152.0"), Support::Untested);
+        assert_eq!(support("codex 0.151.0"), Support::Invalid);
     }
 
     #[test]

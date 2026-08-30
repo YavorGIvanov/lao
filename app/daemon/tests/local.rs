@@ -15,7 +15,7 @@ const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 #[test]
 #[ignore = "uses the cached model and installed Codex and Claude saved logins"]
 fn installed_clients_complete_one_local_canary() {
-    version("codex", "codex-cli 0.146.0");
+    version("codex", "codex-cli 0.151.0");
     version("claude", "2.1.251 (Claude Code)");
 
     let root = env::var_os("LAO_MODEL_DIR")

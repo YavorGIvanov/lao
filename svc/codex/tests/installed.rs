@@ -15,7 +15,7 @@ const CALLER: &str = "codex-caller-sentinel";
 const SSE: &str = concat!(include_str!("fixtures/response.sse"), "\n");
 
 #[test]
-#[ignore = "opt-in probe for installed Codex 0.146.0"]
+#[ignore = "opt-in probe for installed Codex 0.151.0"]
 fn installed_codex_custom_provider_keeps_native_and_caller_auth_separate() {
     let home = Temp::new();
     let bin = std::env::var_os("LAO_CODEX_BIN").unwrap_or_else(|| "codex".into());

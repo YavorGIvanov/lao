@@ -651,7 +651,7 @@ mod tests {
     #[test]
     #[ignore = "uses the installed Codex login for one cheap native request"]
     fn installed_codex_reaches_chatgpt_through_gate() {
-        version("codex", "codex-cli 0.146.0");
+        version("codex", "codex-cli 0.151.0");
         let live = Live::start(Cloud::ChatGpt);
         let output = codex(
             &live,
@@ -667,7 +667,7 @@ mod tests {
     #[test]
     #[ignore = "uses the installed Codex login for one cheap native error"]
     fn installed_codex_preserves_native_error() {
-        version("codex", "codex-cli 0.146.0");
+        version("codex", "codex-cli 0.151.0");
         let live = Live::start(Cloud::ChatGpt);
         let output = codex(&live, "lao-invalid-model", "Reply exactly LAO_E2E_OK.");
         assert!(!output.status.success());
