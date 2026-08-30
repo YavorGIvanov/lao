@@ -33,7 +33,7 @@
     a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
     section { padding: 34px 0; border-bottom: 1px dashed var(--line); }
     .note { color: var(--green); font-size: .9rem; }
-    .flow, .lane, .layers, .control-flow { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .flow, .lane, .layers, .control-flow, .lao-boundary { display: flex; align-items: center; justify-content: center; gap: 14px; }
     .flow { min-height: 210px; }
     .control-flow { margin-top: 22px; }
     .control-target { color: var(--dim); }
@@ -49,6 +49,8 @@
     .node small { color: var(--dim); margin-top: 5px; }
     .node.main { min-width: 280px; border-color: var(--green); transform: rotate(-.4deg); }
     .node.optional { border-style: dashed; color: var(--dim); }
+    .lao-boundary { position: relative; border: 1px dashed var(--green); padding: 28px 14px 14px; }
+    .lao-boundary::before { content: "LAO · per user · no admin"; position: absolute; top: 5px; left: 10px; color: var(--green); font-size: .72rem; }
     .arrow { color: var(--yellow); font-size: 2rem; line-height: 1; }
     .split { display: grid; gap: 12px; }
     .inside { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 12px; }
@@ -82,6 +84,8 @@
     @media (max-width: 800px) {
       .flow { flex-direction: column; }
       .flow .arrow { transform: rotate(90deg); }
+      .lao-boundary { flex-direction: column; width: 100%; }
+      .lao-boundary .arrow { transform: rotate(90deg); }
       .control-flow { align-items: flex-start; }
       .layers, .grid { grid-template-columns: 1fr; display: grid; }
       .layer { width: 100%; }
@@ -98,25 +102,27 @@
 <main>
   <header>
     <div class="note">LOCAL AGENT OPTIMIZER · SYSTEM MAP</div>
-    <h1>How LAO fits together.</h1>
+    <h1>LAO at a glance.</h1>
     <p>Codex and Claude Code remain the user interface. LAO adds one private local gate, keeps cloud as the default, and starts the verified local runtime only for the explicit proof canary.</p>
   </header>
 
   <section>
     <h2>1. Request and control paths</h2>
-    <div class="flow" aria-label="Codex and Claude Code reach the LAO daemon through a launchd-owned socket, then use a local runtime or native cloud path.">
+    <div class="flow" aria-label="Codex and Claude Code reach the per-user LAO daemon through a launchd-owned local socket, then use a local runtime or native cloud path.">
       <div class="stack">
         <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
         <div class="node"><strong>Claude Code</strong><small>same command + harness</small></div>
       </div>
       <div class="arrow">→</div>
-      <div class="node"><strong>launchd socket</strong><small>owns 127.0.0.1:PORT</small></div>
-      <div class="arrow">→</div>
-      <div class="node main">
-        <strong>lao-daemon</strong>
-        <small>small, always-on coordinator</small>
-        <div class="inside">
-          <span>gate</span><span>route</span><span>run</span><span>model</span>
+      <div class="lao-boundary">
+        <div class="node"><strong>local socket</strong><small>kept open by launchd</small></div>
+        <div class="arrow">→</div>
+        <div class="node main">
+          <strong>lao-daemon</strong>
+          <small>small, always-on coordinator</small>
+          <div class="inside">
+            <span>gate</span><span>route</span><span>run</span><span>model</span>
+          </div>
         </div>
       </div>
       <div class="arrow">→</div>
@@ -130,36 +136,29 @@
       <div class="arrow">⇢</div>
       <div class="control-target"><code>codex + claude adapters</code><br><code>preview · install · smoke · off</code><br>then the command exits</div>
     </div>
-    <div class="control-flow" aria-label="Apple memory and llama.cpp device visibility resolve one budget before local model load.">
-      <div class="node"><strong>fresh fit check</strong><small>24 GiB unified + OS pressure + Metal cap</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><strong>Light</strong><small>6 GiB · 2 threads · 32K target</small></div>
-      <div class="arrow">→</div>
-      <div class="control-target">one slot · cache off<br>reject before load if it does not fit</div>
-    </div>
-    <p class="note">The short-lived <code>lao</code> command is not in the request path. Local loads must pass the fresh Light budget; active streams retain the worker, and idle time or memory pressure unloads it.</p>
+    <p class="note">LAO installs per user—no root service is needed. launchd keeps the local door available through daemon restarts; one stable signed release avoids repeated macOS identity prompts.</p>
   </section>
 
   <section>
     <h2>2. Trust boundaries</h2>
     <div class="checks">
-      <div class="check"><b>Caller</b><p>Each harness has a separate owner-only capability. launchd owns the loopback listener before settings change.</p></div>
-      <div class="check"><b>Decision</b><p>The gate keeps the request and secrets. The router sees only client, operation, and the canary fact.</p></div>
-      <div class="check"><b>Egress</b><p>Local receives no provider credential. Cloud can reach only the matching native origin over verified TLS.</p></div>
+      <div class="check"><b>Caller</b><p>Only the configured Codex or Claude Code client may enter.</p></div>
+      <div class="check"><b>Decision</b><p>Cloud remains the default. One explicit proof request may run locally.</p></div>
+      <div class="check"><b>Secrets</b><p>Provider credentials stay away from the local model.</p></div>
     </div>
     <div class="flow" aria-label="The gate authenticates the local caller, gives only client and operation to the router, then freezes a clean local or exact native cloud route.">
-      <div class="node"><strong>client request</strong><small>caller token + native auth</small></div>
+      <div class="node"><strong>client request</strong><small>from Codex or Claude Code</small></div>
       <div class="arrow">→</div>
-      <div class="node main"><strong>gate</strong><small>admit; keep request + secrets</small></div>
+      <div class="node main"><strong>private gate</strong><small>authenticate and protect secrets</small></div>
       <div class="arrow">→</div>
-      <div class="node"><strong>route</strong><small>client + operation + canary</small></div>
+      <div class="node"><strong>choose path</strong><small>explicit local proof?</small></div>
       <div class="arrow">→</div>
       <div class="split">
-        <div class="node"><strong>local canary</strong><small>dynamic llama endpoint</small></div>
-        <div class="node"><strong>native cloud</strong><small>normal default</small></div>
+        <div class="node"><strong>local</strong><small>proof request only</small></div>
+        <div class="node"><strong>cloud</strong><small>normal default</small></div>
       </div>
     </div>
-    <p class="note">Only the exact, non-secret canary selector permits Local. Every normal request remains Cloud. The implementation plan carries the detailed protocol and acceptance evidence.</p>
+    <p class="note">Protocol limits, recovery mechanics, and acceptance evidence live in the implementation plan—not on this map.</p>
   </section>
 
   <section>
@@ -193,7 +192,7 @@
     <h2>5. Workspace map</h2>
     <div class="grid">
       <pre aria-label="Repository folder tree">lao/
-├── Cargo.toml       29-package workspace
+├── Cargo.toml       Rust workspace
 ├── api/             public contracts + wire
 ├── svc/             private implementations
 ├── app/             process entry points
