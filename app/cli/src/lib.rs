@@ -631,7 +631,7 @@ fn install(selected: &Selected) -> Result<()> {
     let paths = paths()?;
     let _lock = Lock::acquire(&paths.state)?;
     if paths.state.join(RECORD).exists() {
-        let transaction = Transaction::load(&paths.state)?;
+        let mut transaction = Transaction::load(&paths.state)?;
         if transaction.record.phase == Phase::Installed {
             transaction.validate_installed()?;
             validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600)?;
@@ -639,10 +639,19 @@ fn install(selected: &Selected) -> Result<()> {
                 return Err(invalid("launchd service").into());
             }
             verify_ready(&paths, transaction.record.port)?;
-            println!("installed: existing LAO setup is healthy and unchanged");
-            return Ok(());
+            if installed_daemon_matches(&paths)? {
+                println!("installed: existing LAO setup is healthy and unchanged");
+                return Ok(());
+            }
+            transaction.restore()?;
+            deactivate(&paths)?;
+            remove_optional(&paths.daemon)?;
+            remove_optional(&paths.state.join(DAEMON_ERROR))?;
+            transaction.discard()?;
+            remove_optional(&paths.adopted)?;
+        } else {
+            recover(&paths, &transaction)?;
         }
-        recover(&paths, &transaction)?;
     }
     if service_loaded()? || paths.plist.exists() {
         return Err(conflict("conflicting launchd service").into());
@@ -834,6 +843,16 @@ fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String
 
 fn managed_caller(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+fn installed_daemon_matches(paths: &Paths) -> io::Result<bool> {
+    for path in [&paths.daemon_source, &paths.daemon] {
+        let metadata = fs::symlink_metadata(path)?;
+        if !metadata.file_type().is_file() || metadata.mode() & 0o777 != 0o700 {
+            return Err(invalid("lao-daemon binary"));
+        }
+    }
+    Ok(fs::read(&paths.daemon_source)? == fs::read(&paths.daemon)?)
 }
 
 fn preflight_clients() -> Result<Clients> {
@@ -1652,6 +1671,23 @@ mod tests {
         assert_eq!(claude["theme"], "dark");
         assert_eq!(claude["permissions"]["defaultMode"], "default");
         assert!(claude.get("env").is_none());
+    }
+
+    #[test]
+    fn repeated_install_reuses_only_the_current_daemon() {
+        let temp = Temp::new();
+        let paths = temp.paths();
+        fs::write(&paths.daemon_source, b"current").unwrap();
+        fs::write(&paths.daemon, b"current").unwrap();
+        for path in [&paths.daemon_source, &paths.daemon] {
+            fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
+        }
+        assert!(installed_daemon_matches(&paths).unwrap());
+
+        fs::write(&paths.daemon_source, b"new").unwrap();
+        assert!(!installed_daemon_matches(&paths).unwrap());
+        fs::set_permissions(&paths.daemon_source, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(installed_daemon_matches(&paths).is_err());
     }
 
     #[test]
