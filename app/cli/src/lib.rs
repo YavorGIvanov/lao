@@ -544,7 +544,14 @@ fn install(selected: &Selected) -> Result<()> {
     if paths.state.join(RECORD).exists() {
         let transaction = Transaction::load(&paths.state)?;
         if transaction.record.phase == Phase::Installed {
-            return Err(conflict("lao is already installed").into());
+            transaction.validate_installed()?;
+            validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600)?;
+            if !service_loaded()? {
+                return Err(invalid("launchd service").into());
+            }
+            verify_ready(&paths, transaction.record.port)?;
+            println!("installed: existing LAO setup is healthy and unchanged");
+            return Ok(());
         }
         recover(&paths, &transaction)?;
     }

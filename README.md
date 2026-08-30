@@ -33,6 +33,8 @@ That command detects the installed clients and machine, downloads and verifies t
 
 Setup stops with a specific error when a prerequisite or existing configuration is unsupported. It verifies or downloads the immutable Qwen inference model and MiniLM router model (1,208,656,003 bytes total), so allow about 1.21 GB of network traffic and cache space on the first run.
 
+Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
+
 ## Optional end-to-end test
 
 Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:

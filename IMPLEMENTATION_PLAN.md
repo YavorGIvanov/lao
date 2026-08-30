@@ -169,6 +169,7 @@ Acceptance:
 Current evidence:
 
 - a clean `lao install` downloaded the official runtime archive, verified its exact size, SHA-256, binary build, and Metal visibility, then completed both installed local canaries;
+- a repeated `lao install` verifies and reuses a healthy installation without downloading, rotating caller keys, or rewriting client settings;
 - the Codex adapter performs a structural TOML edit and the Claude adapter preserves unrelated JSON settings;
 - the CLI stores byte-exact before/after files with original modes, accepts unrelated settings that a running client adds, and removes only LAO-owned fields when those additions must be preserved; its crash record contains paths and phase but no caller key;
 - launchd bootstrap must produce a fresh 0600 adoption file and pass the exact inert hello before the first client write;
