@@ -48,11 +48,12 @@ enum Route {
 }
 
 pub(super) struct Task<B> {
-    request: Request<B>,
-    client: Client,
-    op: Op,
-    beta: bool,
-    canary: bool,
+    pub request: Request<B>,
+    pub client: Client,
+    pub op: Op,
+    pub beta: bool,
+    pub canary: bool,
+    pub automatic: bool,
 }
 
 pub(super) struct Frozen<B> {
@@ -81,15 +82,25 @@ impl<B> Task<B> {
         }
     }
 
+    pub fn validate_auth(&self, gate: &Gate) -> Result<(), Err> {
+        let cloud = Route::Cloud(match self.client {
+            Client::Codex => gate.codex_cloud,
+            Client::Claude => gate.claude_cloud,
+        });
+        valid_auth(self.client, cloud, self.request.headers())
+            .then_some(())
+            .ok_or_else(|| deny("route"))
+    }
+
     pub fn freeze(
         mut self,
         decision: Decision,
         gate: &Gate,
         local: Option<&Endpoint>,
     ) -> Result<Frozen<B>, Err> {
-        let route = match (decision, self.canary) {
-            (Decision::Local, true) => Route::Local,
-            (Decision::Cloud, false) => Route::Cloud(match self.client {
+        let route = match (decision, self.canary, self.automatic) {
+            (Decision::Local, true, _) | (Decision::Local, false, true) => Route::Local,
+            (Decision::Cloud, false, _) => Route::Cloud(match self.client {
                 Client::Codex => gate.codex_cloud,
                 Client::Claude => gate.claude_cloud,
             }),
@@ -207,6 +218,7 @@ pub(super) fn admit<B>(mut request: Request<B>, gate: &Gate) -> Result<Option<Ta
         op,
         beta: ingress == Ingress::Beta,
         canary,
+        automatic: false,
     }))
 }
 

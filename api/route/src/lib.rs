@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Client {
     Codex,
@@ -58,4 +60,26 @@ pub enum Decision {
 
 pub trait Policy: Send + Sync {
     fn decide(&self, context: Context) -> Decision;
+
+    fn requires_query(&self) -> bool {
+        false
+    }
+
+    fn decide_query(&self, context: Context, _query: &str) -> Decision {
+        self.decide(context)
+    }
+}
+
+impl<T: Policy + ?Sized> Policy for Arc<T> {
+    fn decide(&self, context: Context) -> Decision {
+        (**self).decide(context)
+    }
+
+    fn requires_query(&self) -> bool {
+        (**self).requires_query()
+    }
+
+    fn decide_query(&self, context: Context, query: &str) -> Decision {
+        (**self).decide_query(context, query)
+    }
 }

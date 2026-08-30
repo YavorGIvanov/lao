@@ -5,6 +5,8 @@ use std::{
     error::Error,
     fs::{self, OpenOptions},
     io::{self, Write},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    os::unix::fs::MetadataExt,
     path::PathBuf,
     sync::{Arc, Mutex},
     thread,
@@ -46,17 +48,74 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 Ok("chatgpt") => lao_gate::CodexCloud::ChatGpt,
                 _ => return Err("LAO_CODEX_CLOUD".into()),
             };
-            lao_gate::installed(
-                listener,
-                lao_route::Router,
-                Arc::new(Lazy::new()?),
-                codex,
-                claude,
-                codex_cloud,
-            )
+            let local = runtime()?;
+            let policy: Arc<dyn lao_route_api::Policy> = match env::var("LAO_ROUTER").as_deref() {
+                Ok("semantic") => {
+                    let root = env::var_os("LAO_ROUTER_DIR").ok_or("LAO_ROUTER_DIR")?;
+                    Arc::new(lao_route::Semantic::open(std::path::Path::new(&root))?)
+                }
+                Ok("safe") | Err(env::VarError::NotPresent) => Arc::new(lao_route::Router),
+                Ok("vllm-semantic") => Arc::new(vllm()?),
+                _ => return Err("LAO_ROUTER".into()),
+            };
+            lao_gate::installed(listener, policy, local, codex, claude, codex_cloud)
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
     }
+}
+
+fn runtime() -> Result<Arc<dyn Local>, Box<dyn Error + Send + Sync>> {
+    Ok(match env::var("LAO_RUNTIME").as_deref() {
+        Ok("external") => {
+            let address = env::var("LAO_EXTERNAL_ADDR")?.parse::<SocketAddr>()?;
+            Arc::new(lao_run::External::new(
+                address,
+                key("LAO_EXTERNAL_KEY_FILE")?.into_boxed_str(),
+            )?)
+        }
+        Ok("llama-cpp") | Err(env::VarError::NotPresent) => Arc::new(Lazy::new()?),
+        _ => return Err("LAO_RUNTIME".into()),
+    })
+}
+
+fn vllm() -> Result<lao_route::VllmSemantic, Box<dyn Error + Send + Sync>> {
+    let address = match env::var("LAO_VLLM_ROUTER_ADDR") {
+        Ok(value) => value.parse::<SocketAddrV4>()?,
+        Err(env::VarError::NotPresent) => SocketAddrV4::new(Ipv4Addr::LOCALHOST, 8080),
+        Err(error) => return Err(error.into()),
+    };
+    if !address.ip().is_loopback() {
+        return Err("LAO_VLLM_ROUTER_ADDR".into());
+    }
+    let bearer = match env::var("LAO_VLLM_ROUTER_KEY_FILE") {
+        Ok(_) => Some(key("LAO_VLLM_ROUTER_KEY_FILE")?),
+        Err(env::VarError::NotPresent) => None,
+        Err(error) => return Err(error.into()),
+    };
+    Ok(lao_route::VllmSemantic::new(address, bearer))
+}
+
+fn key(name: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let path = env::var_os(name).ok_or(name)?;
+    let metadata = fs::symlink_metadata(&path)?;
+    let home = env::var_os("HOME").ok_or("HOME")?;
+    if !metadata.file_type().is_file()
+        || metadata.mode() & 0o7777 != 0o600
+        || metadata.uid() != fs::symlink_metadata(home)?.uid()
+    {
+        return Err(name.into());
+    }
+    let mut value = fs::read_to_string(path)?;
+    while value.ends_with(['\r', '\n']) {
+        value.pop();
+    }
+    if value.is_empty()
+        || value.len() > 4096
+        || !value.bytes().all(|byte| byte > b' ' && byte < 0x7f)
+    {
+        return Err(name.into());
+    }
+    Ok(value)
 }
 
 /// The runtime starts on the first Local request, so cloud work never waits for a model load

@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, and complete Stage 1 installed proof. It does not yet contain production automatic routing or release packaging.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, complete Stage 1 installed proof, and the first real automatic-routing slice. It does not yet contain production routing certification or release packaging.
 
 ## Install
 
@@ -31,6 +31,8 @@ lao install
 
 That command detects the installed clients and machine, downloads and verifies the supported local runtime and model, applies the client settings transactionally, and starts the service. There are no separate runtime packages or prerequisite checks to run. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
 
+Setup stops with a specific error when a prerequisite or existing configuration is unsupported. It verifies or downloads the immutable Qwen inference model and MiniLM router model (1,208,656,003 bytes total), so allow about 1.21 GB of network traffic and cache space on the first run.
+
 ## Optional end-to-end test
 
 Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings. Move to the existing work repository and launch a new process:
@@ -40,19 +42,19 @@ cd /absolute/path/to/your/existing-project
 env -u LAO_LOCAL_SELECTOR codex
 ```
 
-This is the intended cloud-safe experience: continue using Codex normally in the work repository while model requests traverse LAO and stay on the saved-login cloud path. The interactive TUI is useful for evaluating setup feel, but it is not yet part of the accepted Stage 1 compatibility evidence.
+This is the intended cloud-safe experience: continue using Codex normally in the work repository. A separate local MiniLM model classifies bounded prompts; only a result that passes the conservative prototype threshold uses local inference, while uncertainty, failure, and complex work stay on the saved-login cloud path.
 
-First prove that an ordinary Codex request still uses the saved-login cloud path. This consumes one normal Codex turn:
+First prove that a request the policy must keep in Cloud still uses the saved-login path. This consumes one normal Codex turn:
 
 ```sh
 env -u LAO_LOCAL_SELECTOR codex -c 'model_reasoning_effort="low"' \
   -c 'mcp_servers={}' -c 'web_search="disabled"' exec \
   --strict-config --ephemeral --skip-git-repo-check \
   --color never --sandbox read-only --model gpt-5.4 \
-  'Reply exactly CODEX_CLOUD_E2E_OK. Do not use tools.'
+  'Review a complex production security migration without changing anything. Reply exactly CODEX_CLOUD_E2E_OK. Do not use tools.'
 ```
 
-The final line must be `CODEX_CLOUD_E2E_OK`. The local worker remains unloaded for this command.
+The final line must be `CODEX_CLOUD_E2E_OK`. The risk veto keeps both MiniLM and the llama.cpp/Qwen worker unloaded for this command.
 
 Then run the explicit, bounded local canary through Codex:
 
@@ -65,6 +67,18 @@ LAO_LOCAL_SELECTOR=canary codex -c 'model_reasoning_effort="low"' \
 ```
 
 The final line must be `42`. Keep `LAO_LOCAL_SELECTOR=canary` inline exactly as shown; never `export` it. The first local turn takes roughly 24 seconds on the tested Mac and starts an approximately 2.05 GiB worker. The accepted Stage 1 check uses Codex's non-interactive `exec` mode; the interactive TUI is not yet claimed as tested.
+
+The default router also handles one narrow eligible first-turn text request without the canary. This real E2E must return `the`; pinned MiniLM classifies the prompt and the verified Qwen model answers it:
+
+```sh
+env -u LAO_LOCAL_SELECTOR codex -c 'model_reasoning_effort="low"' \
+  -c 'mcp_servers={}' -c 'web_search="disabled"' exec \
+  --strict-config --ephemeral --skip-git-repo-check \
+  --color never --sandbox read-only --model gpt-5.4 \
+  'Correct the spelling error in this one word: teh. Reply with only the corrected word.'
+```
+
+Automatic Local is limited to at most 4,096 bytes of current-user text and no prior response or tool output. Codex input is either one string or first-turn developer/user message items ending in user; Claude has exactly one user message. LAO sends only the final user text to Local and disables tools. Every other non-canary request stays Cloud.
 
 To repeat the local canary through both installed harnesses with sanitized pass/fail output:
 
@@ -167,10 +181,22 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-The cloud-safe baseline is complete: the private gate retains request bodies, headers, credentials, and targets, and gives the router only `Context(client, operation, canary)`. Normal contexts route to native cloud. Only an exact, non-secret canary selector may produce Local; the gate consumes it, removes native secrets, and binds the request to the runtime's loopback endpoint and private bearer.
+The cloud-safe baseline is complete. The gate authenticates the caller before reading a body and retains headers, credentials, and targets. For automatic routing it extracts only bounded current-user text and asks the selected router for Local or Cloud. Cloud keeps the original body. A final Local decision creates a tool-free body containing only the final user text and model name `lao-local`, strips native secrets, and binds it to the runtime's protected loopback endpoint. For automatic routing, any unsupported body, router error, timeout, busy classifier, or unknown answer remains Cloud.
 
 Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
-`lao install` generates separate 256-bit caller keys, installs the daemon in owner-only product state, verifies launchd adoption and the exact inert hello before either client write, and applies the supported settings under one owner-only lock and crash record. The local runtime starts only for an explicit canary. Its measured restart-run peak was about 2.05 GiB RSS under the 6 GiB Light ceiling. `lao off` restored the original client bytes and permissions and left no daemon, worker, listener, plist, runtime key, or log. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
+The clean R2 install also routed the no-canary spelling request through the launchd-owned default path in both harnesses: Codex returned `the` in 3.79 seconds from the cold semantic/runtime state, and Claude returned `the` in 3.85 seconds with the worker warm. The forced-Cloud Codex proof completed in 2.67 seconds with llama.cpp absent. Measured daemon RSS was about 8 MiB before MiniLM loaded and 141 MiB afterward; the loaded llama.cpp worker was about 2.02 GiB. These are single proof measurements, not benchmarks.
+
+`lao install` generates separate 256-bit caller keys, installs the daemon in owner-only product state, verifies launchd adoption and the exact inert hello before either client write, and applies the supported settings under one owner-only lock and crash record. The Qwen runtime starts only after an explicit canary or an automatic request passes the prototype threshold. Its measured restart-run peak was about 2.05 GiB RSS under the 6 GiB Light ceiling. `lao off` restored the original client bytes and permissions and left no daemon, worker, listener, plist, runtime key, or log. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
 
 The first post-Stage 1 resource slice is implemented: each local response holds a runtime lease until its stream completes or is dropped. After the final lease ends, a five-second watcher unloads the worker after roughly five observed idle minutes or as soon as it observes macOS memory pressure; a pressure-probe error also unloads safely. A later local request cold-starts the verified runtime again. Cloud traffic never acquires a lease, and background preload remains deferred.
+
+The default selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
+
+To select a running vLLM or SGLang server without giving LAO ownership of it:
+
+```sh
+LAO_EXTERNAL_ADDR=127.0.0.1:8000 \
+LAO_EXTERNAL_KEY_FILE=/absolute/path/to/owner-only/runtime.key \
+./install.sh --runtime external
+```

@@ -8,7 +8,7 @@ Ship the smallest real proof of this product:
 Codex + Claude Code → LAO gate → conservative router → llama.cpp or native cloud
 ```
 
-The user keeps each coding harness and its existing login. Cloud remains the default. One explicit, bounded, text-only task may run on one verified local model. `lao off` restores the original client configuration even if the daemon is unavailable.
+The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow first-turn text request to route automatically. For non-canary routing, unsupported, risky, or ambiguous work and classifier or pre-send Local setup failures stay Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
 
 Stage 1 targets this 24 GiB Apple M4 Mac. It is a working end-to-end proof, not the final router, catalog, evaluator, or cross-platform release.
 
@@ -288,13 +288,43 @@ Current evidence:
 - the existing real runtime lifecycle proof covers owned stop, process cleanup, key removal, and port release;
 - focused tests, workspace checks, extraction, Clippy, and diff hygiene pass.
 
+## R2 — Real automatic route
+
+Status: complete (2026-08-30).
+
+This is the smallest automatic path that exercises an independent real classifier and real inference without adding another daemon.
+
+- Buffer only a validated, length-bounded Responses or Messages JSON body after caller authentication.
+- Extract only the current user text for the router; never give it headers, targets, or provider credentials.
+- Use vLLM Semantic Router's pinned Candle engine with a separate 22.7M-parameter MiniLM model and LAO's conservative easy/hard prototype policy. Any classifier error or unsupported body selects Cloud.
+- After Local is final, build a tool-free Local body from only the final user text and model name `lao-local`; Cloud retains the exact original body.
+- Keep the Stage 1 canary and the deterministic `safe` router available.
+- Add a bounded `/api/v1/eval` adapter for user-managed vLLM Semantic Router.
+- Keep inference behind `api/run::Local`: verified direct llama.cpp is the default and a protected user-managed IPv4-loopback endpoint can supply the same protocol. vLLM and SGLang are examples, not special cases in the API.
+
+Acceptance:
+
+- one eligible no-canary spelling fixture is classified Local and completes through real llama.cpp in real Codex and Claude Code processes;
+- a tool-free `lao-local` body is created only after the Local decision;
+- router failure and ambiguity remain Cloud;
+- no native or caller credential reaches either classifier or local inference;
+- direct llama.cpp remains the one-command default; external routers and engines require explicit configuration.
+
+Current evidence:
+
+- a clean default install adopted the launchd listener, then the eligible no-canary spelling fixture returned exactly `the` through both installed harness configurations; Codex took 3.79 seconds from cold semantic/runtime state and Claude took 3.85 seconds warm;
+- the forced-Cloud installed Codex proof took 2.67 seconds with llama.cpp absent; daemon RSS measured about 8 MiB before MiniLM and 141 MiB after it, while llama.cpp measured about 2.02 GiB;
+- the ignored E2E uses real installed Codex and Claude binaries with temporary endpoint settings, a self-bound gate, pinned MiniLM, pinned Qwen, and real llama.cpp; it records two Local decisions and gets exactly `the` twice without a canary;
+- fixture tests prove the vLLM Semantic Router adapter is IPv4-loopback-only, deadline- and length-bounded, accepts exact `lao-local` or `lao-cloud`, handles normal and chunked JSON, and fails Cloud;
+- unit tests prove the external runtime rejects non-loopback and invalid bearer configuration and never takes ownership of the user-managed engine; no vLLM or SGLang inference E2E is claimed.
+
 ## Deferred backlog
 
 After the exit gate, choose the next measured bottleneck. The long-term contracts and constraints remain in the product architecture.
 
 Deferred product work:
 
-- automatic difficulty routing, task stickiness, repair, escalation, and circuit breakers;
+- certified independent difficulty routing, task stickiness, repair, escalation, and circuit breakers;
 - model catalog signatures, multiple models, preferences, recommendations, and llama-swap;
 - remaining runtime residency in this order: background preload only for installs with useful local routing enabled; only then parallel verification and start if measured cold latency still warrants it;
 - Ollama, LM Studio, ShoeHorn, FreeToken, NVIDIA, Linux, and Windows;

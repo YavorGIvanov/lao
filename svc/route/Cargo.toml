@@ -7,7 +7,9 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+candle-semantic-router = { version = "=0.3.0", default-features = false, features = ["accelerate"] }
 lao-route-api = { path = "../../api/route", version = "0.1.0" }
+serde_json.workspace = true
 
 [lints]
 workspace = true

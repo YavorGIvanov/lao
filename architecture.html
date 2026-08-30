@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LAO architecture map</title>
+  <title>LAO request flow</title>
   <style>
     :root {
       color-scheme: dark;
@@ -33,7 +33,7 @@
     a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
     section { padding: 34px 0; border-bottom: 1px dashed var(--line); }
     .note { color: var(--green); font-size: .9rem; }
-    .flow, .lane, .layers, .control-flow, .lao-boundary { display: flex; align-items: center; justify-content: center; gap: 14px; }
+    .flow, .layers, .control-flow, .lao-boundary { display: flex; align-items: center; justify-content: center; gap: 14px; }
     .flow { min-height: 210px; }
     .control-flow { margin-top: 22px; }
     .control-target { color: var(--dim); }
@@ -48,15 +48,12 @@
     .node strong, .node small { display: block; }
     .node small { color: var(--dim); margin-top: 5px; }
     .node.main { min-width: 280px; border-color: var(--green); transform: rotate(-.4deg); }
-    .node.optional { border-style: dashed; color: var(--dim); }
     .lao-boundary { position: relative; border: 1px dashed var(--green); padding: 28px 14px 14px; }
     .lao-boundary::before { content: "LAO · per user · no admin"; position: absolute; top: 5px; left: 10px; color: var(--green); font-size: .72rem; }
     .arrow { color: var(--yellow); font-size: 2rem; line-height: 1; }
     .split { display: grid; gap: 12px; }
     .inside { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 12px; }
     .inside span { border: 1px solid var(--line); padding: 3px 7px; font-size: .78rem; }
-    .lane { justify-content: flex-start; overflow-x: auto; padding: 8px 4px 14px; }
-    .lane .node { min-width: 150px; }
     .layers { align-items: stretch; }
     .layer { flex: 1; border: 2px solid var(--chalk); padding: 18px; min-width: 0; }
     .layer:nth-child(1) { transform: rotate(-.25deg); }
@@ -102,32 +99,32 @@
 <main>
   <header>
     <div class="note">LOCAL AGENT OPTIMIZER · SYSTEM MAP</div>
-    <h1>LAO at a glance.</h1>
-    <p>Codex and Claude Code remain the user interface. LAO adds one private local gate, keeps cloud as the default, and starts the verified local runtime only for the explicit proof canary.</p>
+    <h1>Where each coding request goes.</h1>
+    <p>Codex and Claude Code remain the user interface. LAO privately classifies small requests, sends only a conservative subset to a local model, and keeps cloud as the safe path.</p>
   </header>
 
   <section>
     <h2>1. Request and control paths</h2>
-    <div class="flow" aria-label="Codex and Claude Code reach the per-user LAO daemon through a launchd-owned local socket, then use a local runtime or native cloud path.">
+    <div class="flow" aria-label="Codex and Claude Code reach the per-user LAO daemon through a launchd-owned IPv4 loopback listener, then use local inference or the native cloud path.">
       <div class="stack">
         <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
         <div class="node"><strong>Claude Code</strong><small>same command + harness</small></div>
       </div>
       <div class="arrow">→</div>
       <div class="lao-boundary">
-        <div class="node"><strong>local socket</strong><small>kept open by launchd</small></div>
+        <div class="node"><strong>loopback listener</strong><small>owned by launchd across restarts</small></div>
         <div class="arrow">→</div>
         <div class="node main">
           <strong>lao-daemon</strong>
-          <small>small, always-on coordinator</small>
+          <small>resident gate + lazy classifier</small>
           <div class="inside">
-            <span>gate</span><span>route</span><span>run</span><span>model</span>
+            <span>gate</span><span>MiniLM router</span><span>runtime API</span>
           </div>
         </div>
       </div>
       <div class="arrow">→</div>
       <div class="split">
-        <div class="node"><strong>llama.cpp</strong><small>local child process</small></div>
+        <div class="node"><strong>local inference</strong><small>runtime API → owned llama.cpp · external optional</small></div>
         <div class="node"><strong>native cloud</strong><small>original provider path</small></div>
       </div>
     </div>
@@ -136,48 +133,33 @@
       <div class="arrow">⇢</div>
       <div class="control-target"><code>verified runtime + model</code><br><code>client adapters · launchd</code><br>then the command exits</div>
     </div>
-    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model; launchd keeps the local door available through daemon restarts.</p>
+    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the local runtime and model; launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
   </section>
 
   <section>
     <h2>2. Trust boundaries</h2>
     <div class="checks">
-      <div class="check"><b>Caller</b><p>Only the configured Codex or Claude Code client may enter.</p></div>
-      <div class="check"><b>Decision</b><p>Cloud remains the default. One explicit proof request may run locally.</p></div>
+      <div class="check"><b>Caller</b><p>Each request needs that client's private caller key. Same-user malware is out of scope.</p></div>
+      <div class="check"><b>Decision</b><p>Automatic requests use a separate semantic model; failure or a threshold miss means Cloud. The explicit canary bypasses classification.</p></div>
       <div class="check"><b>Secrets</b><p>Provider credentials stay away from the local model.</p></div>
     </div>
-    <div class="flow" aria-label="The gate authenticates the local caller, gives only client and operation to the router, then freezes a clean local or exact native cloud route.">
+    <div class="flow" aria-label="The gate authenticates the local caller, gives bounded current-user text to the router, then freezes a clean local or exact native cloud route.">
       <div class="node"><strong>client request</strong><small>from Codex or Claude Code</small></div>
       <div class="arrow">→</div>
       <div class="node main"><strong>private gate</strong><small>authenticate and protect secrets</small></div>
       <div class="arrow">→</div>
-      <div class="node"><strong>choose path</strong><small>explicit local proof?</small></div>
+      <div class="node"><strong>semantic router</strong><small>small local classifier</small></div>
       <div class="arrow">→</div>
       <div class="split">
-        <div class="node"><strong>local</strong><small>proof request only</small></div>
-        <div class="node"><strong>cloud</strong><small>normal default</small></div>
+        <div class="node"><strong>local</strong><small>bounded request</small></div>
+        <div class="node"><strong>cloud</strong><small>uncertain or complex</small></div>
       </div>
     </div>
     <p class="note">Protocol limits, recovery mechanics, and acceptance evidence live in the implementation plan—not on this map.</p>
   </section>
 
   <section>
-    <h2>3. Optional work sleeps</h2>
-    <p>Heavy or sensitive jobs use separate, least-authority processes. They are not loaded into the daemon.</p>
-    <div class="lane" aria-label="Optional capture, vault, evaluation and training workers form a consent-gated evidence path.">
-      <div class="node optional"><strong>capture worker</strong><small>scrub + snapshot</small></div>
-      <div class="arrow">→</div>
-      <div class="node optional"><strong>vault worker</strong><small>encrypted evidence</small></div>
-      <div class="arrow">→</div>
-      <div class="node optional"><strong>eval worker</strong><small>replay + compare</small></div>
-      <div class="arrow">→</div>
-      <div class="node optional"><strong>train worker</strong><small>explicit opt-in</small></div>
-    </div>
-    <p class="note">Dashed boxes are lazy and consent-gated. Each worker owns only its component.</p>
-  </section>
-
-  <section>
-    <h2>4. The one dependency rule</h2>
+    <h2>3. The one dependency rule</h2>
     <div class="layers" aria-label="Applications may use services and APIs. Services may use APIs. APIs never use services.">
       <div class="layer"><b>app/*</b><span>Chooses concrete parts and wires them together.</span></div>
       <div class="arrow">→</div>
@@ -189,7 +171,7 @@
   </section>
 
   <section>
-    <h2>5. Workspace map</h2>
+    <h2>4. Workspace map</h2>
     <div class="grid">
       <pre aria-label="Repository folder tree">lao/
 ├── Cargo.toml       Rust workspace
@@ -206,28 +188,28 @@
         <h3>What is a component?</h3>
         <p>Usually one <code>api/x</code> package plus one <code>svc/x</code> package. An <code>app</code> selects implementations and gives them a process.</p>
         <h3>What is private?</h3>
-        <p>State, migrations and sensitive internal stages. Credentials remain inside <code>svc/gate</code>. Raw captured content remains inside <code>svc/capture</code>.</p>
+        <p>State, migrations and sensitive internal stages. Credentials remain inside <code>svc/gate</code>. If capture is implemented and enabled later, raw content stays inside <code>svc/capture</code>.</p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2>6. Component ownership</h2>
+    <h2>5. Component ownership</h2>
     <table>
       <thead><tr><th>Area</th><th>Code</th><th>Responsibility</th></tr></thead>
       <tbody>
         <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, and restore harness settings.</td></tr>
         <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
-        <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Choose canary-only Local or default Cloud.</td></tr>
-        <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Verify fit and artifact, then own the llama.cpp child.</td></tr>
+        <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Use the default pinned MiniLM semantic classifier or an optional vLLM Semantic Router; automatic failures stay Cloud.</td></tr>
+        <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Own verified llama.cpp by default, or connect to an uncertified protected loopback endpoint.</td></tr>
         <tr><td>Applications</td><td><a href="app/daemon/Cargo.toml">app/daemon</a> · <a href="app/cli/Cargo.toml">app/cli</a></td><td>Wire components; own the long- and short-lived process roots.</td></tr>
-        <tr><td>Deferred data path</td><td><code>capture · vault · eval · train</code></td><td>Remain isolated, lazy, and consent-gated.</td></tr>
+        <tr><td>Deferred data path</td><td><code>capture · vault · eval · train</code></td><td>Disabled contract stubs; not active in this slice.</td></tr>
       </tbody>
     </table>
   </section>
 
   <section>
-    <h2>7. The architecture is executable</h2>
+    <h2>6. The architecture is executable</h2>
     <div class="checks">
       <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
@@ -237,7 +219,7 @@
   </section>
 
   <footer>
-    Solid boxes = normal request or control paths. Dashed boxes = lazy, consent-gated paths. Package metadata in each Cargo.toml is the source of truth.
+    Package metadata in each Cargo.toml is the source of truth.
   </footer>
 </main>
 </body>

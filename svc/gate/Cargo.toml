@@ -16,6 +16,7 @@ lao-route-api = { path = "../../api/route", version = "0.1.0" }
 lao-run-api = { path = "../../api/run", version = "0.1.0" }
 rustls.workspace = true
 rustls-platform-verifier.workspace = true
+serde_json.workspace = true
 tokio.workspace = true
 tokio-rustls.workspace = true
 

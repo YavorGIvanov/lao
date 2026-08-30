@@ -5,12 +5,12 @@ use std::{
     os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
     process::{Child, Command, Stdio},
-    sync::mpsc,
+    sync::{Arc, mpsc},
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use lao_run_api::{Endpoint, Status};
+use lao_run_api::{Endpoint, Local, Status};
 
 pub use lao_run_api::Mode;
 
@@ -36,6 +36,32 @@ pub struct Config<'a> {
 pub struct Direct {
     child: Child,
     log: Option<JoinHandle<()>>,
+}
+
+pub struct External {
+    endpoint: Arc<Endpoint>,
+}
+
+impl External {
+    pub fn new(addr: SocketAddr, bearer: impl Into<Box<str>>) -> io::Result<Self> {
+        let bearer = bearer.into();
+        if !matches!(addr, SocketAddr::V4(addr) if addr.ip().is_loopback())
+            || bearer.is_empty()
+            || bearer.len() > 4096
+            || !bearer.bytes().all(|byte| byte > b' ' && byte < 0x7f)
+        {
+            return Err(invalid("external"));
+        }
+        Ok(Self {
+            endpoint: Arc::new(Endpoint::new(addr, bearer)),
+        })
+    }
+}
+
+impl Local for External {
+    fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
+        Ok(self.endpoint.clone())
+    }
 }
 
 struct Key(std::path::PathBuf);
@@ -324,6 +350,27 @@ pub fn status() -> Status {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ExternalEndpoint: LAO may use, but never own, a protected loopback service.
+    #[test]
+    fn external_returns_one_stable_endpoint() {
+        let addr = "127.0.0.1:8080".parse().unwrap();
+        let external = External::new(addr, "runtime").unwrap();
+        let first = external.endpoint().unwrap();
+        let second = external.endpoint().unwrap();
+        assert!(Arc::ptr_eq(&first, &second));
+        assert_eq!(first.addr(), addr);
+        assert_eq!(first.bearer(), "runtime");
+    }
+
+    // ExternalEndpoint: unsafe or unauthenticated destinations fail before use.
+    #[test]
+    fn external_rejects_non_ipv4_loopback_or_empty_bearer() {
+        for addr in ["192.0.2.1:8080", "[::1]:8080"] {
+            assert!(External::new(addr.parse().unwrap(), "runtime").is_err());
+        }
+        assert!(External::new("127.0.0.1:8080".parse().unwrap(), "").is_err());
+    }
 
     // S1-01 "stop leaves no key file" and vision 7.3: a managed token never
     // reaches a product-controlled name, and the file goes away on drop.

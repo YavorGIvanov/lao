@@ -9,7 +9,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use http_body_util::{BodyExt, Empty, combinators::UnsyncBoxBody};
+use http_body_util::{BodyExt, Empty, Full, combinators::UnsyncBoxBody};
 use hyper::{
     Request, Response,
     body::Incoming,
@@ -31,8 +31,7 @@ use tokio::{
 use tokio_rustls::TlsConnector;
 
 use crate::CodexCloud;
-use crate::policy::Target;
-use crate::policy::{Cloud, Gate, admit, clean_response};
+use crate::policy::{Cloud, Gate, Target, Task, admit, clean_response};
 
 type Err = Box<dyn Error + Send + Sync>;
 type Body = UnsyncBoxBody<Bytes, Err>;
@@ -102,21 +101,71 @@ pub(super) async fn configured(
 }
 
 async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, Err> {
+    let request = request.map(|body| body.map_err(|error| -> Err { error.into() }).boxed_unsync());
     let Some(task) = admit(request, &plan.gate)? else {
         return Ok(hello());
     };
-    let decision = plan.policy.decide(task.context());
-    let endpoint = match decision {
-        Decision::Local => Some(resolve(&plan.gate.local).await?),
-        Decision::Cloud => None,
+    task.validate_auth(&plan.gate)?;
+    let (mut task, query, local_body) = if plan.policy.requires_query() && !task.canary {
+        inspect(task).await?
+    } else {
+        (task, None, None)
     };
+    let mut decision = match query {
+        Some(query) => decide(plan.policy.clone(), task.context(), query).await,
+        None => plan.policy.decide(task.context()),
+    };
+    let mut endpoint = None;
+    let mut sender = None;
+    if decision == Decision::Local {
+        let local_body = if task.canary {
+            None
+        } else {
+            match local_body {
+                Some(bytes) => rebuild(bytes, task.client).await,
+                None => None,
+            }
+        };
+        let resolved = resolve(&plan.gate.local).await;
+        let connection = match &resolved {
+            Ok(endpoint) => {
+                let address = endpoint.addr();
+                match local_addr(address).await {
+                    Ok(stream) => handshake(stream).await,
+                    Err(error) => Err(error),
+                }
+            }
+            Err(_) => Err(deny("local")),
+        };
+        match (task.canary, local_body, resolved, connection) {
+            (_, _, Ok(ready), Ok(connected)) if task.canary => {
+                endpoint = Some(ready);
+                sender = Some(connected);
+            }
+            (false, Some(body), Ok(ready), Ok(connected)) => {
+                task.automatic = true;
+                task.request.headers_mut().insert(
+                    CONTENT_LENGTH,
+                    HeaderValue::from_str(&body.len().to_string())?,
+                );
+                *task.request.body_mut() = full(body);
+                endpoint = Some(ready);
+                sender = Some(connected);
+            }
+            (true, _, _, _) => return Err(deny("local")),
+            _ => decision = Decision::Cloud,
+        }
+    }
     let (target, request) = task
         .freeze(decision, &plan.gate, endpoint.as_deref())?
         .take();
     #[cfg(test)]
     if let Some(fixture) = plan.fixture {
         let _ = target;
-        return relay(request, TcpStream::connect(fixture).await?, endpoint).await;
+        return match sender {
+            Some(sender) => send_ready(request, sender, endpoint).await,
+            None => relay(request, TcpStream::connect(fixture).await?, endpoint).await,
+        };
     }
     if target.tls {
         let response = relay(request, native(&target).await?, None).await;
@@ -129,8 +178,209 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
         }
         response
     } else {
-        relay(request, local(&target).await?, endpoint).await
+        send_ready(request, sender.ok_or_else(|| deny("local"))?, endpoint).await
     }
+}
+
+async fn decide(
+    policy: Arc<dyn Policy>,
+    context: lao_route_api::Context,
+    query: String,
+) -> Decision {
+    match timeout(
+        WAIT,
+        tokio::task::spawn_blocking(move || policy.decide_query(context, &query)),
+    )
+    .await
+    {
+        Ok(Ok(decision)) => decision,
+        _ => Decision::Cloud,
+    }
+}
+
+async fn inspect(task: Task<Body>) -> Result<(Task<Body>, Option<String>, Option<Bytes>), Err> {
+    let length = task
+        .request
+        .headers()
+        .get(CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<usize>().ok());
+    let content_type = task.request.headers().get_all(hyper::header::CONTENT_TYPE);
+    let json = content_type.iter().count() == 1
+        && content_type
+            .iter()
+            .next()
+            .is_some_and(|value| value == "application/json");
+    if !json
+        || !matches!(
+            task.op,
+            lao_route_api::Op::Responses | lao_route_api::Op::Messages
+        )
+        || !length.is_some_and(|length| (1..=2 * 1024 * 1024).contains(&length))
+    {
+        return Ok((task, None, None));
+    }
+    let Task {
+        request,
+        client,
+        op,
+        beta,
+        canary,
+        automatic,
+    } = task;
+    let (parts, body) = request.into_parts();
+    let bytes = body.collect().await?.to_bytes();
+    let parsed = bytes.clone();
+    let query = tokio::task::spawn_blocking(move || query(&parsed, client))
+        .await
+        .ok()
+        .flatten();
+    let local = query.as_ref().map(|_| bytes.clone());
+    let request = Request::from_parts(parts, full(bytes));
+    Ok((
+        Task {
+            request,
+            client,
+            op,
+            beta,
+            canary,
+            automatic,
+        },
+        query,
+        local,
+    ))
+}
+
+async fn rebuild(bytes: Bytes, client: lao_route_api::Client) -> Option<Bytes> {
+    tokio::task::spawn_blocking(move || local_body(&bytes, client))
+        .await
+        .ok()
+        .flatten()
+}
+
+fn query(bytes: &[u8], client: lao_route_api::Client) -> Option<String> {
+    let value = serde_json::from_slice::<serde_json::Value>(bytes).ok()?;
+    value
+        .get("model")
+        .is_some_and(serde_json::Value::is_string)
+        .then_some(())?;
+    user_text(&value, client).and_then(bound)
+}
+
+fn local_body(bytes: &[u8], client: lao_route_api::Client) -> Option<Bytes> {
+    let value = serde_json::from_slice::<serde_json::Value>(bytes).ok()?;
+    let query = user_text(&value, client).and_then(bound)?;
+    value
+        .get("model")
+        .is_some_and(serde_json::Value::is_string)
+        .then_some(())?;
+    let local = match client {
+        lao_route_api::Client::Codex => serde_json::json!({
+            "model": "lao-local",
+            "input": query,
+            "max_output_tokens": value
+                .get("max_output_tokens")
+                .and_then(serde_json::Value::as_u64)
+                .filter(|tokens| *tokens > 0)
+                .unwrap_or(512)
+                .min(512),
+            "stream": true,
+            "tools": [],
+            "tool_choice": "none"
+        }),
+        lao_route_api::Client::Claude => serde_json::json!({
+            "model": "lao-local",
+            "messages": [{ "role": "user", "content": query }],
+            "max_tokens": value
+                .get("max_tokens")
+                .and_then(serde_json::Value::as_u64)
+                .filter(|tokens| *tokens > 0)
+                .unwrap_or(512)
+                .min(512),
+            "stream": true,
+            "tools": []
+        }),
+    };
+    serde_json::to_vec(&local).ok().map(Bytes::from)
+}
+
+fn user_text(value: &serde_json::Value, client: lao_route_api::Client) -> Option<String> {
+    match client {
+        lao_route_api::Client::Codex => {
+            if !value
+                .get("previous_response_id")
+                .is_none_or(serde_json::Value::is_null)
+            {
+                return None;
+            }
+            let input = value.get("input")?;
+            if let Some(text) = input.as_str() {
+                return Some(text.to_owned());
+            }
+            let input = input.as_array()?;
+            if input.is_empty()
+                || input.iter().any(|item| {
+                    item.get("type").and_then(serde_json::Value::as_str) != Some("message")
+                        || !matches!(
+                            item.get("role").and_then(serde_json::Value::as_str),
+                            Some("developer" | "user")
+                        )
+                        || item
+                            .get("content")
+                            .and_then(|content| text_content(content, &["input_text"]))
+                            .is_none()
+                })
+            {
+                return None;
+            }
+            let current = input.last()?;
+            if current.get("role").and_then(serde_json::Value::as_str) != Some("user") {
+                return None;
+            }
+            text_content(current.get("content")?, &["input_text"])
+        }
+        lao_route_api::Client::Claude => {
+            let messages = value.get("messages")?.as_array()?;
+            if messages.len() != 1
+                || messages[0].get("role").and_then(serde_json::Value::as_str) != Some("user")
+            {
+                return None;
+            }
+            text_content(messages[0].get("content")?, &["text"])
+        }
+    }
+}
+
+fn text_content(value: &serde_json::Value, allowed: &[&str]) -> Option<String> {
+    if let Some(text) = value.as_str() {
+        return Some(text.to_owned());
+    }
+    let parts = value.as_array()?;
+    if parts.is_empty()
+        || parts.iter().any(|part| {
+            !part
+                .get("type")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|kind| allowed.contains(&kind))
+                || !part.get("text").is_some_and(serde_json::Value::is_string)
+        })
+    {
+        return None;
+    }
+    let text = parts
+        .iter()
+        .filter_map(|part| part.get("text").and_then(serde_json::Value::as_str))
+        .collect::<Vec<_>>()
+        .join("\n");
+    (!text.is_empty()).then_some(text)
+}
+
+fn bound(text: String) -> Option<String> {
+    const MAX: usize = 4096;
+    if text.len() > MAX {
+        return None;
+    }
+    (!text.trim().is_empty()).then_some(text)
 }
 
 fn hello() -> Response<Body> {
@@ -151,17 +401,33 @@ async fn resolve(local: &Option<Arc<dyn Local>>) -> Result<Arc<Endpoint>, Err> {
 }
 
 async fn relay<I>(
-    request: Request<Incoming>,
+    request: Request<Body>,
     stream: I,
     endpoint: Option<Arc<Endpoint>>,
 ) -> Result<Response<Body>, Err>
 where
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let (mut sender, connection) = client::handshake(TokioIo::new(stream)).await?;
+    let sender = handshake(stream).await?;
+    send_ready(request, sender, endpoint).await
+}
+
+async fn handshake<I>(stream: I) -> Result<client::SendRequest<Body>, Err>
+where
+    I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+{
+    let (sender, connection) = client::handshake(TokioIo::new(stream)).await?;
     tokio::spawn(async move {
         let _ = connection.await;
     });
+    Ok(sender)
+}
+
+async fn send_ready(
+    request: Request<Body>,
+    mut sender: client::SendRequest<Body>,
+    endpoint: Option<Arc<Endpoint>>,
+) -> Result<Response<Body>, Err> {
     let mut response = sender.send_request(request).await?;
     if response.status().is_redirection() {
         return Err(io::Error::new(io::ErrorKind::PermissionDenied, "redirect").into());
@@ -231,11 +497,7 @@ async fn native(target: &Target) -> Result<tokio_rustls::client::TlsStream<TcpSt
     .map_err(|_| deny("tls"))
 }
 
-async fn local(target: &Target) -> Result<TcpStream, Err> {
-    if target.tls {
-        return Err(deny("target"));
-    }
-    let addr: SocketAddr = target.host.parse()?;
+async fn local_addr(addr: SocketAddr) -> Result<TcpStream, Err> {
     if !addr.ip().is_loopback() {
         return Err(deny("target"));
     }
@@ -281,6 +543,12 @@ fn public_v6(ip: Ipv6Addr) -> bool {
 
 fn empty() -> Body {
     Empty::new().map_err(|never| match never {}).boxed_unsync()
+}
+
+fn full(bytes: Bytes) -> Body {
+    Full::new(bytes)
+        .map_err(|never| match never {})
+        .boxed_unsync()
 }
 
 fn deny(stage: &'static str) -> Err {
@@ -572,6 +840,73 @@ mod tests {
     }
 
     #[test]
+    fn automatic_local_unavailable_preserves_cloud_request() {
+        rt(async {
+            let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+            let gate_addr = gate.local_addr().unwrap();
+            let mut plan = plan_with(upstream.local_addr().unwrap(), Arc::new(QueryLocal));
+            let stale = StdListener::bind(("127.0.0.1", 0)).unwrap();
+            let stale_addr = stale.local_addr().unwrap();
+            drop(stale);
+            plan.gate.local = Some(ready(stale_addr));
+            let upstream_task = tokio::spawn(async move {
+                let (mut stream, _) = upstream.accept().await.unwrap();
+                let request = read_request(&mut stream).await;
+                assert!(request.starts_with(b"POST /v1/responses HTTP/1.1\r\n"));
+                assert!(find(&request, b"host: api.openai.com"));
+                assert!(find(&request, b"authorization: Bearer synthetic"));
+                assert!(request.ends_with(BODY));
+                let head = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", SSE.len());
+                stream.write_all(head.as_bytes()).await.unwrap();
+                stream.write_all(SSE).await.unwrap();
+            });
+            let gate_task = tokio::spawn(async move {
+                let (stream, _) = gate.accept().await.unwrap();
+                serve(stream, plan).await.unwrap();
+            });
+            let mut client = TcpStream::connect(gate_addr).await.unwrap();
+            let request = format!(
+                "POST /oai/responses HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: {CODEX}\r\nAuthorization: Bearer synthetic\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                BODY.len()
+            );
+            client.write_all(request.as_bytes()).await.unwrap();
+            client.write_all(BODY).await.unwrap();
+            let mut response = Vec::new();
+            client.read_to_end(&mut response).await.unwrap();
+            upstream_task.await.unwrap();
+            gate_task.await.unwrap();
+            assert!(response.ends_with(SSE));
+        });
+    }
+
+    #[test]
+    fn automatic_routing_requires_text_only_first_turn() {
+        let valid = br#"{"model":"fixture","max_output_tokens":12,"input":[{"type":"message","role":"developer","content":[{"type":"input_text","text":"harness"}]},{"type":"message","role":"user","content":[{"type":"input_text","text":"context"}]},{"type":"message","role":"user","content":[{"type":"input_text","text":"hello"}]}]}"#;
+        assert_eq!(
+            query(valid, lao_route_api::Client::Codex).as_deref(),
+            Some("hello")
+        );
+        let local: serde_json::Value =
+            serde_json::from_slice(&local_body(valid, lao_route_api::Client::Codex).unwrap())
+                .unwrap();
+        assert_eq!(local["input"], "hello");
+        assert_eq!(local["max_output_tokens"], 12);
+        assert!(!local.to_string().contains("harness"));
+        assert!(!local.to_string().contains("context"));
+        for body in [
+            br#"{"model":"fixture","previous_response_id":"prior","input":"hello"}"#.as_slice(),
+            br#"{"model":"fixture","input":[{"type":"function_call_output","call_id":"1","output":"done"}]}"#,
+            br#"{"model":"fixture","input":[{"type":"message","role":"assistant","content":[{"type":"input_text","text":"hello"}]}]}"#,
+            br#"{"model":"fixture","input":[{"type":"message","role":"user","content":[{"type":"input_image","image_url":"private"}]}]}"#,
+        ] {
+            assert_eq!(query(body, lao_route_api::Client::Codex), None);
+        }
+        let tool_result = br#"{"model":"fixture","messages":[{"role":"user","content":[{"type":"tool_result","content":"private"}]}]}"#;
+        assert_eq!(query(tool_result, lao_route_api::Client::Claude), None);
+    }
+
+    #[test]
     fn rejected_requests_never_connect_upstream() {
         rt(async {
             for (line, length, expected) in [
@@ -590,7 +925,7 @@ mod tests {
                 (
                     "X-LAO-Key: CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC\r\nAuthorization: Basic wrong\r\n",
                     0,
-                    1,
+                    0,
                 ),
             ] {
                 let upstream = StdListener::bind(("127.0.0.1", 0)).unwrap();
@@ -904,6 +1239,22 @@ mod tests {
         fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
             self.0.fetch_add(1, Ordering::Relaxed);
             Ok(self.1.clone())
+        }
+    }
+
+    struct QueryLocal;
+
+    impl Policy for QueryLocal {
+        fn decide(&self, _: Context) -> Decision {
+            Decision::Cloud
+        }
+
+        fn requires_query(&self) -> bool {
+            true
+        }
+
+        fn decide_query(&self, _: Context, _: &str) -> Decision {
+            Decision::Local
         }
     }
 

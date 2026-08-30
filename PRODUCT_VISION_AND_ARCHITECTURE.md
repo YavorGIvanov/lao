@@ -304,7 +304,7 @@ The initial investigation favored forking Claude Code Router. Deeper review and 
 - Allow a time-boxed CCR compatibility sidecar behind an interface if protocol work threatens the proof-of-concept schedule.
 - Do not ship that sidecar as the intended default architecture.
 
-This avoids inheriting an Electron UI, generic provider marketplace, credential-import surface, broad logging behavior, and a large Node runtime. It also makes a sub-100 MiB idle daemon target realistic.
+This avoids inheriting an Electron UI, generic provider marketplace, credential-import surface, broad logging behavior, and a large Node runtime. Idle RSS and cold readiness must be measured with the selected router linked and loaded.
 
 The repository remains MIT licensed, matching the user's selected open-source posture. Apache-2.0 dependencies and references must retain their notices; no Apache-licensed code is copied without compliance.
 
@@ -373,13 +373,13 @@ flowchart LR
 Deployment is deliberately different from package ownership:
 
 - `lao-daemon` is the lightweight always-on composition root for gateway, authentication, routing, and control packages.
-- llama.cpp or another inference runtime is always supervised as a separate process.
+- Product-owned llama.cpp is always supervised as a separate process; an optional external runtime remains user-managed.
 - four tiny least-authority workers run capture, vault, evaluation, or training only when their explicitly enabled workflow needs them.
 - the CLI is a separate client of the authenticated local control contract.
 
 This preserves a small idle footprint without collapsing independently owned components into one codebase or one failure domain.
 
-Current Stage 1 slice:
+Historical Stage 1 canary baseline:
 
 ```text
 Codex / Claude
@@ -398,6 +398,8 @@ gate owns request + secrets
 
 Normal contexts resolve to Cloud. Local is possible only when the gate consumed the exact explicit canary selector. Pinned llama.cpp 10280 implements the required Responses and Messages HTTP/SSE shapes, so the Stage 1 local path has no translator. Installed Codex 0.151.0 and Claude Code 2.1.251 each completed the same real local canary through one gate, router, and model load.
 
+The first automatic slice extends that proven path without replacing it. After caller authentication, the gate buffers only a non-empty, length-bounded JSON Responses or Messages body and extracts the bounded current user text. The default router uses vLLM Semantic Router's pinned Candle engine with a separate MiniLM embedding model and conservative easy/hard prototype banks. Classifier errors and unsupported bodies remain Cloud. A final Local decision builds a tool-free body from only the final user text and model name `lao-local`; Cloud preserves the original body. The credential firewall and native streaming path remain unchanged. A bounded adapter can instead consume decisions from a user-managed full vLLM Semantic Router `/api/v1/eval` endpoint.
+
 The first post-Stage 1 resource slice adds leased residency without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. After the final concurrent reference ends, a five-second watcher stops the worker after roughly five observed idle minutes or as soon as it observes macOS memory pressure. Pressure-probe failure evicts safely; active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud never acquires a runtime reference, and preload remains deferred.
 
 ### 6.1 Core interfaces
@@ -406,7 +408,7 @@ The implementation must keep the public boundaries stable. Each public interface
 
 - ClientAdapter: detect, configure, verify, pause, and restore Codex or Claude Code; register hooks and correlate sessions.
 - Gate: expose only sanitized TaskContext and an immutable RouteDecision boundary; credential sealing and egress materialization remain private ordered stages inside `svc/gate`.
-- RouterPolicy: accept TaskContext and return an explainable RouteDecision. The current Stage 1 contract is deliberately smaller: client, operation, and one boolean canary fact in; Local or Cloud out.
+- RouterPolicy: accept TaskContext and return an explainable RouteDecision. The implemented contract receives client, operation, canary, and optionally bounded current-user text; Local or Cloud comes out.
 - ManagedRuntime: prepare, start, health-check, benchmark, lease, cancel, and stop a product-owned model process.
 - ExternalEndpoint: probe, fingerprint, health-check, benchmark, and send requests without pulling, deleting, stopping, or reconfiguring user-owned Ollama or LM Studio instances.
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
@@ -494,7 +496,7 @@ Claude Code officially supports gateways through `ANTHROPIC_BASE_URL`. Setting t
 
 Never import Claude credentials from files or keychains. Preflight existing `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `apiKeyHelper`, custom headers, workload-identity/provider settings, and shell-level base-URL overrides. Do not delete them silently and do not claim subscription preservation when effective precedence selects another credential. A custom base URL disables Remote Control, and some nonessential, fast-mode, and WebFetch traffic may bypass the model gateway. Technical gateway support is not blanket legal authorization to relay subscription credentials; broad support requires a product/legal review of the local user-controlled design.
 
-The installed real acceptance covers saved-login `codex exec` and Claude Code `--print` cloud and local canaries only. Interactive Codex and Claude Code surfaces still require their own smoke tests. This is not configuration isolation: Codex shares its user config with the IDE extension, and Claude user settings can reach background agents. Codex desktop/cloud, Claude IDE/VS Code, Claude Desktop, Remote Control, web, Slack, and other background surfaces require separate adapters and tests.
+The installed real acceptance covers saved-login `codex exec` and Claude Code `--print` cloud and local canaries, plus one narrow no-canary spelling request through each harness. Interactive Codex and Claude Code surfaces still require their own smoke tests. This is not configuration isolation: Codex shares its user config with the IDE extension, and Claude user settings can reach background agents. Codex desktop/cloud, Claude IDE/VS Code, Claude Desktop, Remote Control, web, Slack, and other background surfaces require separate adapters and tests.
 
 ### 7.3 Local caller capability
 
@@ -509,7 +511,7 @@ The caller token does not authenticate the gateway to the client. Activation the
 
 ### 7.4 Credential firewall
 
-Ingress validation consumes the local caller header and optional non-secret canary selector, normalizes the client path prefix, and seals native credential material before the router. The router receives no body, headers, targets, or raw credential values. After the route becomes immutable, the egress firewall materializes the exact allowed header set before pass-through or any future destination-specific transformation.
+Ingress validation consumes the local caller header and optional non-secret canary selector, normalizes the client path prefix, and seals native credential material before the router. The router receives at most 4,096 bytes of extracted current-user text, never the raw body, headers, targets, or credential values. After the route becomes immutable, the egress firewall materializes the exact allowed header set before pass-through or any future destination-specific transformation.
 
 For native routes:
 
@@ -538,13 +540,13 @@ For local or third-party routes:
 
 Routing and credential handling are separate state machines. A route cannot change after an egress-auth action is created. A route confusion bug must fail closed.
 
-The current handoff is intentionally tiny. After caller validation, the private gate retains the request and passes only `Context(client, operation, canary)` to `api/route::Policy`. `svc/route::Router` returns Local only for the explicit canary and Cloud otherwise. The gate rejects any selector/decision mismatch, then consumes both the task and decision into one frozen target. A Local target must be the loopback `Endpoint` returned by the owned runtime; the gate strips the caller selector, native credentials, and provider-only headers, then injects only the endpoint's bearer. A Cloud target uses the client's private configured native profile and matching authentication class. Later routing may receive bounded prompt-derived facts, never raw headers or credentials.
+The current handoff is intentionally tiny. After caller validation, the private gate retains the request and passes `Context(client, operation, canary)` plus optional bounded current-user text to `api/route::Policy`. The deterministic router keeps the Stage 1 canary behavior. The default MiniLM semantic classifier or optional vLLM Semantic Router adapter may return Local only for a narrow first-turn text shape, and every adapter failure returns Cloud. The gate consumes the task and decision into one frozen target. A Local target must be the loopback `Endpoint` returned by the selected runtime; the gate strips the caller selector, native credentials, and provider-only headers, then injects only the endpoint's bearer. A Cloud target uses the client's private configured native profile and matching authentication class. Routers never receive raw headers, targets, or credentials.
 
-The gate uses one implementation for policy and transport. `admit` validates the exact local surface and consumes the caller capability. For the proof canary it additionally requires one exact selector on a non-empty, length-bounded Responses or Messages request with the `application/json` media type. It does not parse the body; this is transport admission for a controlled invocation, not general semantic task classification. `freeze` validates native authentication or rebuilds the local header set, then binds the route, semantic target, Host, and path in one value. Hyper can connect only by consuming that frozen value. Synthetic Codex-cloud and Claude-local exchanges forward Hyper bodies without application buffering, return SSE, keep permitted unknown native headers, strip hop-by-hop fields in both directions, suppress reflected credential headers, preserve a native 429 body, Retry-After, and request ID, and prove local requests contain none of the sentinel credentials or client capability data. Rejected callers and authentication classes create no upstream connection, and upstream redirects are not relayed. Codex 0.151.0 and Claude Code 2.1.251 passed saved-login cloud turns and one shared-runtime local canary through this gate.
+The gate uses one implementation for policy and transport. `admit` validates the exact local surface and consumes the caller capability. The proof canary retains its exact selector and bounded media rules. Automatic routing additionally buffers only validated JSON Responses or Messages bodies, extracts bounded current-user text, and preserves the original body for Cloud. `freeze` validates native authentication or rebuilds the local header set, then binds the route, semantic target, Host, and path in one value. Hyper can connect only by consuming that frozen value. Synthetic transport proofs still cover streaming, unknown native headers, hop-by-hop removal, reflected-credential suppression, native error preservation, and secret-free local egress. A clean default install routed the no-canary spelling request through the launchd-owned path in Codex 0.151.0 and Claude Code 2.1.251, each returning exactly `the`; the separate ignored E2E records both semantic decisions and runtime resolutions.
 
-Hyper owns HTTP/1 framing; policy does not poll the application body. Test code may map the already-frozen semantic target to a loopback fixture. A real-socket test proves that dropping the downstream client mid-response closes the upstream stream without added cancellation machinery. Native connections resolve once under a deadline, reject the full result if any address is non-public, connect the resolved address directly, and complete platform certificate and hostname verification before Hyper can send native authentication. Private-address enterprise interception therefore fails closed in the PoC. Direct HTTP accepts only the fixed local loopback target.
+Hyper owns HTTP/1 framing. Semantic mode collects only authenticated exact `application/json` Responses or Messages bodies with a declared length from 1 byte through 2 MiB; parsing and Local reconstruction run off the gate reactor. Cloud retains the original bytes. Test code may map the already-frozen semantic target to a loopback fixture. A real-socket test proves that dropping the downstream client mid-response closes the upstream stream without added cancellation machinery. Native connections resolve once under a deadline, reject the full result if any address is non-public, connect the resolved address directly, and complete platform certificate and hostname verification before Hyper can send native authentication. Private-address enterprise interception therefore fails closed in the PoC. Direct HTTP accepts only the fixed local loopback target.
 
-The real daemon adopts exactly one launchd-owned IPv4 loopback listener and never self-binds. By default it serves only the exact empty Claude hello, rejects every payload, and loads no model. Install owns the internal canary activation, separate generated caller keys, model/runtime paths, and the saved-login-specific Codex cloud target. It copies the daemon into owner-only product state before bootstrap so launchd never executes from a protected development folder. An explicit opt-in LaunchAgent E2E proved a pre-bound port produces no adoption signal, the actual daemon serves the hello, a forced daemon death does not release the listener, and the next hello starts a replacement daemon. The clean installed run additionally proved that cloud work leaves llama.cpp unloaded, post-restart local work starts it, and restart/off reap the worker and listener. Accepted and in-flight connections do not survive the crash and are never replayed automatically. Ad-hoc development builds may prompt; a release installer still needs one stable signed and notarized daemon identity and prompt-free upgrade evidence. Automatic retries, upstream truncation propagation, and boot-wide ownership remain unimplemented.
+The real daemon adopts exactly one launchd-owned IPv4 loopback listener and never self-binds. An unactivated daemon serves only the exact empty Claude hello and loads no model. The installed semantic router verifies and loads MiniLM lazily on its first eligible request; llama.cpp and Qwen start only after a final Local decision. Install owns the internal canary activation, separate generated caller keys, model/runtime paths, and the saved-login-specific Codex cloud target. It copies the daemon into owner-only product state before bootstrap so launchd never executes from a protected development folder. An explicit opt-in LaunchAgent E2E proved a pre-bound port produces no adoption signal, the actual daemon serves the hello, a forced daemon death does not release the listener, and the next hello starts a replacement daemon. The clean installed run additionally proved that cloud work leaves llama.cpp unloaded, post-restart local work starts it, and restart/off reap the worker and listener. Accepted and in-flight connections do not survive the crash and are never replayed automatically. Ad-hoc development builds may prompt; a release installer still needs one stable signed and notarized daemon identity and prompt-free upgrade evidence. Automatic retries, upstream truncation propagation, and boot-wide ownership remain unimplemented.
 
 The production gate uses one narrow HTTP stack: Hyper HTTP/1 on both sides, direct tokio-rustls, and the platform verifier for native HTTPS. Direct tokio-rustls keeps DNS, the connected address, SNI, and the frozen host in one small path without a general HTTP connector. The gate builds the exact upstream URI only after route freeze and includes no redirect layer.
 
@@ -556,7 +558,7 @@ Immediate transport fallback is allowed only before output and only when the req
 
 The PoC does not automatically restart a semantic coding task after tools may have produced side effects. Without capture/replay consent, failures influence the next task and the user may explicitly invoke a cloud retry. Automatic task-boundary replay is a later capability that requires an approved pre-task checkpoint, isolated reconstruction, and a proven client-control adapter.
 
-Cloud only still traverses a healthy gateway. Native bypass is different: a standalone lao bypass or repair command transactionally restores/removes managed base URLs and hooks without depending on the daemon. Service supervision handles crashes, but a dead daemon can never be described as direct fallback.
+Cloud only still traverses a healthy gateway. Native bypass is different: `lao off` currently restores the managed client settings without depending on the daemon. Dedicated bypass and repair commands remain future work. Service supervision handles crashes, but a dead daemon can never be described as direct fallback.
 
 ## 8. Hardware discovery and inference
 
@@ -600,93 +602,28 @@ The Rust supervisor launches one pinned llama-server process:
 - startup parsing plus health checks;
 - cancellation, graceful termination, crash cleanup, and no orphan ports.
 
-The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies the pinned size and SHA-256 before extraction, and verifies the exact binary build and Metal device before model download. No separately installed runtime or package-manager path participates. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 32K context, answers real Responses and Messages HTTP/SSE requests, and releases its process and port on explicit stop. The 32K fixture used about 2.03 GiB RSS. Installed Codex and Claude both completed the real local canary against one load. The daemon leases that load through active response streams and unloads it after roughly five observed idle minutes or safe idle pressure detection. This intentionally small model proves fit, lifecycle, native protocol compatibility, and bounded residency; automatic routing and useful 7B/14B selection remain open.
+The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies the pinned size and SHA-256 before extraction, and verifies the exact binary build and Metal device before model download. No separately installed runtime or package-manager path participates. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 32K context, answers real Responses and Messages HTTP/SSE requests, and releases its process and port on explicit stop. The 32K fixture used about 2.03 GiB RSS. Installed Codex and Claude both completed the real local canary and the eligible no-canary spelling fixture against one load. The daemon leases that load through active response streams and unloads it after roughly five observed idle minutes or safe idle pressure detection. This intentionally small model proves fit, lifecycle, protocol compatibility, bounded residency, and the automatic control loop; useful 7B/14B selection and routing-quality certification remain open.
 
 ### 8.4 v1 runtime adapters
 
-Keep direct llama.cpp as the fallback. Add llama-swap for multi-model lifecycle and supplemental runtime telemetry while HardwareProbe remains authoritative. Add existing Ollama and LM Studio endpoints without taking over their global settings. Evaluate shoehorn as an advanced exact-fit optimizer and FreeToken for Maximum-mode NVIDIA systems.
+Keep direct llama.cpp as the default. The implemented `External` adapter connects to one protected user-managed IPv4-loopback endpoint without owning its lifecycle or settings. vLLM and SGLang are candidate implementations behind that seam, but no LAO real-client inference E2E certifies either yet. Later adapters may add llama-swap, Ollama, LM Studio, shoehorn, or FreeToken only when a real spike needs more lifecycle operations.
 
 ## 9. Routing policy
 
-### 9.1 Cold-start classifier
+### 9.1 Implemented R2 classifier
 
-The first router is deterministic and explainable:
+Do not call a cloud model to decide whether to avoid cloud, and do not ask the same local generator to judge its own suitability. The implemented policy is deliberately narrow:
 
-    user and repository policy
-      → capability and context gates
-      → exact personal cache
-      → instant task rules
-      → task-shape and risk rules
-      → optional local embedding neighbors
-      → conservative cloud fallback
+- for automatic non-canary routing, unsupported input shapes, more than 4,096 bytes of current-user text, or deterministic risk markers select Cloud;
+- otherwise pinned MiniLM compares the text with three easy and three hard prototypes;
+- `hard_score - easy_score < -0.08` selects Local; every other score or classifier failure selects Cloud;
+- Local receives a reconstructed tool-free request containing only the final user text.
 
-Do not call a cloud model to decide whether to avoid cloud. Do not ask the same weak local generator to judge its own suitability.
+This substring risk veto is a conservative quality guard, not a security classifier. The absence of tools and the credential firewall enforce the current safety boundary.
 
-Initial task priors:
+### 9.2 Deferred routing controls
 
-| Task | Prior difficulty |
-|---|---:|
-| trivial | 0.05 |
-| documentation | 0.12 |
-| test | 0.38 |
-| review | 0.45 |
-| bug fix | 0.48 |
-| feature | 0.52 |
-| investigation | 0.55 |
-| refactor | 0.62 |
-
-Difficulty combines the task prior with the maximum observed cognitive shape: deep reasoning, algorithmic work, adversarial/security content, multi-file coupling, ambiguity, and context pressure. Risk is evaluated separately and can force cloud even for an easy task.
-
-Cold-start thresholds:
-
-- Below 0.35: local when capability, resource, and performance gates pass.
-- From 0.35 to below 0.55: local only for a deterministic category with a verifier or sufficient personal evidence.
-- At least 0.55: cloud.
-
-### 9.2 Stickiness
-
-A route is pinned for a task run using client, session, turn, and repository fingerprints. Gateway restarts must not change it.
-
-The initial permitted state progression is:
-
-    undecided
-      → local active
-          → completed or failed
-      → cloud active
-          → completed
-
-Never move from cloud back to local during a task. Later semantic replay creates a new, explicitly correlated task run rather than mutating an opaque live provider conversation.
-
-### 9.3 Escalation
-
-Pre-first-byte transport failures eligible for automatic fallback:
-
-- OOM, crash, or failed health;
-- context overflow;
-- unsupported protocol field or tool capability;
-- load timeout;
-- circuit-open runtime.
-
-Task-boundary evidence that may force the next task to cloud or support an explicit retry:
-
-- patch cannot apply;
-- deterministic verifier fails;
-- three identical tool signatures without progress;
-- repeated malformed tool calls;
-- no meaningful diff for an edit-required task;
-- explicit uncertainty plus failed validation.
-
-The PoC does not perform automatic semantic repair/escalation. Hybrid uses pre-first-byte fallback and routes later tasks conservatively. Cloud only always uses cloud. Local only never invokes cloud; risky, unsupported, or circuit-open work blocks with a warning unless the user gives an explicit one-task override.
-
-Three runtime failures for the exact model, artifact/quantization, backend, engine build, flags, and device configuration within five minutes open a ten-minute circuit breaker.
-
-### 9.4 Personalization
-
-Stage 1 uses bounded Beta-Binomial success posteriors by model, task type, cognitive shape, language, and repository. Use a conservative lower credible bound, not the mean, when permitting harder local work.
-
-Stage 2 trains a local contextual ranker only after paired evals provide counterfactual labels. Run it in shadow mode and require held-out improvement.
-
-Stage 3 permits at most 5 percent constrained exploration only for low-risk, reversible work with an explicit exploration budget.
+Task/session/repository stickiness, personal priors, cloud-to-local retry correlation, semantic repair, operating modes, circuit breakers, contextual rankers, and controlled exploration are future work. The current slice avoids mid-task routing by admitting only closed first-turn text shapes. A local resolution, connect, or HTTP handshake failure may return the untouched request to Cloud only before any upstream request byte is sent.
 
 ## 10. Capture, privacy, and storage
 
@@ -698,7 +635,7 @@ Routing works without capture. Capture can be paused globally or per repository.
 
 ### 10.2 Content-free task boundaries and capture
 
-Gateway traffic alone cannot know the exact task boundary, working directory, base commit, dirty state, final patch, tests, or user acceptance. A content-free, same-user-authenticated TaskBoundaryTracker is installed for routing even when capture is off. It accepts session/turn/start/stop/incomplete metadata but persists no prompt, transcript, or repository body without consent.
+Gateway traffic alone cannot know the exact task boundary, working directory, base commit, dirty state, final patch, tests, or user acceptance. A future content-free, same-user-authenticated TaskBoundaryTracker could provide this routing context even when capture is off. It would accept session/turn/start/stop/incomplete metadata but persist no prompt, transcript, or repository body without consent.
 
 After capture consent, the private ingress stage may correlate richer asynchronous Codex and Claude hook events with gateway route, model, latency, and token metadata. Concurrent, duplicate, and out-of-order events must be idempotent and must not cross-assign sessions.
 
@@ -918,10 +855,10 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 - Support one 24 GiB Apple Silicon machine, one pinned llama.cpp build, and one verified prequantized model.
 - Preserve each harness's saved-login native cloud path without LAO reading its credential.
 - Admit one explicit bounded local canary through llama.cpp's native Responses and Messages streaming, without a translation layer.
-- Keep every ordinary request on cloud.
+- Keep unsupported, risky, ambiguous, and non-first-turn requests on cloud; permit only the narrow R2 first-turn text slice to route automatically.
 - Install and turn off transactionally with exact configuration restoration.
 - Prove the full real Codex + Claude → router → llama.cpp/cloud path, resource bounds, credential isolation, cleanup, and rollback.
-- Leave capture, vault, evaluation, training, automatic routing, multiple models, and other platforms as disabled drafts.
+- Leave capture, vault, evaluation, training, multiple inference models, and other platforms as disabled drafts.
 
 ### Phase 1: first supported release
 
