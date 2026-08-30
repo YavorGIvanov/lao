@@ -26,6 +26,7 @@ use tokio_rustls::TlsConnector;
 
 use crate::policy::Target;
 use crate::policy::{Cloud, Gate, admit, clean_response};
+use crate::{ClaudeCloud, CodexCloud};
 
 type Err = Box<dyn Error + Send + Sync>;
 type Body = UnsyncBoxBody<Bytes, Err>;
@@ -53,7 +54,16 @@ pub(super) async fn closed(
     listener: StdListener,
     policy: impl Policy + 'static,
 ) -> Result<(), Err> {
-    configured(listener, policy, None, [0; 32], [0; 32]).await
+    configured(
+        listener,
+        policy,
+        None,
+        [0; 32],
+        [0; 32],
+        CodexCloud::Api,
+        ClaudeCloud::Bearer,
+    )
+    .await
 }
 
 pub(super) async fn canary(
@@ -63,7 +73,37 @@ pub(super) async fn canary(
     codex: [u8; 32],
     claude: [u8; 32],
 ) -> Result<(), Err> {
-    configured(listener, policy, Some(endpoint), codex, claude).await
+    configured(
+        listener,
+        policy,
+        Some(endpoint),
+        codex,
+        claude,
+        CodexCloud::Api,
+        ClaudeCloud::Bearer,
+    )
+    .await
+}
+
+pub(super) async fn installed(
+    listener: StdListener,
+    policy: impl Policy + 'static,
+    endpoint: Endpoint,
+    codex: [u8; 32],
+    claude: [u8; 32],
+    codex_cloud: CodexCloud,
+    claude_cloud: ClaudeCloud,
+) -> Result<(), Err> {
+    configured(
+        listener,
+        policy,
+        Some(endpoint),
+        codex,
+        claude,
+        codex_cloud,
+        claude_cloud,
+    )
+    .await
 }
 
 async fn configured(
@@ -72,6 +112,8 @@ async fn configured(
     local: Option<Endpoint>,
     codex: [u8; 32],
     claude: [u8; 32],
+    codex_cloud: CodexCloud,
+    claude_cloud: ClaudeCloud,
 ) -> Result<(), Err> {
     listener.set_nonblocking(true)?;
     let address = listener.local_addr()?;
@@ -79,9 +121,15 @@ async fn configured(
         gate: Gate {
             host: address.to_string().parse()?,
             codex,
-            codex_cloud: Cloud::OpenAi,
+            codex_cloud: match codex_cloud {
+                CodexCloud::Api => Cloud::OpenAi,
+                CodexCloud::ChatGpt => Cloud::ChatGpt,
+            },
             claude,
-            claude_cloud: Cloud::AnthropicBearer,
+            claude_cloud: match claude_cloud {
+                ClaudeCloud::Bearer => Cloud::AnthropicBearer,
+                ClaudeCloud::Key => Cloud::AnthropicKey,
+            },
             local: local.map(Arc::new),
         },
         policy: Arc::new(policy),

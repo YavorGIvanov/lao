@@ -33,6 +33,11 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
         Ok("1") => {
             let codex = caller("LAO_CODEX_CALLER")?;
             let claude = caller("LAO_CLAUDE_CALLER")?;
+            let codex_cloud = match env::var("LAO_CODEX_CLOUD").as_deref() {
+                Ok("openai") => lao_gate::CodexCloud::Api,
+                Ok("chatgpt") => lao_gate::CodexCloud::ChatGpt,
+                _ => return Err("LAO_CODEX_CLOUD".into()),
+            };
             let root = match env::var_os("LAO_MODEL_DIR") {
                 Some(root) => PathBuf::from(root),
                 None => PathBuf::from(env::var_os("HOME").ok_or("HOME")?)
@@ -50,7 +55,15 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 context: model.artifact.context,
                 threads: 2,
             })?;
-            lao_gate::canary(listener, lao_route::Router, endpoint, codex, claude)
+            lao_gate::installed(
+                listener,
+                lao_route::Router,
+                endpoint,
+                codex,
+                claude,
+                codex_cloud,
+                lao_gate::ClaudeCloud::Bearer,
+            )
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
     }
