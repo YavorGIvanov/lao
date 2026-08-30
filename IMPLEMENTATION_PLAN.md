@@ -130,7 +130,7 @@ Current evidence:
 - the gate accepts only the exact canary selector, consumes it, and rejects selector/decision mismatch;
 - Local egress contains only the runtime bearer and protocol-safe fields;
 - normal contexts still resolve to Cloud;
-- one real shared-runtime E2E returned exactly `42` through installed Codex 0.146.0 and Claude Code 2.1.251 without persistent config or cloud model use.
+- one real shared-runtime E2E returned exactly `42` through installed Codex 0.151.0 and Claude Code 2.1.251 without persistent config or cloud model use.
 
 Acceptance:
 
@@ -200,7 +200,7 @@ Acceptance:
 
 Current evidence:
 
-- Codex 0.146.0 and Claude Code 2.1.251 completed fixed saved-login cloud outcomes through the installed gate; no local worker started, proving Cloud remained the default;
+- Codex 0.151.0 and Claude Code 2.1.251 completed fixed saved-login cloud outcomes through the installed gate; no local worker started, proving Cloud remained the default;
 - `lao smoke` returned exactly `42` through both real harnesses: Codex cold local took 23.5 seconds and Claude warm local took 1.6 seconds;
 - after a forced daemon restart, both local outcomes passed again at 23.5 seconds and 1.6 seconds;
 - the restart-run worker peaked at 2,146,768 KiB RSS, about 2.05 GiB, with the verified 32K artifact under the 6 GiB Light ceiling;
