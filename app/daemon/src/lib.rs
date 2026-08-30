@@ -10,12 +10,11 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
     thread,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use lao_run_api::{Endpoint, Local};
 
-const IDLE: Duration = Duration::from_secs(5 * 60);
 const PRESSURE_POLL: Duration = Duration::from_secs(5);
 
 pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -127,7 +126,6 @@ struct Lazy {
 #[derive(Default)]
 struct State {
     started: Option<(lao_run::Direct, Arc<Endpoint>)>,
-    idle: Option<Instant>,
 }
 
 impl Lazy {
@@ -149,7 +147,6 @@ impl Local for Lazy {
         if state.started.is_none() {
             state.started = Some(start()?);
         }
-        state.idle = None;
         state
             .started
             .as_ref()
@@ -186,40 +183,35 @@ fn watch(state: std::sync::Weak<Mutex<State>>) {
             return;
         };
         let idle = {
-            let mut state = state
+            let state = state
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
             let Some((_, endpoint)) = state.started.as_ref() else {
                 continue;
             };
             // The manager owns one reference; the gate holds one more per active response.
-            if Arc::strong_count(endpoint) != 1 {
-                state.idle = None;
-                continue;
-            }
-            *state.idle.get_or_insert_with(Instant::now)
+            Arc::strong_count(endpoint) == 1
         };
+        if !idle {
+            continue;
+        }
         let pressure = lao_run::pressured().unwrap_or(true);
         let mut state = state
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if state.idle == Some(idle)
-            && state
-                .started
-                .as_ref()
-                .is_some_and(|(_, endpoint)| Arc::strong_count(endpoint) == 1)
-            && due(idle, Instant::now(), pressure)
+        if state
+            .started
+            .as_ref()
+            .is_some_and(|(_, endpoint)| evict(endpoint, pressure))
+            && let Some((runtime, _)) = state.started.take()
         {
-            state.idle = None;
-            if let Some((runtime, _)) = state.started.take() {
-                let _ = runtime.stop();
-            }
+            let _ = runtime.stop();
         }
     }
 }
 
-fn due(idle: Instant, now: Instant, pressure: bool) -> bool {
-    pressure || now.duration_since(idle) >= IDLE
+fn evict(endpoint: &Arc<Endpoint>, pressure: bool) -> bool {
+    pressure && Arc::strong_count(endpoint) == 1
 }
 
 fn caller(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
@@ -234,12 +226,14 @@ fn caller(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
 mod tests {
     use super::*;
 
-    // R1: pressure or five observed idle minutes selects eviction.
+    // Warm state remains available while healthy; pressure still cannot interrupt a response.
     #[test]
-    fn residency_waits_for_idle_and_then_evicts() {
-        let idle = Instant::now();
-        assert!(!due(idle, idle + IDLE - Duration::from_secs(1), false));
-        assert!(due(idle, idle + IDLE, false));
-        assert!(due(idle, idle, true));
+    fn residency_keeps_healthy_cache_and_evicts_idle_pressure() {
+        let endpoint = Arc::new(Endpoint::new("127.0.0.1:1".parse().unwrap(), "key"));
+        assert!(!evict(&endpoint, false));
+        let response = endpoint.clone();
+        assert!(!evict(&endpoint, true));
+        drop(response);
+        assert!(evict(&endpoint, true));
     }
 }
