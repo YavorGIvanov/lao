@@ -1373,7 +1373,7 @@ dependencies = [
 name = "lao-optimize"
 version = "0.1.0"
 dependencies = [
- "getrandom",
+ "getrandom 0.2.17",
  "lao-optimize-api",
 ]
 

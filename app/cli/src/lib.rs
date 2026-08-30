@@ -1762,7 +1762,12 @@ mod tests {
                     key: Some(external_key.clone()),
                 }),
             };
-            let bytes = plist(&paths, &selected, 8765, "codex", "claude", "chatgpt").unwrap();
+            let clients = Clients {
+                codex: temp.0.join("codex"),
+                claude: temp.0.join("claude"),
+                cloud: "chatgpt",
+            };
+            let bytes = plist(&paths, &selected, 8765, "codex", "claude", &clients).unwrap();
             for expected in [
                 "<key>LAO_ROUTER</key><string>vllm-semantic</string>",
                 "<key>LAO_RUNTIME</key><string>external</string>",
