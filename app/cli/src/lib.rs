@@ -846,11 +846,14 @@ fn managed_caller(value: &str) -> bool {
 }
 
 fn installed_daemon_matches(paths: &Paths) -> io::Result<bool> {
-    for path in [&paths.daemon_source, &paths.daemon] {
-        let metadata = fs::symlink_metadata(path)?;
-        if !metadata.file_type().is_file() || metadata.mode() & 0o777 != 0o700 {
-            return Err(invalid("lao-daemon binary"));
-        }
+    let source = fs::metadata(&paths.daemon_source)?;
+    let installed = fs::symlink_metadata(&paths.daemon)?;
+    if !source.file_type().is_file()
+        || source.mode() & 0o777 != 0o700
+        || !installed.file_type().is_file()
+        || installed.mode() & 0o777 != 0o700
+    {
+        return Err(invalid("lao-daemon binary"));
     }
     Ok(fs::read(&paths.daemon_source)? == fs::read(&paths.daemon)?)
 }
@@ -1677,16 +1680,18 @@ mod tests {
     fn repeated_install_reuses_only_the_current_daemon() {
         let temp = Temp::new();
         let paths = temp.paths();
-        fs::write(&paths.daemon_source, b"current").unwrap();
+        let source = temp.0.join("current-daemon");
+        fs::write(&source, b"current").unwrap();
+        std::os::unix::fs::symlink(&source, &paths.daemon_source).unwrap();
         fs::write(&paths.daemon, b"current").unwrap();
-        for path in [&paths.daemon_source, &paths.daemon] {
+        for path in [&source, &paths.daemon] {
             fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
         }
         assert!(installed_daemon_matches(&paths).unwrap());
 
-        fs::write(&paths.daemon_source, b"new").unwrap();
+        fs::write(&source, b"new").unwrap();
         assert!(!installed_daemon_matches(&paths).unwrap());
-        fs::set_permissions(&paths.daemon_source, fs::Permissions::from_mode(0o755)).unwrap();
+        fs::set_permissions(&source, fs::Permissions::from_mode(0o755)).unwrap();
         assert!(installed_daemon_matches(&paths).is_err());
     }
 
