@@ -9,8 +9,12 @@ use std::{
 use bytes::Bytes;
 use http_body_util::{BodyExt, Empty, combinators::UnsyncBoxBody};
 use hyper::{
-    Request, Response, body::Incoming, client::conn::http1 as client,
-    server::conn::http1 as server, service::service_fn,
+    Request, Response,
+    body::Incoming,
+    client::conn::http1 as client,
+    header::{CONTENT_LENGTH, HeaderValue},
+    server::conn::http1 as server,
+    service::service_fn,
 };
 use hyper_util::rt::TokioIo;
 use lao_route_api::{Decision, Policy};
@@ -97,7 +101,7 @@ pub(super) async fn configured(
 
 async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, Err> {
     let Some(task) = admit(request, &plan.gate)? else {
-        return Ok(Response::new(empty()));
+        return Ok(hello());
     };
     let decision = plan.policy.decide(task.context());
     let endpoint = match decision {
@@ -125,6 +129,14 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
     } else {
         relay(request, local(&target).await?).await
     }
+}
+
+fn hello() -> Response<Body> {
+    let mut response = Response::new(empty());
+    response
+        .headers_mut()
+        .insert(CONTENT_LENGTH, HeaderValue::from_static("0"));
+    response
 }
 
 // Starting the runtime blocks, so it must never run on the gate's single thread.
@@ -253,7 +265,6 @@ mod tests {
         time::{Duration, Instant, SystemTime, UNIX_EPOCH},
     };
 
-    use hyper::header::HeaderValue;
     use lao_route_api::{Context, Decision};
 
     use tokio::{
@@ -269,6 +280,13 @@ mod tests {
     const SSE: &[u8] = b"event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n";
     const CODEX: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     const CLAUDE: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+
+    #[test]
+    fn hello_response_is_explicitly_empty() {
+        let response = hello();
+        assert_eq!(response.status(), 200);
+        assert_eq!(response.headers().get(CONTENT_LENGTH).unwrap(), "0");
+    }
 
     #[test]
     fn codex_cloud_streams_after_policy() {
