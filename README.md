@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, streaming proof, and installed-client compatibility probes. It does not yet contain production routing.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, streaming proof, and installed-client compatibility probes. It does not yet contain production local routing.
 
 ## Manifesto
 
@@ -103,4 +103,6 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-The cloud-safe baseline is complete: the private gate gives only client and operation to a separate router, which defaults to cloud; request bodies, headers, credentials, and native targets stay in the gate. Codex 0.146.0 and Claude Code 2.1.251 passed saved-login cloud E2Es. Pinned llama.cpp runs a real 32K Qwen request under the Apple Light-mode guard on this 24 GiB M4. The model component now owns that artifact's immutable revision, size, hash, license, context, and working-set estimate; `lao preview` shows the exact choice without writing or loading it. Stage 1 next connects one explicit local canary through both harnesses, then implements transactional `install` and `off`. Persistent client configuration and production local routing remain off.
+The cloud-safe baseline is complete: the private gate retains request bodies, headers, credentials, and targets, and gives the router only `Context(client, operation, canary)`. Normal contexts route to native cloud. Only an exact, non-secret canary selector may produce Local; the gate consumes it, removes native secrets, and binds the request to the runtime's loopback endpoint and private bearer.
+
+S1-03 is complete. Pinned llama.cpp 10280 serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. Installed Codex 0.146.0 and Claude Code 2.1.251 each completed the same real local canary through one gate, router, and model load; their saved-login cloud E2Es also pass. Without the temporary proof switch `LAO_LOCAL_CANARY=1`, the daemon stays closed and does not load a model. That switch is not the install interface. Transactional `lao install` and `lao off` are next; until then this remains a developer proof, not a usable installation.

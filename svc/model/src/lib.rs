@@ -27,11 +27,7 @@ pub fn prepare(root: &Path) -> io::Result<Verified> {
     fs::set_permissions(root, fs::Permissions::from_mode(0o700))?;
     let path = root.join(QWEN.file);
     if path.exists() {
-        verify(&path)?;
-        return Ok(Verified {
-            artifact: &QWEN,
-            path,
-        });
+        return open(root);
     }
 
     let part = root.join(format!(".{}.part", QWEN.file));
@@ -59,6 +55,15 @@ pub fn prepare(root: &Path) -> io::Result<Verified> {
     verify(&part)?;
     fs::rename(&part, &path)?;
     pending.0 = None;
+    Ok(Verified {
+        artifact: &QWEN,
+        path,
+    })
+}
+
+pub fn open(root: &Path) -> io::Result<Verified> {
+    let path = root.join(QWEN.file);
+    verify(&path)?;
     Ok(Verified {
         artifact: &QWEN,
         path,

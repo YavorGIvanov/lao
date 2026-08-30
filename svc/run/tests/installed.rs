@@ -21,7 +21,7 @@ fn direct_llama_cpp_serves_and_stops() {
             PathBuf::from(env::var_os("HOME").unwrap())
                 .join("Library/Caches/lao/models/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf")
         });
-    let runtime = Direct::start(Config {
+    let (runtime, endpoint) = Direct::start(Config {
         bin: &bin,
         model: &model,
         mode: Mode::Light,
@@ -30,19 +30,20 @@ fn direct_llama_cpp_serves_and_stops() {
         threads: 2,
     })
     .unwrap();
-    let addr = runtime.endpoint().addr();
+    let addr = endpoint.addr();
     assert!(addr.ip().is_loopback());
-    assert_eq!(runtime.endpoint().bearer().len(), 64);
+    assert_eq!(endpoint.bearer().len(), 64);
 
     assert!(request(addr, None).starts_with("HTTP/1.1 401"));
-    let props = get(addr, runtime.endpoint().bearer(), "/props");
+    let props = get(addr, endpoint.bearer(), "/props");
     let body = props.split_once("\r\n\r\n").unwrap().1;
     let json: serde_json::Value = serde_json::from_str(body).unwrap();
     assert_eq!(json["default_generation_settings"]["n_ctx"], 32_768);
-    let response = request(addr, Some(runtime.endpoint().bearer()));
+    let response = request(addr, Some(endpoint.bearer()));
     assert!(response.starts_with("HTTP/1.1 200"));
     let body = response.split_once("\r\n\r\n").unwrap().1;
     let json: serde_json::Value = serde_json::from_str(body).unwrap();
+    assert_eq!(json["model"], "lao-local");
     assert_eq!(json["choices"][0]["message"]["content"], "42");
 
     runtime.stop().unwrap();

@@ -31,7 +31,7 @@ Only these components may grow during Stage 1:
 |---|---|
 | `svc/codex`, `svc/claude` | supported client detection and exact settings transaction |
 | `svc/gate` | local caller check, credential isolation, protocol ingress and exact egress |
-| `svc/route` | cloud-safe decision; one explicit local canary later |
+| `svc/route` | cloud-safe decision; one explicit local canary |
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
 | `app/daemon` | compose the request path and adopt the launchd listener |
@@ -50,7 +50,7 @@ Already proven and retained:
 - isolated installed-client probes for Codex and Claude Code;
 - saved-login native cloud E2Es through the private gate for both clients;
 - caller-token, credential-origin, path, header, TLS, redirect, and cancellation gates;
-- a separate router contract that currently always chooses cloud;
+- a separate router contract that chooses Local only for the explicit canary and Cloud otherwise;
 - launchd listener adoption and opt-in crash/prebind lifecycle proof;
 - pinned llama.cpp supervision with a private loopback bearer, real Qwen output, stop, and port reuse;
 - one immutable Qwen artifact record, exact cached-file verification, and a read-only `lao preview`.
@@ -58,7 +58,6 @@ Already proven and retained:
 Not yet complete:
 
 - P0-05 transactional persistent client configuration;
-- a production local protocol bridge from either harness to llama.cpp;
 - the installed local/cloud/off acceptance run.
 
 ## Stage 1 tasks
@@ -112,24 +111,38 @@ Acceptance:
 
 ### S1-03 — One local protocol slice
 
-Status: pending. Depends on S1-01 and S1-02.
+Status: complete (2026-08-30).
 
 Wire `gate`, `route`, and `run` in the daemon.
 
 - Keep every normal request on native cloud.
 - Add one explicit, non-secret local canary selector.
-- Accept only bounded text input with no tools, images, audio, reasoning continuation, or unknown required fields.
-- Translate one Responses request and one Messages request into the local llama.cpp call.
-- Return the smallest correct streaming event sequence each harness needs.
+- Give the router only `Context(client, operation, canary)`; retain the request and every secret in the gate.
+- Accept the selector only on a non-empty, length-bounded Responses or Messages request with the `application/json` media type. This is a fixed canary gate, not body parsing or a general local-task classifier.
+- Bind Local only to the dynamic loopback endpoint returned by the owned runtime.
+- Pass request bodies and response streams through the pinned llama.cpp server's native Responses and Messages HTTP/SSE; add no translation or SSE parser.
+- Expose the local artifact as `lao-local`, never as its filesystem path.
 - Strip every native credential and provider-specific secret before local egress.
-- Reject unsupported local requests before output; do not silently change route mid-task.
+- Reject unsupported local transport shapes before output; do not silently change route mid-task.
+
+Current proof-only composition uses `LAO_LOCAL_CANARY=1` plus synthetic per-client caller tokens. Without that environment switch, the daemon remains closed and starts no model. This temporary switch is not persisted configuration and is removed or hidden by S1-04.
+
+Current evidence:
+
+- direct real probes show pinned llama.cpp 10280 serves valid Responses and Messages SSE at 32K;
+- the gate accepts only the exact canary selector, consumes it, and rejects selector/decision mismatch;
+- Local egress contains only the runtime bearer and protocol-safe fields;
+- normal contexts still resolve to Cloud;
+- one real shared-runtime E2E returned exactly `42` through installed Codex 0.146.0 and Claude Code 2.1.251 without persistent config or cloud model use.
 
 Acceptance:
 
 - real installed Codex and Claude Code each complete the same harmless local turn;
 - llama.cpp receives no native credential, caller token, or provider-only header;
-- ordinary requests still pass through to native cloud unchanged;
+- ordinary requests still resolve to native cloud and preserve the proven native pass-through;
 - cancellation stops local generation and no retry crosses a side-effect boundary.
+
+The canary E2E disables client retries. The existing relay cancellation proof applies unchanged to Local because both routes consume the same frozen Hyper body path. Parent-death cleanup remains an S1-05 acceptance check; explicit runtime stop and `Drop` are proven here.
 
 ### S1-04 — Transactional `install` and `off`
 

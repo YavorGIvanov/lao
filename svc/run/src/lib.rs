@@ -31,7 +31,6 @@ pub struct Config<'a> {
 
 pub struct Direct {
     child: Child,
-    endpoint: Endpoint,
     log: Option<JoinHandle<()>>,
 }
 
@@ -58,7 +57,7 @@ impl Drop for Key {
 }
 
 impl Direct {
-    pub fn start(config: Config<'_>) -> io::Result<Self> {
+    pub fn start(config: Config<'_>) -> io::Result<(Self, Endpoint)> {
         let budget = plan(config.bin, config.mode)?;
         if config.working_set == 0
             || config.working_set > budget.bytes
@@ -92,6 +91,8 @@ impl Direct {
             .args([
                 "--parallel",
                 "1",
+                "--alias",
+                "lao-local",
                 "--fit",
                 "off",
                 "--cache-ram",
@@ -140,15 +141,13 @@ impl Direct {
             return Err(invalid("health"));
         }
         drop(key);
-        Ok(Self {
-            child,
-            endpoint: Endpoint::new(addr, bearer),
-            log: Some(log),
-        })
-    }
-
-    pub fn endpoint(&self) -> &Endpoint {
-        &self.endpoint
+        Ok((
+            Self {
+                child,
+                log: Some(log),
+            },
+            Endpoint::new(addr, bearer),
+        ))
     }
 
     pub fn stop(mut self) -> io::Result<()> {

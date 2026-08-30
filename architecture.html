@@ -115,7 +115,7 @@
   <header>
     <div class="note">LOCAL AGENT OPTIMIZER · TARGET MAP + CURRENT EVIDENCE</div>
     <h1>How the pieces should fit.</h1>
-    <p>LAO sits quietly beside Codex and Claude Code. Easy work may go to a local model. Supported model traffic keeps its native cloud path. The harness stays in charge.</p>
+    <p>LAO sits quietly beside Codex and Claude Code. Today, normal work stays on native cloud and one explicit proof canary may reach a local model. Automatic easy-task routing comes later. The harness stays in charge.</p>
   </header>
 
   <section>
@@ -153,6 +153,8 @@
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
       <div class="proof"><b>llama.cpp 10280</b><br>real Qwen output · exact 32K context</div>
       <div class="proof"><b>one artifact</b><br>immutable revision · size · SHA-256 · license</div>
+      <div class="proof"><b>native local protocols</b><br>Responses + Messages SSE · no translator</div>
+      <div class="proof"><b>real local canary</b><br>Codex + Claude → router → one Qwen load</div>
     </div>
     <div class="control-flow" aria-label="Apple memory and llama.cpp device visibility resolve one budget before local model load.">
       <div class="node"><strong>fresh fit check</strong><small>24 GiB unified + OS pressure + Metal cap</small></div>
@@ -161,7 +163,7 @@
       <div class="arrow">→</div>
       <div class="control-target">one slot · cache off<br>reject before load if it does not fit</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed installed-harness cloud E2Es. Pinned llama.cpp now passes a real 32K local request under the Apple Light guard. The daemon still starts closed: persistent client writes and production local routing remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and the short-lived command is not in the request path. The private gate has passed installed-harness cloud E2Es. Pinned llama.cpp passes real 32K Responses and Messages probes under the Apple Light guard. By default the daemon stays closed and loads no model. The temporary <code>LAO_LOCAL_CANARY=1</code> proof switch is not an install interface; persistent client writes and production local routing remain off.</p>
   </section>
 
   <section class="client-page">
@@ -170,21 +172,21 @@
     <div class="client-cards">
       <article class="client-card">
         <h3>Codex</h3>
-        <div class="mini-flow">codex <span>→</span> provider “lao” <span>→</span> /oai + X-LAO-Key <span>→</span> gate</div>
+        <div class="mini-flow">codex <span>→</span> provider “lao” <span>→</span> /oai + caller key <span>→</span> gate</div>
         <ul class="facts">
           <li>Reuses Codex native auth. LAO does not read its auth files.</li>
           <li>Uses HTTP/SSE first. No WebSocket fallback dance.</li>
-          <li>One tool-free E2E passed with the saved ChatGPT login.</li>
+          <li>Saved-login cloud and real local-canary E2Es passed.</li>
           <li>User config can also affect the Codex IDE extension.</li>
         </ul>
       </article>
       <article class="client-card">
         <h3>Claude Code</h3>
-        <div class="mini-flow">claude <span>→</span> /ant + X-LAO-Key <span>→</span> gate</div>
+        <div class="mini-flow">claude <span>→</span> /ant + caller key <span>→</span> gate</div>
         <ul class="facts">
           <li>Uses the official gateway base URL and a custom caller header.</li>
           <li>The harmless HEAD hello probe is the only token-free request.</li>
-          <li>Protocol and saved-login E2Es passed on 2.1.251.</li>
+          <li>Saved-login cloud and real local-canary E2Es passed.</li>
           <li>Remote Control is disabled by a custom base URL.</li>
         </ul>
       </article>
@@ -194,14 +196,15 @@
       <div class="arrow">→</div>
       <div class="node main"><strong>gate</strong><small>admit; keep request + secrets</small></div>
       <div class="arrow">→</div>
-      <div class="node"><strong>route</strong><small>client + operation → cloud</small></div>
+      <div class="node"><strong>route</strong><small>client + operation + canary</small></div>
       <div class="arrow">→</div>
       <div class="split">
-        <div class="node"><strong>local</strong><small>clean request; no native secrets</small></div>
-        <div class="node"><strong>native cloud</strong><small>exact official origin only</small></div>
+        <div class="node"><strong>local canary</strong><small>dynamic llama endpoint</small></div>
+        <div class="node"><strong>native cloud</strong><small>normal default</small></div>
       </div>
     </div>
-    <div class="mini-flow">request <span>→</span> admit <span>→</span> Context(client, operation) <span>→</span> Cloud <span>→</span> private auth + target freeze <span>→</span> Hyper</div>
+    <div class="mini-flow">request <span>→</span> gate consumes caller + selector <span>→</span> Context(client, operation, canary) <span>→</span> Local only for canary; otherwise Cloud <span>→</span> frozen target</div>
+    <p class="note">Current S1-03 slice: the proof invocation adds the exact non-secret <code>X-LAO-Local: canary</code> selector. The gate accepts it only for non-empty, length-bounded Responses or Messages with the <code>application/json</code> media type; it does not classify the body. The gate consumes the selector, strips native/provider secrets, and injects only the runtime bearer. llama.cpp 10280 speaks both protocols natively, so bodies and SSE streams need no translation layer. <code>--alias lao-local</code> prevents the model path from becoming its public name.</p>
     <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd owns the socket before config changes and through daemon crashes. Same-user malware is out of scope. A user LaunchAgent protects only the active GUI login session—not logout or reboot.</p>
     <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file; S1-04 must also pass the exact hello before config changes. Native egress uses one DNS result and verified TLS. Redirects and hop-by-hop fields are not relayed. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
   </section>
@@ -263,9 +266,9 @@
       <tbody>
         <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + preview</td></tr>
         <tr><td>supervisor</td><td>launchd socket</td><td><a href="app/daemon/src/supervisor.rs">app/daemon/supervisor</a></td><td>launchd + daemon</td><td>loopback listener</td></tr>
-        <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>private credential flow</td></tr>
-        <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>cloud-safe decision</td></tr>
-        <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + runtime state</td></tr>
+        <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>request, secrets + frozen target</td></tr>
+        <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>canary-only Local; Cloud otherwise</td></tr>
+        <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + private endpoint</td></tr>
         <tr><td>model</td><td><a href="api/model/Cargo.toml">api/model</a></td><td><a href="svc/model/Cargo.toml">svc/model</a></td><td>daemon</td><td>one verified artifact</td></tr>
         <tr><td>capture</td><td><a href="api/capture/Cargo.toml">api/capture</a></td><td><a href="svc/capture/Cargo.toml">svc/capture</a></td><td>capture worker</td><td>raw ingress + scrub</td></tr>
         <tr><td>vault</td><td><a href="api/vault/Cargo.toml">api/vault</a></td><td><a href="svc/vault/Cargo.toml">svc/vault</a></td><td>vault worker</td><td>encrypted store</td></tr>
@@ -284,11 +287,12 @@
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
       <div class="check"><b>early proxy proof</b><p>Measures byte streaming, keep-alive and cancellation in the small transport prototype.</p></div>
       <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets and clean local headers.</p></div>
-      <div class="check"><b>router handoff</b><p>Proves rejected callers never reach routing and accepted requests expose only client and operation.</p></div>
+      <div class="check"><b>router handoff</b><p>Exposes only client, operation and canary; Local is impossible without the exact selector.</p></div>
       <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
       <div class="check"><b>local runtime</b><p>Real 32K Qwen GGUF: fresh Light budget, pinned build, private endpoint, model output, stop and port release.</p></div>
       <div class="check"><b>model artifact</b><p>Real cached GGUF: exact length and SHA-256; wrong bytes fail before runtime handoff.</p></div>
+      <div class="check"><b>local protocol</b><p>Installed Codex + Claude each returned exactly 42 through one real 32K Qwen load.</p></div>
     </div>
   </section>
 

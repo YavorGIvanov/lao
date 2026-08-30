@@ -14,6 +14,7 @@ use hyper::{
 };
 use hyper_util::rt::TokioIo;
 use lao_route_api::Policy;
+use lao_run_api::Endpoint;
 use rustls::{ClientConfig, pki_types::ServerName};
 use rustls_platform_verifier::BuilderVerifierExt;
 use tokio::{
@@ -52,14 +53,36 @@ pub(super) async fn closed(
     listener: StdListener,
     policy: impl Policy + 'static,
 ) -> Result<(), Err> {
+    configured(listener, policy, None, [0; 32], [0; 32]).await
+}
+
+pub(super) async fn canary(
+    listener: StdListener,
+    policy: impl Policy + 'static,
+    endpoint: Endpoint,
+    codex: [u8; 32],
+    claude: [u8; 32],
+) -> Result<(), Err> {
+    configured(listener, policy, Some(endpoint), codex, claude).await
+}
+
+async fn configured(
+    listener: StdListener,
+    policy: impl Policy + 'static,
+    local: Option<Endpoint>,
+    codex: [u8; 32],
+    claude: [u8; 32],
+) -> Result<(), Err> {
+    listener.set_nonblocking(true)?;
     let address = listener.local_addr()?;
     let plan = Plan {
         gate: Gate {
             host: address.to_string().parse()?,
-            codex: [0; 32],
+            codex,
             codex_cloud: Cloud::OpenAi,
-            claude: [0; 32],
+            claude,
             claude_cloud: Cloud::AnthropicBearer,
+            local: local.map(Arc::new),
         },
         policy: Arc::new(policy),
         #[cfg(test)]
@@ -123,7 +146,7 @@ async fn native(target: &Target) -> Result<tokio_rustls::client::TlsStream<TcpSt
     if !target.tls {
         return Err(deny("target"));
     }
-    let addresses: Vec<_> = timeout(WAIT, lookup_host((target.host, 443)))
+    let addresses: Vec<_> = timeout(WAIT, lookup_host((target.host.as_ref(), 443)))
         .await
         .map_err(|_| deny("resolve"))??
         .collect();
@@ -138,7 +161,7 @@ async fn native(target: &Target) -> Result<tokio_rustls::client::TlsStream<TcpSt
         .with_safe_default_protocol_versions()?
         .with_platform_verifier()?
         .with_no_client_auth();
-    let name = ServerName::try_from(target.host)?;
+    let name = ServerName::try_from(target.host.clone().into_owned())?;
     timeout(
         WAIT,
         TlsConnector::from(Arc::new(config)).connect(name, tcp),
@@ -390,16 +413,23 @@ mod tests {
             let upstream = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
             let gate_addr = gate.local_addr().unwrap();
-            let plan = plan(upstream.local_addr().unwrap(), Decision::Local);
+            let upstream_addr = upstream.local_addr().unwrap();
+            let mut plan = plan(upstream_addr, Decision::Local);
+            plan.fixture = None;
+            plan.gate.local = Some(Arc::new(lao_run_api::Endpoint::new(
+                upstream_addr,
+                "runtime",
+            )));
             let upstream_task = tokio::spawn(async move {
                 let (mut stream, _) = upstream.accept().await.unwrap();
                 let request = read_request(&mut stream).await;
                 assert!(request.starts_with(b"POST /v1/messages HTTP/1.1\r\n"));
-                assert!(find(&request, b"host: 127.0.0.1:10000"));
+                assert!(find(&request, format!("host: {upstream_addr}").as_bytes()));
                 assert!(find(&request, b"content-type: application/json"));
+                assert!(find(&request, b"authorization: Bearer runtime"));
                 for secret in [
                     b"x-lao-key".as_slice(),
-                    b"authorization",
+                    b"x-lao-local",
                     b"anthropic-beta",
                     b"x-claude-code-session-id",
                     b"native-secret",
@@ -417,7 +447,7 @@ mod tests {
             });
             let mut client = TcpStream::connect(gate_addr).await.unwrap();
             let request = format!(
-                "POST /ant/v1/messages?beta=true HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\nAuthorization: Bearer native-secret\r\nAnthropic-Beta: oauth-capability\r\nX-Claude-Code-Session-Id: session-secret\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                "POST /ant/v1/messages?beta=true HTTP/1.1\r\nHost: lao.local\r\nX-LAO-Key: DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\r\nX-LAO-Local: canary\r\nAuthorization: Bearer native-secret\r\nAnthropic-Beta: oauth-capability\r\nX-Claude-Code-Session-Id: session-secret\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
                 BODY.len()
             );
             client.write_all(request.as_bytes()).await.unwrap();
@@ -634,6 +664,10 @@ mod tests {
                 codex_cloud: Cloud::OpenAi,
                 claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
                 claude_cloud: Cloud::AnthropicBearer,
+                local: Some(Arc::new(lao_run_api::Endpoint::new(
+                    "127.0.0.1:10000".parse().unwrap(),
+                    "runtime",
+                ))),
             },
             policy,
             fixture: Some(addr),
@@ -692,6 +726,7 @@ mod tests {
                                 codex_cloud: cloud,
                                 claude: *CLAUDE.as_bytes().first_chunk().unwrap(),
                                 claude_cloud: cloud,
+                                local: None,
                             },
                             policy: Arc::new(Fixed(Decision::Cloud)),
                             fixture: None,

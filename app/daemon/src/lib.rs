@@ -5,6 +5,7 @@ use std::{
     error::Error,
     fs::{self, OpenOptions},
     io::{self, Write},
+    path::PathBuf,
 };
 
 pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -27,5 +28,38 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             Err(error) => return Err(error.into()),
         }
     }
-    lao_gate::closed(listener, lao_route::Router)
+    match env::var("LAO_LOCAL_CANARY").as_deref() {
+        Err(env::VarError::NotPresent) => lao_gate::closed(listener, lao_route::Router),
+        Ok("1") => {
+            let codex = caller("LAO_CODEX_CALLER")?;
+            let claude = caller("LAO_CLAUDE_CALLER")?;
+            let root = match env::var_os("LAO_MODEL_DIR") {
+                Some(root) => PathBuf::from(root),
+                None => PathBuf::from(env::var_os("HOME").ok_or("HOME")?)
+                    .join("Library/Caches/lao/models"),
+            };
+            let model = lao_model::open(&root)?;
+            let bin = env::var_os("LAO_LLAMA_SERVER")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| "/opt/homebrew/bin/llama-server".into());
+            let (_runtime, endpoint) = lao_run::Direct::start(lao_run::Config {
+                bin: &bin,
+                model: &model.path,
+                mode: lao_run::Mode::Light,
+                working_set: model.artifact.working_set,
+                context: model.artifact.context,
+                threads: 2,
+            })?;
+            lao_gate::canary(listener, lao_route::Router, endpoint, codex, claude)
+        }
+        _ => Err("LAO_LOCAL_CANARY".into()),
+    }
+}
+
+fn caller(name: &str) -> Result<[u8; 32], Box<dyn Error + Send + Sync>> {
+    let value = env::var(name)?;
+    value
+        .as_bytes()
+        .try_into()
+        .map_err(|_| format!("{name} must be 32 bytes").into())
 }
