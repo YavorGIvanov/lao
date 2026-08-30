@@ -14,12 +14,6 @@ pub enum CodexCloud {
     ChatGpt,
 }
 
-#[derive(Clone, Copy)]
-pub enum ClaudeCloud {
-    Bearer,
-    Key,
-}
-
 pub fn closed(
     listener: TcpListener,
     policy: impl Policy + 'static,
@@ -52,7 +46,6 @@ pub fn installed(
     codex: [u8; 32],
     claude: [u8; 32],
     codex_cloud: CodexCloud,
-    claude_cloud: ClaudeCloud,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     tokio::runtime::Builder::new_current_thread()
         .enable_io()
@@ -65,7 +58,6 @@ pub fn installed(
             codex,
             claude,
             codex_cloud,
-            claude_cloud,
         ))
 }
 

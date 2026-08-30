@@ -62,7 +62,6 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 codex,
                 claude,
                 codex_cloud,
-                lao_gate::ClaudeCloud::Bearer,
             )
         }
         _ => Err("LAO_LOCAL_CANARY".into()),

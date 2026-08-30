@@ -24,9 +24,9 @@ use tokio::{
 };
 use tokio_rustls::TlsConnector;
 
+use crate::CodexCloud;
 use crate::policy::Target;
 use crate::policy::{Cloud, Gate, admit, clean_response};
-use crate::{ClaudeCloud, CodexCloud};
 
 type Err = Box<dyn Error + Send + Sync>;
 type Body = UnsyncBoxBody<Bytes, Err>;
@@ -54,16 +54,7 @@ pub(super) async fn closed(
     listener: StdListener,
     policy: impl Policy + 'static,
 ) -> Result<(), Err> {
-    configured(
-        listener,
-        policy,
-        None,
-        [0; 32],
-        [0; 32],
-        CodexCloud::Api,
-        ClaudeCloud::Bearer,
-    )
-    .await
+    configured(listener, policy, None, [0; 32], [0; 32], CodexCloud::Api).await
 }
 
 pub(super) async fn canary(
@@ -80,7 +71,6 @@ pub(super) async fn canary(
         codex,
         claude,
         CodexCloud::Api,
-        ClaudeCloud::Bearer,
     )
     .await
 }
@@ -92,18 +82,8 @@ pub(super) async fn installed(
     codex: [u8; 32],
     claude: [u8; 32],
     codex_cloud: CodexCloud,
-    claude_cloud: ClaudeCloud,
 ) -> Result<(), Err> {
-    configured(
-        listener,
-        policy,
-        Some(endpoint),
-        codex,
-        claude,
-        codex_cloud,
-        claude_cloud,
-    )
-    .await
+    configured(listener, policy, Some(endpoint), codex, claude, codex_cloud).await
 }
 
 async fn configured(
@@ -113,7 +93,6 @@ async fn configured(
     codex: [u8; 32],
     claude: [u8; 32],
     codex_cloud: CodexCloud,
-    claude_cloud: ClaudeCloud,
 ) -> Result<(), Err> {
     listener.set_nonblocking(true)?;
     let address = listener.local_addr()?;
@@ -126,10 +105,7 @@ async fn configured(
                 CodexCloud::ChatGpt => Cloud::ChatGpt,
             },
             claude,
-            claude_cloud: match claude_cloud {
-                ClaudeCloud::Bearer => Cloud::AnthropicBearer,
-                ClaudeCloud::Key => Cloud::AnthropicKey,
-            },
+            claude_cloud: Cloud::AnthropicBearer,
             local: local.map(Arc::new),
         },
         policy: Arc::new(policy),
