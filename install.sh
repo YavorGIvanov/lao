@@ -61,7 +61,7 @@ if cargo=$(command -v cargo 2>/dev/null); then
 elif [ -x "$home/.cargo/bin/cargo" ]; then
     cargo="$home/.cargo/bin/cargo"
 else
-    fail "cargo 1.98.0 is required"
+    fail "Rust with Cargo is required to build this source checkout"
 fi
 
 printf 'Building LAO release binaries...\n'

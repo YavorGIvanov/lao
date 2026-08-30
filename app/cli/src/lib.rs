@@ -257,8 +257,11 @@ pub fn run() -> Result<()> {
 
 fn preview() -> Result<()> {
     let paths = paths()?;
-    let llama = lao_run::prepare(&paths.runtime)?;
-    let budget = lao_run::plan(&llama, lao_run::Mode::Light)?;
+    let llama = lao_run::binary(&paths.runtime);
+    let budget = llama
+        .is_file()
+        .then(|| lao_run::plan(&llama, lao_run::Mode::Light))
+        .transpose()?;
     let model = &lao_model::QWEN;
     println!("model: {}", model.id);
     println!("source: {} @ {}", model.url, model.revision);
@@ -270,11 +273,14 @@ fn preview() -> Result<()> {
         lao_run::DOWNLOAD_BYTES
     );
     println!("context: {}", model.context);
-    println!(
-        "Light: {:.2} GiB, {} threads",
-        budget.bytes as f64 / (1_u64 << 30) as f64,
-        budget.threads
-    );
+    match budget {
+        Some(budget) => println!(
+            "Light: {:.2} GiB, {} threads",
+            budget.bytes as f64 / (1_u64 << 30) as f64,
+            budget.threads
+        ),
+        None => println!("Light: measured during install"),
+    }
     println!("Codex settings: {}", paths.codex.display());
     println!("Claude settings: {}", paths.claude.display());
     println!("listener: launchd-owned IPv4 loopback port selected at install");
