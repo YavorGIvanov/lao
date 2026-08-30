@@ -171,6 +171,7 @@ fn classify(key: &str) -> Option<Conflict> {
         "OPENAI_API_KEY" => Conflict::Auth("OPENAI_API_KEY"),
         "CODEX_API_KEY" => Conflict::Auth("CODEX_API_KEY"),
         "CODEX_ACCESS_TOKEN" => Conflict::Auth("CODEX_ACCESS_TOKEN"),
+        "LAO_LOCAL_SELECTOR" => Conflict::Provider("LAO_LOCAL_SELECTOR"),
         "openai_base_url" => Conflict::Base,
         "model_provider" => Conflict::Provider("model_provider"),
         "model_providers" => Conflict::Provider("model_providers"),
@@ -220,6 +221,7 @@ mod tests {
                     "openai_base_url",
                     "OPENAI_API_KEY",
                     "CODEX_ACCESS_TOKEN",
+                    "LAO_LOCAL_SELECTOR",
                     "model_provider",
                     "CODEX_AUTHAPI_BASE_URL",
                     "IGNORED",
@@ -232,6 +234,7 @@ mod tests {
                 Conflict::Base,
                 Conflict::Managed,
                 Conflict::Provider("CODEX_AUTHAPI_BASE_URL"),
+                Conflict::Provider("LAO_LOCAL_SELECTOR"),
                 Conflict::Provider("model_provider"),
             ]
         );

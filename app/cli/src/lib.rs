@@ -450,9 +450,12 @@ fn codex_smoke(caller: &str) -> io::Result<Duration> {
         .args([
             "-c",
             "model_reasoning_effort=\"low\"",
+            "-c",
+            "mcp_servers={}",
+            "-c",
+            "web_search=\"disabled\"",
             "exec",
             "--strict-config",
-            "--ignore-rules",
             "--ephemeral",
             "--skip-git-repo-check",
             "--color",
