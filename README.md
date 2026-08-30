@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, streaming proof, and installed-client compatibility probes. It does not yet contain production local routing.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, and complete Stage 1 installed proof. It does not yet contain production automatic routing or release packaging.
 
 ## Manifesto
 
@@ -105,6 +105,6 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 The cloud-safe baseline is complete: the private gate retains request bodies, headers, credentials, and targets, and gives the router only `Context(client, operation, canary)`. Normal contexts route to native cloud. Only an exact, non-secret canary selector may produce Local; the gate consumes it, removes native secrets, and binds the request to the runtime's loopback endpoint and private bearer.
 
-S1-03 and S1-04 are complete. Pinned llama.cpp 10280 serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. Installed Codex 0.146.0 and Claude Code 2.1.251 each completed the same real local canary through one gate, router, and model load; their saved-login cloud E2Es also pass.
+Stage 1 is complete on the supported 24 GiB M4 Mac. Pinned llama.cpp 10280 serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. Installed Codex 0.146.0 and Claude Code 2.1.251 each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
-`lao install` now generates separate caller keys, verifies launchd adoption and the exact inert hello before either client write, and applies the supported Codex and Claude settings under one owner-only lock and crash record. `lao off` detects post-install edits, restores original bytes and permissions, then releases the listener without reading provider credentials. Unit fault injection covers both client write boundaries. The clean real install/cloud/local/restart/off run remains S1-05, so this is not yet a supported release.
+`lao install` generates separate 256-bit caller keys, installs the daemon in owner-only product state, verifies launchd adoption and the exact inert hello before either client write, and applies the supported settings under one owner-only lock and crash record. The local runtime starts only for an explicit canary. Its measured restart-run peak was about 2.05 GiB RSS under the 6 GiB Light ceiling. `lao off` restored the original client bytes and permissions and left no daemon, worker, listener, plist, runtime key, or log. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.

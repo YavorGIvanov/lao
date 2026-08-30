@@ -35,7 +35,7 @@ Only these components may grow during Stage 1:
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
 | `app/daemon` | compose the request path and adopt the launchd listener |
-| `app/cli` | `install`, preview, doctor, smoke, and `off` only |
+| `app/cli` | `install`, preview, smoke, and `off` only |
 
 The matching `api/*` packages remain the semantic boundaries. Services never import sibling implementations; applications wire them.
 
@@ -55,9 +55,7 @@ Already proven and retained:
 - pinned llama.cpp supervision with a private loopback bearer, real Qwen output, stop, and port reuse;
 - one immutable Qwen artifact record, exact cached-file verification, and a read-only `lao preview`.
 
-Not yet complete:
-
-- the installed local/cloud/off acceptance run.
+Stage 1 exit evidence now also includes the clean installed local/cloud/restart/off acceptance run on the supported Mac.
 
 ## Stage 1 tasks
 
@@ -141,7 +139,7 @@ Acceptance:
 - ordinary requests still resolve to native cloud and preserve the proven native pass-through;
 - cancellation stops local generation and no retry crosses a side-effect boundary.
 
-The canary E2E disables client retries. The existing relay cancellation proof applies unchanged to Local because both routes consume the same frozen Hyper body path. Parent-death cleanup remains an S1-05 acceptance check; explicit runtime stop and `Drop` are proven here.
+The canary E2E disables client retries. The existing relay cancellation proof applies unchanged to Local because both routes consume the same frozen Hyper body path. Explicit runtime stop and `Drop` are proven here; the S1-05 restart run also proved bounded parent-death cleanup.
 
 ### S1-04 — Transactional `install` and `off`
 
@@ -177,7 +175,7 @@ Current evidence:
 
 ### S1-05 — Real installed acceptance
 
-Status: pending. Depends on S1-04.
+Status: complete (2026-08-30).
 
 Run once from a clean supported state:
 
@@ -200,9 +198,18 @@ Acceptance:
 - the user sees no repeated permission prompt during normal use;
 - client settings are restored exactly.
 
+Current evidence:
+
+- Codex 0.146.0 and Claude Code 2.1.251 completed fixed saved-login cloud outcomes through the installed gate; no local worker started, proving Cloud remained the default;
+- `lao smoke` returned exactly `42` through both real harnesses: Codex cold local took 23.5 seconds and Claude warm local took 1.6 seconds;
+- after a forced daemon restart, both local outcomes passed again at 23.5 seconds and 1.6 seconds;
+- the restart-run worker peaked at 2,146,768 KiB RSS, about 2.05 GiB, with the verified 32K artifact under the 6 GiB Light ceiling;
+- caller tokens, runtime keys, provider credentials, and raw client output were absent from product logs and reported evidence; the daemon error file stayed empty and owner-only;
+- no repeated permission prompt was observed; `lao off` restored both original settings byte-for-byte with their original modes and left no daemon, worker, listener, plist, runtime key, or log.
+
 ### S1-06 — Adversarial review
 
-Status: pending. Depends on S1-05.
+Status: complete (2026-08-30).
 
 Review only the Stage 1 trust boundaries:
 
@@ -215,9 +222,18 @@ Review only the Stage 1 trust boundaries:
 
 Fix blockers. Do not expand the review into deferred products.
 
+Current evidence:
+
+- client callers use separate 256-bit capabilities and constant-time comparison; the gate still strips caller, selector, and native credentials before local egress;
+- launchd activation now precedes adoption proof, the installed daemon lives in owner-only product state rather than a protected development folder, and settings change only after the exact hello succeeds;
+- unsupported methods, paths, bodies, callers, selectors, authentication classes, redirects, and non-public native destinations fail closed before local or cloud connection;
+- fresh fit and measured child RSS both enforce the Light ceiling, while cloud requests leave the runtime unloaded;
+- launchd restart and `lao off` reap the worker and listener within the bounded cleanup check;
+- induced failures at both settings writes and real readiness failures restored both originals exactly; launch artifacts and owner-only logs are cleaned transactionally.
+
 ### S1-07 — Simplify and hand off
 
-Status: mandatory final step. Depends on S1-06.
+Status: complete (2026-08-30).
 
 - Read the manifesto again.
 - Remove unused types, options, tests, dependencies, prose, and indirection.
@@ -225,6 +241,12 @@ Status: mandatory final step. Depends on S1-06.
 - Run formatting, focused and workspace tests, Clippy with warnings denied, `cargo xtask check`, `cargo xtask extract`, and `git diff --check`.
 - Update all four living documents together.
 - Commit as `YavorGIvanov <yavorgenadiev@gmail.com>` with no other author or coauthor.
+
+Current evidence:
+
+- the final pass removed the unimplemented `doctor` claim and retained only the four exercised CLI operations;
+- formatting, all workspace tests, workspace Clippy with warnings denied, the 29-package architecture check, extraction/conformance, and diff hygiene pass;
+- README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
 
 ## Stage 1 exit gate
 
