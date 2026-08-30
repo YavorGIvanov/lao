@@ -152,6 +152,7 @@
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
       <div class="proof"><b>llama.cpp 10280</b><br>real Qwen output · exact 32K context</div>
+      <div class="proof"><b>one artifact</b><br>immutable revision · size · SHA-256 · license</div>
     </div>
     <div class="control-flow" aria-label="Apple memory and llama.cpp device visibility resolve one budget before local model load.">
       <div class="node"><strong>fresh fit check</strong><small>24 GiB unified + OS pressure + Metal cap</small></div>
@@ -265,7 +266,7 @@
         <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>private credential flow</td></tr>
         <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>cloud-safe decision</td></tr>
         <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + runtime state</td></tr>
-        <tr><td>model</td><td><a href="api/model/Cargo.toml">api/model</a></td><td><a href="svc/model/Cargo.toml">svc/model</a></td><td>daemon</td><td>catalog + artifacts</td></tr>
+        <tr><td>model</td><td><a href="api/model/Cargo.toml">api/model</a></td><td><a href="svc/model/Cargo.toml">svc/model</a></td><td>daemon</td><td>one verified artifact</td></tr>
         <tr><td>capture</td><td><a href="api/capture/Cargo.toml">api/capture</a></td><td><a href="svc/capture/Cargo.toml">svc/capture</a></td><td>capture worker</td><td>raw ingress + scrub</td></tr>
         <tr><td>vault</td><td><a href="api/vault/Cargo.toml">api/vault</a></td><td><a href="svc/vault/Cargo.toml">svc/vault</a></td><td>vault worker</td><td>encrypted store</td></tr>
         <tr><td>eval</td><td><a href="api/eval/Cargo.toml">api/eval</a></td><td><a href="svc/eval/Cargo.toml">svc/eval</a></td><td>eval worker</td><td>campaign results</td></tr>
@@ -287,6 +288,7 @@
       <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
       <div class="check"><b>local runtime</b><p>Real 32K Qwen GGUF: fresh Light budget, pinned build, private endpoint, model output, stop and port release.</p></div>
+      <div class="check"><b>model artifact</b><p>Real cached GGUF: exact length and SHA-256; wrong bytes fail before runtime handoff.</p></div>
     </div>
   </section>
 

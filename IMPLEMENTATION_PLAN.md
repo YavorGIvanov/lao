@@ -52,13 +52,13 @@ Already proven and retained:
 - caller-token, credential-origin, path, header, TLS, redirect, and cancellation gates;
 - a separate router contract that currently always chooses cloud;
 - launchd listener adoption and opt-in crash/prebind lifecycle proof;
-- pinned llama.cpp supervision with a private loopback bearer, real Qwen output, stop, and port reuse.
+- pinned llama.cpp supervision with a private loopback bearer, real Qwen output, stop, and port reuse;
+- one immutable Qwen artifact record, exact cached-file verification, and a read-only `lao preview`.
 
 Not yet complete:
 
 - P0-05 transactional persistent client configuration;
 - a production local protocol bridge from either harness to llama.cpp;
-- one owned artifact flow;
 - the installed local/cloud/off acceptance run.
 
 ## Stage 1 tasks
@@ -93,7 +93,7 @@ Deferred: discrete GPU pools, cgroups, Linux/Windows probes, multi-GPU, automati
 
 ### S1-02 — One artifact
 
-Status: pending. Depends on S1-01.
+Status: complete (2026-08-30).
 
 Use `model` for one compiled-in artifact record only:
 
@@ -107,7 +107,7 @@ Acceptance:
 
 - preview shows exact download size, resolved memory budget, context, and artifact identity;
 - wrong length or hash is rejected before promotion;
-- one verified file is handed to `run` through the existing API;
+- one verified path is exposed through the model API for S1-03 app composition;
 - no signed catalog, recommendation engine, resume system, LRU, or preference database.
 
 ### S1-03 — One local protocol slice

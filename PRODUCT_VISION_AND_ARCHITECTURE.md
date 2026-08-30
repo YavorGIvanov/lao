@@ -191,7 +191,7 @@ Illustrative resolved ceilings when A initially equals T; reserve binding explai
 
 These numbers are ceilings, not promises to allocate the full amount. Current free memory, Metal working-set limits, display-GPU reserve, cgroup limits, battery state, thermal pressure, and actual llama.cpp fitting can reduce them.
 
-Stage 1 implements only the Apple unified-memory case. On the 24 GiB M4 test machine, the pinned llama.cpp build reports a 16 GiB Metal ceiling and macOS reported 72 percent availability. The resolved sample was 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum. A real 32K Qwen fixture used about 2.03 GiB RSS and completed under Light. Host and Metal are one pool; discrete host/VRAM planning remains drafted for later platforms.
+Stage 1 implements only the Apple unified-memory case. On the 24 GiB M4 test machine, the pinned llama.cpp build reports a 16 GiB Metal ceiling and macOS reported 72 percent availability. The resolved sample was 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum. A real 32K Qwen fixture used about 2.03 GiB RSS and completed under Light. Its immutable revision, 1,117,320,768-byte length, SHA-256, Apache-2.0 license, context, and working-set estimate now form the only Stage 1 artifact record. Host and Metal are one pool; discrete host/VRAM planning remains drafted for later platforms.
 
 ### 4.2 Model classes
 

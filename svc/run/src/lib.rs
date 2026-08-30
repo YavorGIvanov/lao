@@ -10,7 +10,9 @@ use std::{
     time::Duration,
 };
 
-use lao_run_api::{Endpoint, Mode, Status};
+use lao_run_api::{Endpoint, Status};
+
+pub use lao_run_api::Mode;
 
 mod resource;
 

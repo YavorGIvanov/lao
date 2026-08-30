@@ -263,6 +263,8 @@ version = "0.1.0"
 dependencies = [
  "lao-claude",
  "lao-codex",
+ "lao-model",
+ "lao-run",
 ]
 
 [[package]]
