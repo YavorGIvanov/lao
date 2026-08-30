@@ -77,12 +77,11 @@ This repository contains the research-backed product specification, implementati
 
 1. Read the product architecture and implementation plan below.
 2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Review the P0-02/P0-03 client probes and private P0-04 gate, then finish the remaining firewall contracts before P0-05 configuration work. Reuse pinned llama.cpp. Do not build inference kernels.
-4. Build the smallest Apple Silicon slice: CLI, gateway, credential firewall, router, and one local model.
-5. Keep cloud as default. Route only synthetic and clearly bounded easy tasks locally.
-6. Keep capture, eval, optimization, and training disabled behind their APIs.
-7. Measure latency, memory, tokens per second, correctness, and rollback.
-8. Pass the phase gate before adding breadth.
+3. Follow the seven Stage 1 tasks in the implementation plan.
+4. Build only the real Codex + Claude → router → llama.cpp/cloud vertical slice.
+5. Keep cloud as default and use one explicit bounded local canary.
+6. Leave capture, eval, optimization, training, and extra backends disabled behind their APIs.
+7. Measure fit, protocol behavior, credential isolation, cleanup, and rollback.
 
 Every agent starts here. If two solutions are equally safe and functional, choose the smaller one.
 
@@ -104,4 +103,4 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-P0-00 and P0-01 are complete. The private P0-04 gate now hands only client and operation to a separate router, which defaults to cloud; request bodies, headers, credentials, and native targets remain private to the gate. The path uses bounded DNS, fixed semantic targets, platform-verified TLS, Hyper HTTP/1, and closes the upstream stream when its client disconnects. Codex 0.146.0 passed cheap saved-login success and provider-error E2Es. Claude Code 2.1.251 passed both its isolated protocol and saved-login native E2Es. The first P0-06 proof now supervises pinned llama.cpp on this 24 GiB M4 and completes a real local-model request. Local production routing, automatic retries, logout/reboot continuity, and real configuration writes remain off.
+The cloud-safe baseline is complete: the private gate gives only client and operation to a separate router, which defaults to cloud; request bodies, headers, credentials, and native targets stay in the gate. Codex 0.146.0 and Claude Code 2.1.251 passed saved-login cloud E2Es. Pinned llama.cpp now runs a real 32K Qwen request under the Apple Light-mode guard on this 24 GiB M4. Stage 1 next owns one artifact, connects one explicit local canary through both harnesses, then implements transactional `install` and `off`. Persistent client configuration and production local routing remain off.

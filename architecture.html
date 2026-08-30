@@ -151,14 +151,21 @@
       <div class="proof"><b>Claude Code 2.1.251</b><br>saved Claude.ai login → gate → cloud</div>
       <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
       <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
-      <div class="proof"><b>llama.cpp 10280</b><br>M4: 619 ms start · 1.38 GiB RSS</div>
+      <div class="proof"><b>llama.cpp 10280</b><br>real Qwen output · exact 32K context</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed synthetic and installed-harness E2Es. The real daemon now adopts launchd’s listener in a closed mode: hello works; payloads do not. Config writes, real routing, and broader client surfaces remain off.</p>
+    <div class="control-flow" aria-label="Apple memory and llama.cpp device visibility resolve one budget before local model load.">
+      <div class="node"><strong>fresh fit check</strong><small>24 GiB unified + OS pressure + Metal cap</small></div>
+      <div class="arrow">→</div>
+      <div class="node"><strong>Light</strong><small>6 GiB · 2 threads · 32K target</small></div>
+      <div class="arrow">→</div>
+      <div class="control-target">one slot · cache off<br>reject before load if it does not fit</div>
+    </div>
+    <p class="note">You never code inside <code>lao</code>, and it is not in the request path. The private gate has passed installed-harness cloud E2Es. Pinned llama.cpp now passes a real 32K local request under the Apple Light guard. The daemon still starts closed: persistent client writes and production local routing remain off.</p>
   </section>
 
   <section class="client-page">
     <h2>2. How Codex and Claude connect</h2>
-    <p>P0-04/P0-05 target: the commands stay familiar. Their managed settings point model requests at one supervisor-owned loopback gate. Each client gets its own private caller token. Native provider credentials stay separate.</p>
+    <p>Stage 1 install target: the commands stay familiar. Their managed settings point model requests at one supervisor-owned loopback gate. Each client gets its own private caller token. Native provider credentials stay separate.</p>
     <div class="client-cards">
       <article class="client-card">
         <h3>Codex</h3>
@@ -195,7 +202,7 @@
     </div>
     <div class="mini-flow">request <span>→</span> admit <span>→</span> Context(client, operation) <span>→</span> Cloud <span>→</span> private auth + target freeze <span>→</span> Hyper</div>
     <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd owns the socket before config changes and through daemon crashes. Same-user malware is out of scope. A user LaunchAgent protects only the active GUI login session—not logout or reboot.</p>
-    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file; P0-05 must also pass the exact hello before config changes. Native egress uses one DNS result and verified TLS. Redirects and hop-by-hop fields are not relayed. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
+    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file; S1-04 must also pass the exact hello before config changes. Native egress uses one DNS result and verified TLS. Redirects and hop-by-hop fields are not relayed. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
   </section>
 
   <section>
@@ -279,7 +286,7 @@
       <div class="check"><b>router handoff</b><p>Proves rejected callers never reach routing and accepted requests expose only client and operation.</p></div>
       <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
       <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
-      <div class="check"><b>local runtime</b><p>Real Qwen coding GGUF: pinned build, secret ephemeral endpoint, model output, stop and port release.</p></div>
+      <div class="check"><b>local runtime</b><p>Real 32K Qwen GGUF: fresh Light budget, pinned build, private endpoint, model output, stop and port release.</p></div>
     </div>
   </section>
 

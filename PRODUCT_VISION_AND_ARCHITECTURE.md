@@ -191,6 +191,8 @@ Illustrative resolved ceilings when A initially equals T; reserve binding explai
 
 These numbers are ceilings, not promises to allocate the full amount. Current free memory, Metal working-set limits, display-GPU reserve, cgroup limits, battery state, thermal pressure, and actual llama.cpp fitting can reduce them.
 
+Stage 1 implements only the Apple unified-memory case. On the 24 GiB M4 test machine, the pinned llama.cpp build reports a 16 GiB Metal ceiling and macOS reported 72 percent availability. The resolved sample was 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum. A real 32K Qwen fixture used about 2.03 GiB RSS and completed under Light. Host and Metal are one pool; discrete host/VRAM planning remains drafted for later platforms.
+
 ### 4.2 Model classes
 
 The catalog changes over time, so model names are illustrative and date-stamped. Setup displays the exact selected artifact and measured result.
@@ -889,17 +891,14 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 
 ### Phase 0: proof of concept
 
-- Contract packages and independently buildable component skeletons for the full planned architecture, including inert future adapters.
-- Apple Silicon, Codex, and Claude Code.
-- One Rust binary plus one pinned llama.cpp build and one prequantized model.
-- Transactional installation and rollback.
-- Minimal Responses and Messages proxy.
-- Credential firewall and native subscription path.
-- Auto, Light, and Maximum admission.
-- Model preference and exact benchmark preview.
-- Conservative 5–15 percent local routing.
-- Local capture with consent and minimal encrypted vault.
-- One reproducible comparison report.
+- Keep the full component skeleton, but implement only Codex, Claude Code, gate, route, run, model, daemon, and CLI.
+- Support one 24 GiB Apple Silicon machine, one pinned llama.cpp build, and one verified prequantized model.
+- Preserve each harness's saved-login native cloud path without LAO reading its credential.
+- Admit one explicit bounded local text canary through minimal Responses and Messages streaming.
+- Keep every ordinary request on cloud.
+- Install and turn off transactionally with exact configuration restoration.
+- Prove the full real Codex + Claude → router → llama.cpp/cloud path, resource bounds, credential isolation, cleanup, and rollback.
+- Leave capture, vault, evaluation, training, automatic routing, multiple models, and other platforms as disabled drafts.
 
 ### Phase 1: first supported release
 

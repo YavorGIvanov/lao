@@ -10,13 +10,19 @@ use std::{
     time::Duration,
 };
 
-use lao_run_api::{Endpoint, Status};
+use lao_run_api::{Endpoint, Mode, Status};
+
+mod resource;
+
+pub use resource::plan;
 
 pub const BUILD: &str = "version: 10280 (61881b1f7)";
 
 pub struct Config<'a> {
     pub bin: &'a Path,
     pub model: &'a Path,
+    pub mode: Mode,
+    pub working_set: u64,
     pub context: u32,
     pub threads: u16,
 }
@@ -51,15 +57,15 @@ impl Drop for Key {
 
 impl Direct {
     pub fn start(config: Config<'_>) -> io::Result<Self> {
-        if config.context == 0 || config.threads == 0 {
+        let budget = plan(config.bin, config.mode)?;
+        if config.working_set == 0
+            || config.working_set > budget.bytes
+            || config.context == 0
+            || config.threads == 0
+            || config.threads > budget.threads
+        {
             return Err(invalid("config"));
         }
-        let version = Command::new(config.bin).arg("--version").output()?;
-        let observed = [version.stdout, version.stderr].concat();
-        if !version.status.success() || !String::from_utf8_lossy(&observed).contains(BUILD) {
-            return Err(invalid("build"));
-        }
-
         let mut bytes = [0; 32];
         getrandom::getrandom(&mut bytes).map_err(|_| invalid("random"))?;
         let bearer = bytes
@@ -84,6 +90,10 @@ impl Direct {
             .args([
                 "--parallel",
                 "1",
+                "--fit",
+                "off",
+                "--cache-ram",
+                "0",
                 "--no-webui",
                 "--metrics",
                 "--jinja",
