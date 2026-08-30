@@ -88,6 +88,8 @@ impl Direct {
             .args([
                 "--parallel",
                 "1",
+                "--temp",
+                "0",
                 "--alias",
                 "lao-local",
                 "--fit",
