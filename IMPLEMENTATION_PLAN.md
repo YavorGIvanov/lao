@@ -244,6 +244,7 @@ Deferred product work:
 
 - automatic difficulty routing, task stickiness, repair, escalation, and circuit breakers;
 - model catalog signatures, multiple models, preferences, recommendations, and llama-swap;
+- runtime residency in this order: idle unload and pressure eviction; only then background pre-load for installs with local routing enabled; only then parallel verification and start if measured cold latency still warrants it;
 - Ollama, LM Studio, ShoeHorn, FreeToken, NVIDIA, Linux, and Windows;
 - hooks and task-boundary tracking;
 - consented capture, scrub, snapshots, encrypted vault, retention, export, and deletion;
