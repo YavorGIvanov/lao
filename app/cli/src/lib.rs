@@ -302,10 +302,29 @@ fn install() -> Result<()> {
 
     let codex_original = read_optional(&paths.codex)?;
     let claude_original = read_optional(&paths.claude)?;
+    let codex_catalog = paths
+        .codex
+        .parent()
+        .ok_or_else(|| invalid("Codex model catalog"))?
+        .join("models_cache.json");
+    if !codex_catalog.is_file() {
+        probe("codex", &["debug", "models"])?;
+    }
+    if !codex_catalog.is_file() {
+        return Err(invalid("Codex model catalog").into());
+    }
+    let codex_catalog = codex_catalog
+        .to_str()
+        .ok_or_else(|| invalid("Codex model catalog"))?;
     let port = free_port()?;
     let codex_caller = caller()?;
     let claude_caller = caller()?;
-    let codex_after = lao_codex::configure(codex_original.as_deref(), port, &codex_caller)?;
+    let codex_after = lao_codex::configure(
+        codex_original.as_deref(),
+        port,
+        &codex_caller,
+        codex_catalog,
+    )?;
     let claude_after = lao_claude::configure(claude_original.as_deref(), port, &claude_caller)?;
 
     let mut transaction = Transaction::prepare(&paths, port, &codex_after, &claude_after)?;
@@ -604,6 +623,18 @@ fn command(bin: &str, args: &[&str]) -> io::Result<String> {
     let mut bytes = output.stdout;
     bytes.extend_from_slice(&output.stderr);
     String::from_utf8(bytes).map_err(|_| invalid("client preflight"))
+}
+
+fn probe(bin: &str, args: &[&str]) -> io::Result<()> {
+    Command::new(bin)
+        .args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()?
+        .success()
+        .then_some(())
+        .ok_or_else(|| invalid("client preflight"))
 }
 
 fn paths() -> io::Result<Paths> {
@@ -1061,6 +1092,7 @@ mod tests {
             Some(&codex),
             8765,
             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "/tmp/models.json",
         )
         .unwrap();
         let claude_after = lao_claude::configure(
@@ -1120,7 +1152,7 @@ mod tests {
     fn smoke_accepts_only_the_installed_client_settings() {
         let codex_caller = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
         let claude_caller = "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210";
-        let codex = lao_codex::configure(None, 8765, codex_caller).unwrap();
+        let codex = lao_codex::configure(None, 8765, codex_caller, "/tmp/models.json").unwrap();
         let claude = lao_claude::configure(None, 8765, claude_caller).unwrap();
         assert_eq!(
             managed_callers(&codex, &claude, 8765).unwrap(),

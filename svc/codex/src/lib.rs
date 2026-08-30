@@ -1,5 +1,5 @@
 use lao_client_api::Status;
-use std::{error::Error, fmt};
+use std::{error::Error, fmt, path::Path};
 
 pub const OBSERVED: Version = Version(0, 151, 0);
 
@@ -112,8 +112,13 @@ pub fn preview(port: u16) -> Result<Preview, PreviewError> {
     })
 }
 
-pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec<u8>, ConfigError> {
-    if port == 0 || !valid_caller(caller) {
+pub fn configure(
+    original: Option<&[u8]>,
+    port: u16,
+    caller: &str,
+    catalog: &str,
+) -> Result<Vec<u8>, ConfigError> {
+    if port == 0 || !valid_caller(caller) || !Path::new(catalog).is_absolute() {
         return Err(ConfigError::Invalid);
     }
     let raw = original.unwrap_or_default();
@@ -135,6 +140,9 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
     }
 
     document["model_provider"] = toml_edit::value("lao");
+    if !document.contains_key("model_catalog_json") {
+        document["model_catalog_json"] = toml_edit::value(catalog);
+    }
     let mut headers = toml_edit::InlineTable::new();
     headers.insert("X-LAO-Key", caller.into());
     let mut environment_headers = toml_edit::InlineTable::new();
@@ -259,12 +267,17 @@ mod tests {
             Some(original),
             8765,
             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "/tmp/models.json",
         )
         .unwrap();
         let configured = String::from_utf8(configured).unwrap();
         let configured = configured.parse::<toml_edit::DocumentMut>().unwrap();
         assert_eq!(configured["model"].as_str(), Some("gpt-5.4"));
         assert_eq!(configured["model_provider"].as_str(), Some("lao"));
+        assert_eq!(
+            configured["model_catalog_json"].as_str(),
+            Some("/tmp/models.json")
+        );
         assert_eq!(
             configured["model_providers"]["lao"]["base_url"].as_str(),
             Some("http://127.0.0.1:8765/oai")
@@ -282,6 +295,7 @@ mod tests {
                 Some(b"model_provider = \"other\"\n"),
                 8765,
                 "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "/tmp/models.json",
             ),
             Err(ConfigError::Conflict)
         );
