@@ -1,18 +1,29 @@
 use lao_optimize_api::{Optimize, Plan, Probe, Start, State};
 use std::{
-    io,
+    env,
+    ffi::OsStr,
+    fs::{self, OpenOptions},
+    io::{self, Read, Write},
+    os::unix::fs::{DirBuilderExt, OpenOptionsExt},
     panic::{self, AssertUnwindSafe},
+    path::{Path, PathBuf},
+    process::{Command, ExitStatus, Stdio},
     sync::{
         Arc,
         atomic::{AtomicU8, Ordering},
     },
     thread,
+    time::{Duration, Instant},
 };
 
 const IDLE: u8 = 0;
 const WARMING: u8 = 1;
 const READY: u8 = 2;
 const FAILED: u8 = 3;
+const CALLER_ENV: &str = "LAO_OPTIMIZE_CODEX_CALLER";
+const SELECTOR_ENV: &str = "LAO_OPTIMIZE_LOCAL";
+const OUTPUT_LIMIT: u64 = 1 << 20;
+const TIMEOUT: Duration = Duration::from_secs(180);
 
 #[derive(Default)]
 pub struct Optimizer {
@@ -71,6 +82,228 @@ fn warm(state: Arc<AtomicU8>, plan: Plan) {
 
 fn probe(probe: Probe) -> bool {
     panic::catch_unwind(AssertUnwindSafe(probe)).is_ok_and(|result| result.is_ok())
+}
+
+pub fn codex(bin: impl AsRef<OsStr>, port: u16, caller: &str) -> io::Result<Duration> {
+    valid(port, caller)?;
+    let scratch = Scratch::new("codex")?;
+    let config = format!(
+        "model_provider = \"lao\"\n\
+         [model_providers.lao]\n\
+         name = \"LAO\"\n\
+         base_url = \"http://127.0.0.1:{port}/oai\"\n\
+         requires_openai_auth = false\n\
+         supports_websockets = false\n\
+         env_http_headers = {{ X-LAO-Key = \"{CALLER_ENV}\", X-LAO-Local = \"{SELECTOR_ENV}\" }}\n"
+    );
+    write_private(&scratch.0.join("config.toml"), config.as_bytes(), 0o600)?;
+    let mut command = Command::new(bin);
+    direct(&mut command);
+    command
+        .env("CODEX_HOME", &scratch.0)
+        .env(CALLER_ENV, caller)
+        .env(SELECTOR_ENV, "canary")
+        .env_remove("OPENAI_API_KEY")
+        .env_remove("OPENAI_BASE_URL")
+        .env_remove("CODEX_API_KEY")
+        .env_remove("LAO_LOCAL_SELECTOR")
+        .current_dir(&scratch.0)
+        .args([
+            "-c",
+            "model_reasoning_effort=\"low\"",
+            "-c",
+            "mcp_servers={}",
+            "-c",
+            "web_search=\"disabled\"",
+            "exec",
+            "--strict-config",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--color",
+            "never",
+            "--sandbox",
+            "read-only",
+            "--model",
+            "lao-local",
+            "Reply exactly 42. Do not use tools.",
+        ]);
+    client(&mut command, caller, TIMEOUT)
+}
+
+pub fn claude(bin: impl AsRef<OsStr>, port: u16, caller: &str) -> io::Result<Duration> {
+    valid(port, caller)?;
+    let scratch = Scratch::new("claude")?;
+    let settings = scratch.0.join("settings.json");
+    let bytes = format!(
+        r#"{{"env":{{"ANTHROPIC_BASE_URL":"http://127.0.0.1:{port}/ant","ANTHROPIC_CUSTOM_HEADERS":"X-LAO-Key: {caller}\nX-LAO-Local: canary","CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":"1"}}}}"#
+    );
+    write_private(&settings, bytes.as_bytes(), 0o600)?;
+    let settings = settings
+        .to_str()
+        .ok_or_else(|| invalid("local probe settings"))?;
+    let mut command = Command::new(bin);
+    direct(&mut command);
+    command
+        .current_dir(&scratch.0)
+        .env_remove(CALLER_ENV)
+        .env_remove("LAO_LOCAL_SELECTOR");
+    for key in [
+        "ANTHROPIC_AUTH_TOKEN",
+        "ANTHROPIC_API_KEY",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "ANTHROPIC_PROFILE",
+        "ANTHROPIC_FEDERATION_RULE_ID",
+        "ANTHROPIC_ORGANIZATION_ID",
+        "ANTHROPIC_WORKSPACE_ID",
+        "ANTHROPIC_BASE_URL",
+        "ANTHROPIC_CUSTOM_HEADERS",
+        "CLAUDE_CODE_USE_BEDROCK",
+        "CLAUDE_CODE_USE_VERTEX",
+        "CLAUDE_CODE_USE_FOUNDRY",
+        "CLAUDE_CODE_USE_MANTLE",
+        "ANTHROPIC_BEDROCK_BASE_URL",
+        "ANTHROPIC_VERTEX_BASE_URL",
+        "ANTHROPIC_FOUNDRY_BASE_URL",
+        "ANTHROPIC_AWS_BASE_URL",
+    ] {
+        command.env_remove(key);
+    }
+    command.args([
+        "--safe-mode",
+        "--settings",
+        settings,
+        "--setting-sources",
+        "",
+        "--no-session-persistence",
+        "--disable-slash-commands",
+        "--strict-mcp-config",
+        "--tools",
+        "",
+        "--effort",
+        "low",
+        "-p",
+        "--model",
+        "lao-local",
+        "Reply exactly 42. Do not use tools.",
+    ]);
+    client(&mut command, caller, TIMEOUT)
+}
+
+fn direct(command: &mut Command) {
+    for key in [
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "http_proxy",
+        "https_proxy",
+        "all_proxy",
+    ] {
+        command.env_remove(key);
+    }
+}
+
+fn client(command: &mut Command, caller: &str, timeout: Duration) -> io::Result<Duration> {
+    command
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let started = Instant::now();
+    let mut child = command.spawn()?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| invalid("local probe output"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| invalid("local probe output"))?;
+    let stdout = thread::spawn(move || read_bounded(stdout));
+    let stderr = thread::spawn(move || read_bounded(stderr));
+    let deadline = started + timeout;
+    let status = loop {
+        if let Some(status) = child.try_wait()? {
+            break status;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = stdout.join();
+            let _ = stderr.join();
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "local probe"));
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let stdout = join(stdout)?;
+    let stderr = join(stderr)?;
+    check(status, stdout, stderr, caller)?;
+    Ok(started.elapsed())
+}
+
+fn read_bounded(mut pipe: impl Read) -> io::Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    pipe.by_ref()
+        .take(OUTPUT_LIMIT + 1)
+        .read_to_end(&mut bytes)?;
+    Ok(bytes)
+}
+
+fn join(reader: thread::JoinHandle<io::Result<Vec<u8>>>) -> io::Result<Vec<u8>> {
+    reader.join().map_err(|_| invalid("local probe output"))?
+}
+
+fn check(status: ExitStatus, stdout: Vec<u8>, stderr: Vec<u8>, caller: &str) -> io::Result<()> {
+    if !status.success()
+        || stdout.len() as u64 > OUTPUT_LIMIT
+        || stderr.len() as u64 > OUTPUT_LIMIT
+        || stdout.trim_ascii() != b"42"
+        || contains(&stdout, caller.as_bytes())
+        || contains(&stderr, caller.as_bytes())
+    {
+        return Err(invalid("local probe"));
+    }
+    Ok(())
+}
+
+fn contains(haystack: &[u8], needle: &[u8]) -> bool {
+    !needle.is_empty() && haystack.windows(needle.len()).any(|part| part == needle)
+}
+
+fn valid(port: u16, caller: &str) -> io::Result<()> {
+    if port == 0 || caller.len() != 64 || !caller.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(invalid("local probe configuration"));
+    }
+    Ok(())
+}
+
+fn write_private(path: &Path, bytes: &[u8], mode: u32) -> io::Result<()> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(mode)
+        .open(path)?;
+    file.write_all(bytes)
+}
+
+struct Scratch(PathBuf);
+
+impl Scratch {
+    fn new(name: &str) -> io::Result<Self> {
+        let mut random = [0_u8; 8];
+        getrandom::getrandom(&mut random).map_err(|_| invalid("local probe random"))?;
+        let path = env::temp_dir().join(format!("lao-{name}-{:016x}", u64::from_ne_bytes(random)));
+        fs::DirBuilder::new().mode(0o700).create(&path)?;
+        Ok(Self(path))
+    }
+}
+
+impl Drop for Scratch {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+fn invalid(message: &'static str) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, message)
 }
 
 #[cfg(test)]
@@ -135,6 +368,79 @@ mod tests {
             Start::Started
         );
         wait_for(&optimizer, State::Ready);
+    }
+
+    #[test]
+    fn client_probes_are_loopback_only_and_keep_callers_private() {
+        let caller = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let fixture = Scratch::new("probe-test").unwrap();
+        let codex_bin = fixture.0.join("codex");
+        let claude_bin = fixture.0.join("claude");
+        let codex_script = format!(
+            r#"#!/bin/sh
+for value in "$@"; do
+    [ "$value" != "{caller}" ] || exit 10
+done
+[ "$LAO_OPTIMIZE_CODEX_CALLER" = "{caller}" ] || exit 11
+[ "$LAO_OPTIMIZE_LOCAL" = "canary" ] || exit 12
+grep -F 'base_url = "http://127.0.0.1:8765/oai"' "$CODEX_HOME/config.toml" >/dev/null || exit 13
+grep -F 'requires_openai_auth = false' "$CODEX_HOME/config.toml" >/dev/null || exit 14
+grep -F 'X-LAO-Key = "LAO_OPTIMIZE_CODEX_CALLER"' "$CODEX_HOME/config.toml" >/dev/null || exit 15
+if grep -F '{caller}' "$CODEX_HOME/config.toml" >/dev/null; then exit 16; fi
+printf '42\n'
+"#
+        );
+        let claude_script = format!(
+            r#"#!/bin/sh
+settings=
+previous=
+for value in "$@"; do
+    [ "$value" != "{caller}" ] || exit 20
+    if [ "$previous" = "--settings" ]; then settings=$value; fi
+    previous=$value
+done
+[ -n "$settings" ] || exit 21
+grep -F 'http://127.0.0.1:8765/ant' "$settings" >/dev/null || exit 22
+grep -F 'X-LAO-Key: {caller}' "$settings" >/dev/null || exit 23
+if /usr/bin/env | grep -F '{caller}' >/dev/null; then exit 24; fi
+printf '42\n'
+"#
+        );
+        write_private(&codex_bin, codex_script.as_bytes(), 0o700).unwrap();
+        write_private(&claude_bin, claude_script.as_bytes(), 0o700).unwrap();
+
+        codex(&codex_bin, 8765, caller).unwrap();
+        claude(&claude_bin, 8765, caller).unwrap();
+    }
+
+    #[test]
+    fn client_runner_rejects_secret_output_and_times_out() {
+        let caller = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+        let fixture = Scratch::new("runner-test").unwrap();
+        let leak = fixture.0.join("leak");
+        let stall = fixture.0.join("stall");
+        write_private(
+            &leak,
+            format!("#!/bin/sh\nprintf '{caller}\\n'\n").as_bytes(),
+            0o700,
+        )
+        .unwrap();
+        write_private(&stall, b"#!/bin/sh\nwhile :; do :; done\n", 0o700).unwrap();
+
+        assert_eq!(
+            client(&mut Command::new(leak), caller, Duration::from_secs(1))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::InvalidData
+        );
+        let started = Instant::now();
+        assert_eq!(
+            client(&mut Command::new(stall), caller, Duration::from_millis(20))
+                .unwrap_err()
+                .kind(),
+            io::ErrorKind::TimedOut
+        );
+        assert!(started.elapsed() < Duration::from_secs(1));
     }
 
     fn wait_for(optimizer: &Optimizer, state: State) {

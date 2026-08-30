@@ -8,7 +8,7 @@ use std::{
     net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream},
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
-    process::{Command, Output, Stdio},
+    process::{Command, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -763,9 +763,9 @@ fn smoke() -> Result<()> {
     let claude = fs::read(&paths.claude)?;
     let (codex_caller, claude_caller) = managed_callers(&codex, &claude, transaction.record.port)?;
 
-    let codex_elapsed = codex_smoke(&codex_caller)?;
+    let codex_elapsed = lao_optimize::codex("codex", transaction.record.port, &codex_caller)?;
     println!("Codex local: ok ({} ms)", codex_elapsed.as_millis());
-    let claude_elapsed = claude_smoke(&claude_caller, transaction.record.port)?;
+    let claude_elapsed = lao_optimize::claude("claude", transaction.record.port, &claude_caller)?;
     println!("Claude local: ok ({} ms)", claude_elapsed.as_millis());
     Ok(())
 }
@@ -816,133 +816,6 @@ fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String
 
 fn managed_caller(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
-}
-
-fn codex_smoke(caller: &str) -> io::Result<Duration> {
-    let scratch = Scratch::new("codex")?;
-    let mut command = Command::new("codex");
-    command
-        .env("LAO_LOCAL_SELECTOR", "canary")
-        .current_dir(&scratch.0)
-        .args([
-            "-c",
-            "model_reasoning_effort=\"low\"",
-            "-c",
-            "mcp_servers={}",
-            "-c",
-            "web_search=\"disabled\"",
-            "exec",
-            "--strict-config",
-            "--ephemeral",
-            "--skip-git-repo-check",
-            "--color",
-            "never",
-            "--sandbox",
-            "read-only",
-            "--model",
-            "lao-local",
-            "Reply exactly 42. Do not use tools.",
-        ]);
-    client_smoke(&mut command, caller, "Codex local smoke")
-}
-
-fn claude_smoke(caller: &str, port: u16) -> io::Result<Duration> {
-    let scratch = Scratch::new("claude")?;
-    let settings = scratch.0.join("settings.json");
-    let bytes = serde_json::to_vec(&serde_json::json!({
-        "env": {
-            "ANTHROPIC_BASE_URL": format!("http://127.0.0.1:{port}/ant"),
-            "ANTHROPIC_CUSTOM_HEADERS": format!("X-LAO-Key: {caller}\nX-LAO-Local: canary"),
-            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
-        }
-    }))
-    .map_err(|_| invalid("Claude smoke settings"))?;
-    write_atomic(&settings, &bytes, 0o600)?;
-    let settings = settings
-        .to_str()
-        .ok_or_else(|| invalid("Claude smoke settings"))?;
-    let mut command = Command::new("claude");
-    command.current_dir(&scratch.0).args([
-        "--safe-mode",
-        "--settings",
-        settings,
-        "--no-session-persistence",
-        "--disable-slash-commands",
-        "--strict-mcp-config",
-        "--tools",
-        "",
-        "--effort",
-        "low",
-        "-p",
-        "--model",
-        "lao-local",
-        "Reply exactly 42. Do not use tools.",
-    ]);
-    client_smoke(&mut command, caller, "Claude local smoke")
-}
-
-fn client_smoke(
-    command: &mut Command,
-    caller: &str,
-    failure: &'static str,
-) -> io::Result<Duration> {
-    command
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped());
-    let started = Instant::now();
-    let output = client_output(command, Duration::from_secs(180))?;
-    if !output.status.success()
-        || output.stdout.trim_ascii() != b"42"
-        || contains(&output.stdout, caller.as_bytes())
-        || contains(&output.stderr, caller.as_bytes())
-    {
-        return Err(invalid(failure));
-    }
-    Ok(started.elapsed())
-}
-
-fn client_output(command: &mut Command, timeout: Duration) -> io::Result<Output> {
-    let mut child = command.spawn()?;
-    let deadline = Instant::now() + timeout;
-    loop {
-        if child.try_wait()?.is_some() {
-            return child.wait_with_output();
-        }
-        if Instant::now() >= deadline {
-            child.kill()?;
-            let _ = child.wait();
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "client smoke"));
-        }
-        thread::sleep(Duration::from_millis(20));
-    }
-}
-
-fn contains(haystack: &[u8], needle: &[u8]) -> bool {
-    !needle.is_empty() && haystack.windows(needle.len()).any(|part| part == needle)
-}
-
-struct Scratch(PathBuf);
-
-impl Scratch {
-    fn new(name: &str) -> io::Result<Self> {
-        let mut random = [0_u8; 8];
-        getrandom::getrandom(&mut random).map_err(|_| invalid("random"))?;
-        let suffix = random
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect::<String>();
-        let path = env::temp_dir().join(format!("lao-{name}-{suffix}"));
-        fs::create_dir(&path)?;
-        fs::set_permissions(&path, fs::Permissions::from_mode(0o700))?;
-        Ok(Self(path))
-    }
-}
-
-impl Drop for Scratch {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
-    }
 }
 
 fn preflight_clients() -> Result<&'static str> {
