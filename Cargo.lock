@@ -284,10 +284,14 @@ dependencies = [
 name = "lao-cli"
 version = "0.1.0"
 dependencies = [
+ "getrandom",
  "lao-claude",
  "lao-codex",
  "lao-model",
  "lao-run",
+ "libc",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
