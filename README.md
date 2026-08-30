@@ -13,6 +13,71 @@ The product is intended to let people continue using Codex and Claude Code norma
 
 This repository contains the research-backed product specification, implementation plan, architecture skeleton, and complete Stage 1 installed proof. It does not yet contain production automatic routing or release packaging.
 
+## Test Stage 1 on the supported Mac
+
+This is a research proof for the 24 GiB Apple M4 Mac used by the project. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store, and `lao off` restores the original settings exactly.
+
+Before starting, confirm the exact tested tools and existing saved logins:
+
+```sh
+cargo --version
+codex --version
+codex login status
+claude --version
+command -v llama-server
+llama-server --version
+```
+
+The tested versions are Rust/Cargo 1.98.0, Codex 0.146.0, Claude Code 2.1.251, and llama.cpp 10280 (`61881b1f7`). Codex must report its existing ChatGPT login, Claude Code must already be logged in, and `llama-server` must resolve to `/opt/homebrew/bin/llama-server`. Install verifies or downloads the immutable 1,117,320,768-byte Qwen model, so allow about 1.1 GB of network traffic and cache space on the first run.
+
+Build both required binaries, review the proposed model and resource ceiling, then install:
+
+```sh
+cargo build -p lao-cli -p lao-daemon
+./target/debug/lao preview
+./target/debug/lao install
+```
+
+Installation must end with `installed: Codex and Claude now use the launchd-owned LAO gate`. An already-running Codex process does not reload the new settings; use a new process for the checks below.
+
+First prove that an ordinary Codex request still uses the saved-login cloud path. This consumes one normal Codex turn:
+
+```sh
+env -u LAO_LOCAL_SELECTOR codex -c 'model_reasoning_effort="low"' \
+  -c 'mcp_servers={}' -c 'web_search="disabled"' exec \
+  --strict-config --ephemeral --skip-git-repo-check \
+  --color never --sandbox read-only --model gpt-5.4 \
+  'Reply exactly CODEX_CLOUD_E2E_OK. Do not use tools.'
+```
+
+The final line must be `CODEX_CLOUD_E2E_OK`. The local worker remains unloaded for this command.
+
+Then run the explicit, bounded local canary through Codex:
+
+```sh
+LAO_LOCAL_SELECTOR=canary codex -c 'model_reasoning_effort="low"' \
+  -c 'mcp_servers={}' -c 'web_search="disabled"' exec \
+  --strict-config --ephemeral --skip-git-repo-check \
+  --color never --sandbox read-only --model lao-local \
+  'Reply exactly 42. Do not use tools.'
+```
+
+The final line must be `42`. Keep `LAO_LOCAL_SELECTOR=canary` inline exactly as shown; never `export` it. The first local turn takes roughly 24 seconds on the tested Mac and starts an approximately 2.05 GiB worker. The accepted Stage 1 check uses Codex's non-interactive `exec` mode; the interactive TUI is not yet claimed as tested.
+
+To repeat the local canary through both installed harnesses with sanitized pass/fail output:
+
+```sh
+./target/debug/lao smoke
+```
+
+An install failure rolls back automatically. After a successful install, when finished—or immediately if a later check fails—restore both clients and stop LAO:
+
+```sh
+./target/debug/lao off
+```
+
+Do not edit the managed Codex or Claude settings between `install` and `off`; the transaction refuses to overwrite unexpected user changes. A successful `off` reports exact restoration and leaves no daemon, worker, listener, plist, runtime key, or log.
+
 ## Manifesto
 
 ### Product
@@ -73,15 +138,12 @@ This repository contains the research-backed product specification, implementati
 - Keep extraction possible, not mandatory.
 - Keep the visual architecture map current with the code.
 
-## How to begin
+## Contributor workflow
 
 1. Read the product architecture and implementation plan below.
 2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Follow the seven Stage 1 tasks in the implementation plan.
-4. Build only the real Codex + Claude → router → llama.cpp/cloud vertical slice.
-5. Keep cloud as default and use one explicit bounded local canary.
-6. Leave capture, eval, optimization, training, and extra backends disabled behind their APIs.
-7. Measure fit, protocol behavior, credential isolation, cleanup, and rollback.
+3. Keep cloud as the default and preserve the exact installed proof above.
+4. Leave capture, eval, optimization, training, and extra backends disabled behind their APIs until the plan activates them.
 
 Every agent starts here. If two solutions are equally safe and functional, choose the smaller one.
 
