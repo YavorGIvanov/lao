@@ -57,7 +57,6 @@ Already proven and retained:
 
 Not yet complete:
 
-- P0-05 transactional persistent client configuration;
 - the installed local/cloud/off acceptance run.
 
 ## Stage 1 tasks
@@ -125,7 +124,7 @@ Wire `gate`, `route`, and `run` in the daemon.
 - Strip every native credential and provider-specific secret before local egress.
 - Reject unsupported local transport shapes before output; do not silently change route mid-task.
 
-Current proof-only composition uses `LAO_LOCAL_CANARY=1` plus synthetic per-client caller tokens. Without that environment switch, the daemon remains closed and starts no model. This temporary switch is not persisted configuration and is removed or hidden by S1-04.
+The S1-03 proof used `LAO_LOCAL_CANARY=1` plus synthetic per-client caller tokens. S1-04 now owns those internal launch settings and generated caller keys; they are not a user-facing activation interface.
 
 Current evidence:
 
@@ -146,7 +145,7 @@ The canary E2E disables client retries. The existing relay cancellation proof ap
 
 ### S1-04 — Transactional `install` and `off`
 
-Status: pending. This is the remaining P0-05 work. Depends on S1-03.
+Status: complete (2026-08-30).
 
 Manage only the exact supported Codex and Claude Code settings.
 
@@ -167,6 +166,14 @@ Acceptance:
 - concurrent install is rejected cleanly;
 - user edits after install are not overwritten blindly;
 - off and uninstall never need provider credentials.
+
+Current evidence:
+
+- the Codex adapter performs a structural TOML edit and the Claude adapter preserves unrelated JSON settings;
+- the CLI stores byte-exact before/after files with original modes, while its crash record contains paths and phase but no caller key;
+- launchd bootstrap must produce a fresh 0600 adoption file and pass the exact inert hello before the first client write;
+- one main transaction test proves exact off, permission restoration, lock exclusion, and user-edit refusal;
+- one fault test induces failure at each of the two client write boundaries and proves both originals remain exact.
 
 ### S1-05 — Real installed acceptance
 

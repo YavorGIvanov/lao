@@ -163,7 +163,7 @@
       <div class="arrow">→</div>
       <div class="control-target">one slot · cache off<br>reject before load if it does not fit</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and the short-lived command is not in the request path. The private gate has passed installed-harness cloud E2Es. Pinned llama.cpp passes real 32K Responses and Messages probes under the Apple Light guard. By default the daemon stays closed and loads no model. The temporary <code>LAO_LOCAL_CANARY=1</code> proof switch is not an install interface; persistent client writes and production local routing remain off.</p>
+    <p class="note">You never code inside <code>lao</code>, and the short-lived command is not in the request path. The private gate has passed installed-harness cloud E2Es. Pinned llama.cpp passes real 32K Responses and Messages probes under the Apple Light guard. <code>lao install</code> now owns the internal activation settings and exact client transaction; the clean installed acceptance run remains next.</p>
   </section>
 
   <section class="client-page">
@@ -206,7 +206,7 @@
     <div class="mini-flow">request <span>→</span> gate consumes caller + selector <span>→</span> Context(client, operation, canary) <span>→</span> Local only for canary; otherwise Cloud <span>→</span> frozen target</div>
     <p class="note">Current S1-03 slice: the proof invocation adds the exact non-secret <code>X-LAO-Local: canary</code> selector. The gate accepts it only for non-empty, length-bounded Responses or Messages with the <code>application/json</code> media type; it does not classify the body. The gate consumes the selector, strips native/provider secrets, and injects only the runtime bearer. llama.cpp 10280 speaks both protocols natively, so bodies and SSE streams need no translation layer. <code>--alias lao-local</code> prevents the model path from becoming its public name.</p>
     <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd owns the socket before config changes and through daemon crashes. Same-user malware is out of scope. A user LaunchAgent protects only the active GUI login session—not logout or reboot.</p>
-    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file; S1-04 must also pass the exact hello before config changes. Native egress uses one DNS result and verified TLS. Redirects and hop-by-hop fields are not relayed. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
+    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file, and install also passes the exact inert hello before config changes. One owner-only lock and a token-free crash record protect atomic client writes; off restores exact bytes and modes before releasing the listener. Native egress uses one DNS result and verified TLS. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
   </section>
 
   <section>
@@ -264,7 +264,7 @@
     <table>
       <thead><tr><th>Component</th><th>Contract</th><th>Implementation</th><th>Runs in</th><th>Owns</th></tr></thead>
       <tbody>
-        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + preview</td></tr>
+        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + exact settings</td></tr>
         <tr><td>supervisor</td><td>launchd socket</td><td><a href="app/daemon/src/supervisor.rs">app/daemon/supervisor</a></td><td>launchd + daemon</td><td>loopback listener</td></tr>
         <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>request, secrets + frozen target</td></tr>
         <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>canary-only Local; Cloud otherwise</td></tr>
@@ -293,6 +293,7 @@
       <div class="check"><b>local runtime</b><p>Real 32K Qwen GGUF: fresh Light budget, pinned build, private endpoint, model output, stop and port release.</p></div>
       <div class="check"><b>model artifact</b><p>Real cached GGUF: exact length and SHA-256; wrong bytes fail before runtime handoff.</p></div>
       <div class="check"><b>local protocol</b><p>Installed Codex + Claude each returned exactly 42 through one real 32K Qwen load.</p></div>
+      <div class="check"><b>install transaction</b><p>Exact backups + modes, nonblocking owner lock, crash phases, both write-boundary failures, edit-aware off.</p></div>
     </div>
   </section>
 
