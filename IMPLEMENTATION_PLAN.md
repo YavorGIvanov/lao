@@ -1,4 +1,4 @@
-# Stage 1 implementation plan
+# Implementation plan
 
 ## Outcome
 
@@ -258,6 +258,34 @@ install once → keep using Codex or Claude → use cloud normally → request o
 
 The result must use saved harness authentication without LAO reading the real token, keep local inference within Light mode, and restore both clients exactly.
 
+## R1 — Safe runtime residency
+
+Status: complete (2026-08-30).
+
+This is the first measured post-Stage 1 slice. The installed local worker used about 2.05 GiB RSS and previously remained resident until daemon shutdown, while the measured cold start was 23.5 seconds. Release memory safely before considering preload or wider local routing.
+
+- Acquire one response-held runtime reference only after a Local route decision.
+- Hold the lease through the complete response stream, including cancellation.
+- Begin the idle window only after the last concurrent local lease ends.
+- Stop the worker at the first five-second check after five observed idle minutes, or as soon as an idle check observes macOS pressure.
+- Treat a failed pressure probe as pressure; never interrupt an active local stream.
+- Let the next Local request perform the existing fresh fit check and cold start.
+
+Acceptance:
+
+- cloud requests never start or retain the runtime;
+- an active or partially streamed local response cannot be evicted;
+- idle timeout and memory pressure both select eviction only with zero active leases;
+- eviction uses the proven owned stop path, which releases the child, key, and listener;
+- no preload, user setting, status surface, new model, or automatic routing is added.
+
+Current evidence:
+
+- the gate fixture proves Cloud acquires no lease, Local acquires exactly one, the lease remains held after response headers, and it releases after the response completes;
+- the daemon residency test proves pressure and the five-minute boundary select eviction;
+- the existing real runtime lifecycle proof covers owned stop, process cleanup, key removal, and port release;
+- focused tests, workspace checks, extraction, Clippy, and diff hygiene pass.
+
 ## Deferred backlog
 
 After the exit gate, choose the next measured bottleneck. The long-term contracts and constraints remain in the product architecture.
@@ -266,7 +294,7 @@ Deferred product work:
 
 - automatic difficulty routing, task stickiness, repair, escalation, and circuit breakers;
 - model catalog signatures, multiple models, preferences, recommendations, and llama-swap;
-- runtime residency in this order: idle unload and pressure eviction; only then background pre-load for installs with local routing enabled; only then parallel verification and start if measured cold latency still warrants it;
+- remaining runtime residency in this order: background preload only for installs with useful local routing enabled; only then parallel verification and start if measured cold latency still warrants it;
 - Ollama, LM Studio, ShoeHorn, FreeToken, NVIDIA, Linux, and Windows;
 - hooks and task-boundary tracking;
 - consented capture, scrub, snapshots, encrypted vault, retention, export, and deletion;

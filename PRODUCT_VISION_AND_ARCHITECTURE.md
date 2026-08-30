@@ -398,6 +398,8 @@ gate owns request + secrets
 
 Normal contexts resolve to Cloud. Local is possible only when the gate consumed the exact explicit canary selector. Pinned llama.cpp 10280 implements the required Responses and Messages HTTP/SSE shapes, so the Stage 1 local path has no translator. Installed Codex 0.151.0 and Claude Code 2.1.251 each completed the same real local canary through one gate, router, and model load.
 
+The first post-Stage 1 resource slice adds leased residency without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. After the final concurrent reference ends, a five-second watcher stops the worker after roughly five observed idle minutes or as soon as it observes macOS memory pressure. Pressure-probe failure evicts safely; active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud never acquires a runtime reference, and preload remains deferred.
+
 ### 6.1 Core interfaces
 
 The implementation must keep the public boundaries stable. Each public interface below lives in a versioned contract package; its concrete implementation lives elsewhere. A component may not import a sibling implementation, and only an application composition root may wire implementations together:
@@ -405,7 +407,7 @@ The implementation must keep the public boundaries stable. Each public interface
 - ClientAdapter: detect, configure, verify, pause, and restore Codex or Claude Code; register hooks and correlate sessions.
 - Gate: expose only sanitized TaskContext and an immutable RouteDecision boundary; credential sealing and egress materialization remain private ordered stages inside `svc/gate`.
 - RouterPolicy: accept TaskContext and return an explainable RouteDecision. The current Stage 1 contract is deliberately smaller: client, operation, and one boolean canary fact in; Local or Cloud out.
-- ManagedRuntime: prepare, start, health-check, benchmark, cancel, and stop a product-owned model process.
+- ManagedRuntime: prepare, start, health-check, benchmark, lease, cancel, and stop a product-owned model process.
 - ExternalEndpoint: probe, fingerprint, health-check, benchmark, and send requests without pulling, deleting, stopping, or reconfiguring user-owned Ollama or LM Studio instances.
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
 - ModelCatalog: return signed and revocable manifests, licenses, compatibility, artifacts, and quality priors.
@@ -598,7 +600,7 @@ The Rust supervisor launches one pinned llama-server process:
 - startup parsing plus health checks;
 - cancellation, graceful termination, crash cleanup, and no orphan ports.
 
-The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 32K context, answers real Responses and Messages HTTP/SSE requests, and releases its process and port on explicit stop. The 32K fixture used about 2.03 GiB RSS. Installed Codex and Claude both completed the real local canary against one load. This intentionally small model proves fit, lifecycle, and native protocol compatibility; parent-crash cleanup, automatic routing, lazy unload, and useful 7B/14B selection remain open.
+The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. A verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 32K context, answers real Responses and Messages HTTP/SSE requests, and releases its process and port on explicit stop. The 32K fixture used about 2.03 GiB RSS. Installed Codex and Claude both completed the real local canary against one load. The daemon now also leases that load through active response streams and unloads it after roughly five observed idle minutes or safe idle pressure detection. This intentionally small model proves fit, lifecycle, native protocol compatibility, and bounded residency; automatic routing and useful 7B/14B selection remain open.
 
 ### 8.4 v1 runtime adapters
 

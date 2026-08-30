@@ -2,7 +2,9 @@ use std::{
     error::Error,
     io,
     net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener as StdListener},
+    pin::Pin,
     sync::Arc,
+    task::{Context, Poll},
     time::Duration,
 };
 
@@ -114,10 +116,10 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
     #[cfg(test)]
     if let Some(fixture) = plan.fixture {
         let _ = target;
-        return relay(request, TcpStream::connect(fixture).await?).await;
+        return relay(request, TcpStream::connect(fixture).await?, endpoint).await;
     }
     if target.tls {
-        let response = relay(request, native(&target).await?).await;
+        let response = relay(request, native(&target).await?, None).await;
         #[cfg(test)]
         if let (Ok(response), Some(status)) = (&response, plan.status) {
             status.store(
@@ -127,7 +129,7 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
         }
         response
     } else {
-        relay(request, local(&target).await?).await
+        relay(request, local(&target).await?, endpoint).await
     }
 }
 
@@ -148,7 +150,11 @@ async fn resolve(local: &Option<Arc<dyn Local>>) -> Result<Arc<Endpoint>, Err> {
     }
 }
 
-async fn relay<I>(request: Request<Incoming>, stream: I) -> Result<Response<Body>, Err>
+async fn relay<I>(
+    request: Request<Incoming>,
+    stream: I,
+    endpoint: Option<Arc<Endpoint>>,
+) -> Result<Response<Body>, Err>
 where
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
@@ -161,7 +167,39 @@ where
         return Err(io::Error::new(io::ErrorKind::PermissionDenied, "redirect").into());
     }
     clean_response(response.headers_mut())?;
-    Ok(response.map(|body| body.map_err(Into::into).boxed_unsync()))
+    Ok(response.map(|body| {
+        Held {
+            body,
+            _endpoint: endpoint,
+        }
+        .map_err(|error| -> Err { error.into() })
+        .boxed_unsync()
+    }))
+}
+
+struct Held {
+    body: Incoming,
+    _endpoint: Option<Arc<Endpoint>>,
+}
+
+impl hyper::body::Body for Held {
+    type Data = Bytes;
+    type Error = hyper::Error;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        context: &mut Context<'_>,
+    ) -> Poll<Option<Result<hyper::body::Frame<Self::Data>, Self::Error>>> {
+        Pin::new(&mut self.get_mut().body).poll_frame(context)
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.body.is_end_stream()
+    }
+
+    fn size_hint(&self) -> hyper::body::SizeHint {
+        self.body.size_hint()
+    }
 }
 
 async fn native(target: &Target) -> Result<tokio_rustls::client::TlsStream<TcpStream>, Err> {
@@ -486,7 +524,7 @@ mod tests {
     }
 
     #[test]
-    fn local_runtime_is_requested_only_for_a_local_route() {
+    fn local_runtime_is_acquired_only_for_local_route_and_released() {
         rt(async {
             for (decision, selector, expected) in [
                 (Decision::Cloud, "", 0),
@@ -497,16 +535,18 @@ mod tests {
                 let gate = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
                 let gate_addr = gate.local_addr().unwrap();
                 let starts = Arc::new(AtomicUsize::new(0));
+                let endpoint = Arc::new(Endpoint::new(upstream_addr, "runtime"));
+                let held = Arc::downgrade(&endpoint);
                 let mut plan = plan(upstream_addr, decision);
-                plan.gate.local = Some(Arc::new(Started(
-                    starts.clone(),
-                    Arc::new(Endpoint::new(upstream_addr, "runtime")),
-                )));
+                plan.gate.local = Some(Arc::new(Started(starts.clone(), endpoint.clone())));
+                let streaming = held.clone();
                 let upstream_task = tokio::spawn(async move {
                     let (mut stream, _) = upstream.accept().await.unwrap();
                     let _ = read_request(&mut stream).await;
                     let head = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", SSE.len());
                     stream.write_all(head.as_bytes()).await.unwrap();
+                    tokio::task::yield_now().await;
+                    assert_eq!(streaming.strong_count(), expected + 2);
                     stream.write_all(SSE).await.unwrap();
                 });
                 let gate_task = tokio::spawn(async move {
@@ -526,6 +566,7 @@ mod tests {
                 gate_task.await.unwrap();
                 assert!(response.ends_with(SSE));
                 assert_eq!(starts.load(Ordering::Relaxed), expected);
+                assert_eq!(held.strong_count(), 1);
             }
         });
     }

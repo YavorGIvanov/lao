@@ -16,7 +16,7 @@ pub use lao_run_api::Mode;
 
 mod resource;
 
-pub use resource::plan;
+pub use resource::{plan, pressured};
 
 pub const BUILD: &str = "version: 10280 (61881b1f7)";
 

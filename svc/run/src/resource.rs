@@ -14,7 +14,7 @@ struct Pool {
 
 pub fn plan(bin: &Path, mode: Mode) -> io::Result<Budget> {
     let mut pool = probe(bin)?;
-    if pressure()? != 1 {
+    if pressured()? {
         pool.available = 0;
     }
     Ok(resolve(
@@ -22,6 +22,10 @@ pub fn plan(bin: &Path, mode: Mode) -> io::Result<Budget> {
         pool,
         std::thread::available_parallelism()?.get(),
     ))
+}
+
+pub fn pressured() -> io::Result<bool> {
+    Ok(pressure()? != 1)
 }
 
 fn resolve(mode: Mode, pool: Pool, cpus: usize) -> Budget {

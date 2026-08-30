@@ -37,21 +37,6 @@
     .flow { min-height: 210px; }
     .control-flow { margin-top: 22px; }
     .control-target { color: var(--dim); }
-    .proofs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 22px; }
-    .proof { border-left: 2px solid var(--yellow); padding: 8px 12px; color: var(--dim); }
-    .proof b { color: var(--chalk); }
-    .client-page { padding-top: 46px; }
-    .client-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
-    .client-card { border: 2px solid var(--chalk); padding: 20px; box-shadow: 3px 3px 0 var(--line); }
-    .client-card:nth-child(2) { transform: rotate(.2deg); }
-    .client-card h3 { font-size: 1.3rem; }
-    .mini-flow { color: var(--yellow); padding: 14px 0; line-height: 1.8; }
-    .mini-flow span { color: var(--dim); }
-    .facts { margin: 0; padding-left: 20px; color: var(--dim); }
-    .facts li { margin: 7px 0; }
-    .north { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .north div { border-top: 2px solid var(--green); padding-top: 10px; color: var(--dim); }
-    .north b { display: block; color: var(--chalk); margin-bottom: 5px; }
     .stack { display: grid; gap: 10px; }
     .node {
       border: 2px solid var(--chalk);
@@ -98,7 +83,7 @@
       .flow { flex-direction: column; }
       .flow .arrow { transform: rotate(90deg); }
       .control-flow { align-items: flex-start; }
-      .layers, .grid, .proofs, .client-cards, .north { grid-template-columns: 1fr; display: grid; }
+      .layers, .grid { grid-template-columns: 1fr; display: grid; }
       .layer { width: 100%; }
       .checks { grid-template-columns: 1fr; }
       table { display: block; overflow-x: auto; }
@@ -106,20 +91,19 @@
     @media print {
       :root { color-scheme: light; --board: #fff; --chalk: #111; --dim: #333; --green: #174c28; --yellow: #644d00; --line: #777; }
       main { width: 100%; padding: 0; }
-      .client-page { break-before: page; }
     }
   </style>
 </head>
 <body>
 <main>
   <header>
-    <div class="note">LOCAL AGENT OPTIMIZER · TARGET MAP + CURRENT EVIDENCE</div>
-    <h1>How the pieces should fit.</h1>
-    <p>LAO sits quietly beside Codex and Claude Code. Today, normal work stays on native cloud and one explicit proof canary may reach a local model. Automatic easy-task routing comes later. The harness stays in charge.</p>
+    <div class="note">LOCAL AGENT OPTIMIZER · SYSTEM MAP</div>
+    <h1>How LAO fits together.</h1>
+    <p>Codex and Claude Code remain the user interface. LAO adds one private local gate, keeps cloud as the default, and starts the verified local runtime only for the explicit proof canary.</p>
   </header>
 
   <section>
-    <h2>1. The runtime idea</h2>
+    <h2>1. Request and control paths</h2>
     <div class="flow" aria-label="Codex and Claude Code reach the LAO daemon through a launchd-owned socket, then use a local runtime or native cloud path.">
       <div class="stack">
         <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
@@ -146,17 +130,6 @@
       <div class="arrow">⇢</div>
       <div class="control-target"><code>codex + claude adapters</code><br><code>preview · install · smoke · off</code><br>then the command exits</div>
     </div>
-    <div class="proofs" aria-label="Installed-client compatibility evidence">
-      <div class="proof"><b>Codex 0.151.0</b><br>saved-login success + error → gate → cloud</div>
-      <div class="proof"><b>Claude Code 2.1.251</b><br>saved Claude.ai login → gate → cloud</div>
-      <div class="proof"><b>private gate</b><br>bounded DNS + verified TLS + SSE pass</div>
-      <div class="proof"><b>launchd lifecycle</b><br>opt-in prebind + crash pass</div>
-      <div class="proof"><b>llama.cpp 10280</b><br>real Qwen output · exact 32K context</div>
-      <div class="proof"><b>one artifact</b><br>immutable revision · size · SHA-256 · license</div>
-      <div class="proof"><b>native local protocols</b><br>Responses + Messages SSE · no translator</div>
-      <div class="proof"><b>real local canary</b><br>Codex + Claude → router → one Qwen load</div>
-      <div class="proof"><b>installed acceptance</b><br>cloud · local · restart · exact off</div>
-    </div>
     <div class="control-flow" aria-label="Apple memory and llama.cpp device visibility resolve one budget before local model load.">
       <div class="node"><strong>fresh fit check</strong><small>24 GiB unified + OS pressure + Metal cap</small></div>
       <div class="arrow">→</div>
@@ -164,33 +137,15 @@
       <div class="arrow">→</div>
       <div class="control-target">one slot · cache off<br>reject before load if it does not fit</div>
     </div>
-    <p class="note">You never code inside <code>lao</code>, and the short-lived command is not in the request path. The private gate has passed installed-harness cloud and local E2Es, including a daemon restart. Pinned llama.cpp passes real 32K Responses and Messages probes under the Apple Light guard. <code>lao off</code> restored both clients exactly and left no worker or listener.</p>
+    <p class="note">The short-lived <code>lao</code> command is not in the request path. Local loads must pass the fresh Light budget; active streams retain the worker, and idle time or memory pressure unloads it.</p>
   </section>
 
-  <section class="client-page">
-    <h2>2. How Codex and Claude connect</h2>
-    <p>Stage 1 installed proof: the commands stay familiar. Their managed settings point model requests at one supervisor-owned loopback gate. Each client gets its own private caller token. Native provider credentials stay separate.</p>
-    <div class="client-cards">
-      <article class="client-card">
-        <h3>Codex</h3>
-        <div class="mini-flow">codex <span>→</span> provider “lao” <span>→</span> /oai + caller key <span>→</span> gate</div>
-        <ul class="facts">
-          <li>Reuses Codex native auth. LAO does not read its auth files.</li>
-          <li>Uses HTTP/SSE first. No WebSocket fallback dance.</li>
-          <li>Saved-login cloud and real local-canary E2Es passed.</li>
-          <li>User config can also affect the Codex IDE extension.</li>
-        </ul>
-      </article>
-      <article class="client-card">
-        <h3>Claude Code</h3>
-        <div class="mini-flow">claude <span>→</span> /ant + caller key <span>→</span> gate</div>
-        <ul class="facts">
-          <li>Uses the official gateway base URL and a custom caller header.</li>
-          <li>The harmless HEAD hello probe is the only token-free request.</li>
-          <li>Saved-login cloud and real local-canary E2Es passed.</li>
-          <li>Remote Control is disabled by a custom base URL.</li>
-        </ul>
-      </article>
+  <section>
+    <h2>2. Trust boundaries</h2>
+    <div class="checks">
+      <div class="check"><b>Caller</b><p>Each harness has a separate owner-only capability. launchd owns the loopback listener before settings change.</p></div>
+      <div class="check"><b>Decision</b><p>The gate keeps the request and secrets. The router sees only client, operation, and the canary fact.</p></div>
+      <div class="check"><b>Egress</b><p>Local receives no provider credential. Cloud can reach only the matching native origin over verified TLS.</p></div>
     </div>
     <div class="flow" aria-label="The gate authenticates the local caller, gives only client and operation to the router, then freezes a clean local or exact native cloud route.">
       <div class="node"><strong>client request</strong><small>caller token + native auth</small></div>
@@ -204,10 +159,7 @@
         <div class="node"><strong>native cloud</strong><small>normal default</small></div>
       </div>
     </div>
-    <div class="mini-flow">request <span>→</span> gate consumes caller + selector <span>→</span> Context(client, operation, canary) <span>→</span> Local only for canary; otherwise Cloud <span>→</span> frozen target</div>
-    <p class="note">Current S1-03 slice: the proof invocation adds the exact non-secret <code>X-LAO-Local: canary</code> selector. The gate accepts it only for non-empty, length-bounded Responses or Messages with the <code>application/json</code> media type; it does not classify the body. The gate consumes the selector, strips native/provider secrets, and injects only the runtime bearer. llama.cpp 10280 speaks both protocols natively, so bodies and SSE streams need no translation layer. <code>--alias lao-local</code> prevents the model path from becoming its public name.</p>
-    <p class="note">The two caller tokens are different and plaintext in owner-only settings; these clients have no Keychain custom-header resolver. A token authenticates only the caller, so launchd owns the socket before config changes and through daemon crashes. Same-user malware is out of scope. A user LaunchAgent protects only the active GUI login session—not logout or reboot.</p>
-    <p class="note">Current slice: launchd owns one IPv4 loopback listener. The daemon writes a fresh 0600 adoption file, and install also passes the exact inert hello before config changes. One owner-only lock and a token-free crash record protect atomic client writes; off restores exact bytes and modes before releasing the listener. Native egress uses one DNS result and verified TLS. Release installs need one stable signed and notarized daemon identity; ad-hoc test builds may prompt.</p>
+    <p class="note">Only the exact, non-secret canary selector permits Local. Every normal request remains Cloud. The implementation plan carries the detailed protocol and acceptance evidence.</p>
   </section>
 
   <section>
@@ -240,7 +192,7 @@
   <section>
     <h2>5. Workspace map</h2>
     <div class="grid">
-      <pre aria-label="Repository folder tree">new/
+      <pre aria-label="Repository folder tree">lao/
 ├── Cargo.toml       29-package workspace
 ├── api/             public contracts + wire
 ├── svc/             private implementations
@@ -261,21 +213,16 @@
   </section>
 
   <section>
-    <h2>6. Component → code</h2>
+    <h2>6. Component ownership</h2>
     <table>
-      <thead><tr><th>Component</th><th>Contract</th><th>Implementation</th><th>Runs in</th><th>Owns</th></tr></thead>
+      <thead><tr><th>Area</th><th>Code</th><th>Responsibility</th></tr></thead>
       <tbody>
-        <tr><td>clients</td><td><a href="api/client/Cargo.toml">api/client</a></td><td><a href="svc/codex/Cargo.toml">svc/codex</a> + <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>short-lived CLI</td><td>version, conflicts + exact settings</td></tr>
-        <tr><td>supervisor</td><td>launchd socket</td><td><a href="app/daemon/src/supervisor.rs">app/daemon/supervisor</a></td><td>launchd + daemon</td><td>loopback listener</td></tr>
-        <tr><td>gate</td><td><a href="api/gate/Cargo.toml">api/gate</a></td><td><a href="svc/gate/Cargo.toml">svc/gate</a></td><td>daemon</td><td>request, secrets + frozen target</td></tr>
-        <tr><td>route</td><td><a href="api/route/Cargo.toml">api/route</a></td><td><a href="svc/route/Cargo.toml">svc/route</a></td><td>daemon</td><td>canary-only Local; Cloud otherwise</td></tr>
-        <tr><td>run</td><td><a href="api/run/Cargo.toml">api/run</a></td><td><a href="svc/run/Cargo.toml">svc/run</a></td><td>daemon + child</td><td>fit + private endpoint</td></tr>
-        <tr><td>model</td><td><a href="api/model/Cargo.toml">api/model</a></td><td><a href="svc/model/Cargo.toml">svc/model</a></td><td>daemon</td><td>one verified artifact</td></tr>
-        <tr><td>capture</td><td><a href="api/capture/Cargo.toml">api/capture</a></td><td><a href="svc/capture/Cargo.toml">svc/capture</a></td><td>capture worker</td><td>raw ingress + scrub</td></tr>
-        <tr><td>vault</td><td><a href="api/vault/Cargo.toml">api/vault</a></td><td><a href="svc/vault/Cargo.toml">svc/vault</a></td><td>vault worker</td><td>encrypted store</td></tr>
-        <tr><td>eval</td><td><a href="api/eval/Cargo.toml">api/eval</a></td><td><a href="svc/eval/Cargo.toml">svc/eval</a></td><td>eval worker</td><td>campaign results</td></tr>
-        <tr><td>train</td><td><a href="api/train/Cargo.toml">api/train</a></td><td><a href="svc/train/Cargo.toml">svc/train</a></td><td>train worker</td><td>eligible candidates</td></tr>
-        <tr><td>wire</td><td><a href="api/wire/Cargo.toml">api/wire</a></td><td>transport adapter</td><td>local RPC</td><td>framing only</td></tr>
+        <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, and restore harness settings.</td></tr>
+        <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
+        <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Choose canary-only Local or default Cloud.</td></tr>
+        <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Verify fit and artifact, then own the llama.cpp child.</td></tr>
+        <tr><td>Applications</td><td><a href="app/daemon/Cargo.toml">app/daemon</a> · <a href="app/cli/Cargo.toml">app/cli</a></td><td>Wire components; own the long- and short-lived process roots.</td></tr>
+        <tr><td>Deferred data path</td><td><code>capture · vault · eval · train</code></td><td>Remain isolated, lazy, and consent-gated.</td></tr>
       </tbody>
     </table>
   </section>
@@ -286,33 +233,8 @@
       <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
       <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
       <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
-      <div class="check"><b>early proxy proof</b><p>Measures byte streaming, keep-alive and cancellation in the small transport prototype.</p></div>
-      <div class="check"><b>gate policy</b><p>Proves exact ingress, matching auth classes, frozen targets and clean local headers.</p></div>
-      <div class="check"><b>router handoff</b><p>Exposes only client, operation and canary; Local is impossible without the exact selector.</p></div>
-      <div class="check"><b>gate transport</b><p>Preserves SSE and native errors, and closes upstream when the client disconnects.</p></div>
-      <div class="check"><b>launchd lifecycle</b><p>Explicit opt-in proof of adoption, live hello, hostile-prebind failure and listener ownership across daemon death.</p></div>
-      <div class="check"><b>local runtime</b><p>Real 32K Qwen GGUF: fresh Light budget, pinned build, private endpoint, model output, stop and port release.</p></div>
-      <div class="check"><b>model artifact</b><p>Real cached GGUF: exact length and SHA-256; wrong bytes fail before runtime handoff.</p></div>
-      <div class="check"><b>local protocol</b><p>Installed Codex + Claude each returned exactly 42 through one real 32K Qwen load.</p></div>
-      <div class="check"><b>install transaction</b><p>Exact backups + modes, nonblocking owner lock, crash phases, both write-boundary failures, edit-aware off.</p></div>
-      <div class="check"><b>installed acceptance</b><p>Both saved-login cloud paths, both local canaries, restart, 2.05 GiB peak RSS, exact restoration and clean process exit.</p></div>
     </div>
-  </section>
-
-  <section>
-    <h2>8. The manifesto is the north star</h2>
-    <div class="north">
-      <div><b>Keep the harness.</b>The user keeps coding in Codex or Claude.</div>
-      <div><b>Start modestly.</b>Use local only for clearly bounded work.</div>
-      <div><b>Write less.</b>Prefer one small seam over a framework.</div>
-      <div><b>Measure it.</b>Promote models and routes only from evidence.</div>
-      <div><b>Ask first.</b>Capture, spend, cloud eval, and training need consent.</div>
-      <div><b>Own boundaries.</b>Private state. Versioned APIs. No sibling imports.</div>
-      <div><b>Leave headroom.</b>Never consume the whole machine.</div>
-      <div><b>Simplify last.</b>Remove safe complexity after every change.</div>
-      <div><b>Test the real path.</b>Run cheap end-to-end checks when they are safe.</div>
-    </div>
-    <p class="note">The complete project and coding manifesto is the first section of <a href="README.md">README.md</a>. Every implementation agent starts there.</p>
+    <p class="note">Detailed acceptance evidence lives in <a href="IMPLEMENTATION_PLAN.md">IMPLEMENTATION_PLAN.md</a>; product principles live in <a href="README.md">README.md</a>.</p>
   </section>
 
   <footer>
