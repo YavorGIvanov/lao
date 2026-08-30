@@ -118,7 +118,7 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
     }
     let raw = original.unwrap_or_default();
     let text = std::str::from_utf8(raw).map_err(|_| ConfigError::Invalid)?;
-    let document = text
+    let mut document = text
         .parse::<toml_edit::DocumentMut>()
         .map_err(|_| ConfigError::Invalid)?;
     if [
@@ -134,17 +134,19 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
         return Err(ConfigError::Conflict);
     }
 
-    let mut configured = text.to_owned();
-    if !configured.is_empty() && !configured.ends_with('\n') {
-        configured.push('\n');
-    }
-    configured.push_str(&format!(
-        "model_provider = \"lao\"\n\n[model_providers.lao]\nname = \"LAO\"\nbase_url = \"http://127.0.0.1:{port}/oai\"\nrequires_openai_auth = true\nsupports_websockets = false\nhttp_headers = {{ X-LAO-Key = \"{caller}\" }}\n"
-    ));
-    configured
-        .parse::<toml_edit::DocumentMut>()
-        .map_err(|_| ConfigError::Invalid)?;
-    Ok(configured.into_bytes())
+    document["model_provider"] = toml_edit::value("lao");
+    let mut headers = toml_edit::InlineTable::new();
+    headers.insert("X-LAO-Key", caller.into());
+    let mut provider = toml_edit::Table::new();
+    provider["name"] = toml_edit::value("LAO");
+    provider["base_url"] = toml_edit::value(format!("http://127.0.0.1:{port}/oai"));
+    provider["requires_openai_auth"] = toml_edit::value(true);
+    provider["supports_websockets"] = toml_edit::value(false);
+    provider["http_headers"] = toml_edit::Item::Value(headers.into());
+    let mut providers = toml_edit::Table::new();
+    providers["lao"] = toml_edit::Item::Table(provider);
+    document["model_providers"] = toml_edit::Item::Table(providers);
+    Ok(document.to_string().into_bytes())
 }
 
 fn valid_caller(value: &str) -> bool {
@@ -246,13 +248,21 @@ mod tests {
         );
         assert_eq!(preview(0), Err(PreviewError));
 
-        let original = b"model = \"gpt-5.4\"\n";
+        let original = b"model = \"gpt-5.4\"\n[mcp_servers.fixture]\ncommand = \"true\"\n";
         let configured =
             configure(Some(original), 8765, "0123456789abcdef0123456789abcdef").unwrap();
-        assert!(configured.starts_with(original));
         let configured = String::from_utf8(configured).unwrap();
-        assert!(configured.contains("model_provider = \"lao\""));
-        assert!(configured.contains("base_url = \"http://127.0.0.1:8765/oai\""));
+        let configured = configured.parse::<toml_edit::DocumentMut>().unwrap();
+        assert_eq!(configured["model"].as_str(), Some("gpt-5.4"));
+        assert_eq!(configured["model_provider"].as_str(), Some("lao"));
+        assert_eq!(
+            configured["model_providers"]["lao"]["base_url"].as_str(),
+            Some("http://127.0.0.1:8765/oai")
+        );
+        assert_eq!(
+            configured["mcp_servers"]["fixture"]["command"].as_str(),
+            Some("true")
+        );
         assert_eq!(
             configure(
                 Some(b"model_provider = \"other\"\n"),
