@@ -146,6 +146,12 @@ enum Action {
     Off,
 }
 
+struct Clients {
+    codex: PathBuf,
+    claude: PathBuf,
+    cloud: &'static str,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 struct Entry {
     path: PathBuf,
@@ -630,7 +636,7 @@ fn install(selected: &Selected) -> Result<()> {
         return Err(conflict("conflicting launchd service").into());
     }
 
-    let codex_cloud = preflight_clients()?;
+    let clients = preflight_clients()?;
     if selected.choice.router == Router::Semantic {
         println!("preparing semantic router...");
         lao_route::prepare(&paths.router)?;
@@ -655,7 +661,7 @@ fn install(selected: &Selected) -> Result<()> {
         .ok_or_else(|| invalid("Codex model catalog"))?
         .join("models_cache.json");
     if !codex_catalog.is_file() {
-        probe("codex", &["debug", "models"])?;
+        probe(&clients.codex, &["debug", "models"])?;
     }
     if !codex_catalog.is_file() {
         return Err(invalid("Codex model catalog").into());
@@ -681,7 +687,7 @@ fn install(selected: &Selected) -> Result<()> {
         port,
         &codex_caller,
         &claude_caller,
-        codex_cloud,
+        &clients,
     )?;
     write_atomic(&paths.state.join(PLIST_AFTER), plist.as_bytes(), 0o600)?;
     let result = (|| -> Result<()> {
@@ -818,7 +824,7 @@ fn managed_caller(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-fn preflight_clients() -> Result<&'static str> {
+fn preflight_clients() -> Result<Clients> {
     let keys: Vec<_> = env::vars_os()
         .filter_map(|(key, _)| key.into_string().ok())
         .collect();
@@ -829,24 +835,43 @@ fn preflight_clients() -> Result<&'static str> {
         return Err(conflict("conflicting Claude environment configuration").into());
     }
 
-    let codex = command("codex", &["--version"])?;
+    let codex_bin = executable("codex")?;
+    let claude_bin = executable("claude")?;
+    let codex = command(&codex_bin, &["--version"])?;
     if lao_codex::support(&codex) != lao_codex::Support::Observed {
         return Err(conflict("unsupported Codex version").into());
     }
-    let auth = command("codex", &["login", "status"])?;
+    let auth = command(&codex_bin, &["login", "status"])?;
     let cloud = match lao_codex::auth(&auth) {
         lao_codex::Auth::ChatGpt => "chatgpt",
         lao_codex::Auth::ApiKey => "openai",
         _ => return Err(conflict("unsupported Codex authentication").into()),
     };
-    let claude = command("claude", &["--version"])?;
+    let claude = command(&claude_bin, &["--version"])?;
     if lao_claude::support(&claude) != lao_claude::Support::Observed {
         return Err(conflict("unsupported Claude Code version").into());
     }
-    Ok(cloud)
+    Ok(Clients {
+        codex: codex_bin,
+        claude: claude_bin,
+        cloud,
+    })
 }
 
-fn command(bin: &str, args: &[&str]) -> io::Result<String> {
+fn executable(name: &str) -> io::Result<PathBuf> {
+    let path = env::var_os("PATH").ok_or_else(|| invalid("client executable"))?;
+    for directory in env::split_paths(&path).filter(|path| path.is_absolute()) {
+        let candidate = directory.join(name);
+        if fs::metadata(&candidate)
+            .is_ok_and(|metadata| metadata.is_file() && metadata.mode() & 0o111 != 0)
+        {
+            return Ok(candidate);
+        }
+    }
+    Err(invalid("client executable"))
+}
+
+fn command(bin: &Path, args: &[&str]) -> io::Result<String> {
     let output = Command::new(bin).args(args).stdin(Stdio::null()).output()?;
     if !output.status.success() {
         return Err(invalid("client preflight"));
@@ -856,7 +881,7 @@ fn command(bin: &str, args: &[&str]) -> io::Result<String> {
     String::from_utf8(bytes).map_err(|_| invalid("client preflight"))
 }
 
-fn probe(bin: &str, args: &[&str]) -> io::Result<()> {
+fn probe(bin: &Path, args: &[&str]) -> io::Result<()> {
     Command::new(bin)
         .args(args)
         .stdin(Stdio::null())
@@ -1187,23 +1212,36 @@ fn plist(
     port: u16,
     codex: &str,
     claude: &str,
-    codex_cloud: &str,
+    clients: &Clients,
 ) -> io::Result<String> {
     let error_path = paths.state.join(DAEMON_ERROR);
     let values = [
         paths.daemon.to_str(),
         paths.adopted.to_str(),
         error_path.to_str(),
+        clients.codex.to_str(),
+        clients.claude.to_str(),
     ];
     if values.iter().any(Option::is_none) {
         return Err(invalid("non-UTF-8 install path"));
     }
-    let adapters = adapter_env(paths, selected)?;
+    let mut adapters = adapter_env(paths, selected)?;
+    env_entry(
+        &mut adapters,
+        "LAO_CODEX_BIN",
+        values[3].ok_or_else(|| invalid("non-UTF-8 install path"))?,
+    );
+    env_entry(
+        &mut adapters,
+        "LAO_CLAUDE_BIN",
+        values[4].ok_or_else(|| invalid("non-UTF-8 install path"))?,
+    );
     Ok(format!(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
         daemon = xml(values[0].unwrap()),
         adopted = xml(values[1].unwrap()),
         error = xml(values[2].unwrap()),
+        codex_cloud = clients.cloud,
     ))
 }
 

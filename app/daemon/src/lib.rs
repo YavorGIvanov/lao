@@ -13,6 +13,7 @@ use std::{
     time::Duration,
 };
 
+use lao_optimize_api::{Optimize, Plan};
 use lao_run_api::{Endpoint, Local};
 
 const PRESSURE_POLL: Duration = Duration::from_secs(5);
@@ -40,6 +41,7 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
     match env::var("LAO_LOCAL_CANARY").as_deref() {
         Err(env::VarError::NotPresent) => lao_gate::closed(listener, lao_route::Router),
         Ok("1") => {
+            let port = listener.local_addr()?.port();
             let codex = caller("LAO_CODEX_CALLER")?;
             let claude = caller("LAO_CLAUDE_CALLER")?;
             let codex_cloud = match env::var("LAO_CODEX_CLOUD").as_deref() {
@@ -57,6 +59,7 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
                 Ok("vllm-semantic") => Arc::new(vllm()?),
                 _ => return Err("LAO_ROUTER".into()),
             };
+            warm(port, codex, claude);
             lao_gate::installed(listener, policy, local, codex, claude, codex_cloud)
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
@@ -117,8 +120,26 @@ fn key(name: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     Ok(value)
 }
 
-/// The runtime starts on the first Local request, so cloud work never waits for a model load
-/// and an install that never routes Local never loads one.
+fn warm(port: u16, codex: [u8; 64], claude: [u8; 64]) {
+    let (Some(codex_bin), Some(claude_bin)) =
+        (env::var_os("LAO_CODEX_BIN"), env::var_os("LAO_CLAUDE_BIN"))
+    else {
+        return;
+    };
+    let (Ok(codex), Ok(claude)) = (
+        String::from_utf8(codex.to_vec()),
+        String::from_utf8(claude.to_vec()),
+    ) else {
+        return;
+    };
+    let plan = Plan::new(
+        move || lao_optimize::claude(claude_bin, port, &claude).map(|_| ()),
+        move || lao_optimize::codex(codex_bin, port, &codex).map(|_| ()),
+    );
+    let _ = lao_optimize::Optimizer::default().start(plan);
+}
+
+/// The optimizer may start the runtime in the background; requests never wait on that policy.
 struct Lazy {
     state: Arc<Mutex<State>>,
 }

@@ -1299,6 +1299,8 @@ version = "0.1.0"
 dependencies = [
  "lao-gate",
  "lao-model",
+ "lao-optimize",
+ "lao-optimize-api",
  "lao-route",
  "lao-route-api",
  "lao-run",
