@@ -160,6 +160,97 @@ pub fn configure(
     Ok(document.to_string().into_bytes())
 }
 
+pub fn verify(
+    current: &[u8],
+    installed: &[u8],
+    original: Option<&[u8]>,
+) -> Result<(), ConfigError> {
+    let current = document(current)?;
+    let installed = document(installed)?;
+    let original = document(original.unwrap_or_default())?;
+    let current_provider = provider(&current)?;
+    let installed_provider = provider(&installed)?;
+    let current_headers = current_provider["http_headers"]
+        .as_inline_table()
+        .ok_or(ConfigError::Invalid)?;
+    let installed_headers = installed_provider["http_headers"]
+        .as_inline_table()
+        .ok_or(ConfigError::Invalid)?;
+    let current_environment = current_provider["env_http_headers"]
+        .as_inline_table()
+        .ok_or(ConfigError::Invalid)?;
+    let installed_environment = installed_provider["env_http_headers"]
+        .as_inline_table()
+        .ok_or(ConfigError::Invalid)?;
+    if current["model_provider"].as_str() != installed["model_provider"].as_str()
+        || current_provider.len() != 6
+        || current_headers.len() != 1
+        || current_environment.len() != 1
+        || current_provider["name"].as_str() != installed_provider["name"].as_str()
+        || current_provider["base_url"].as_str() != installed_provider["base_url"].as_str()
+        || current_provider["requires_openai_auth"].as_bool()
+            != installed_provider["requires_openai_auth"].as_bool()
+        || current_provider["supports_websockets"].as_bool()
+            != installed_provider["supports_websockets"].as_bool()
+        || current_headers
+            .get("X-LAO-Key")
+            .and_then(toml_edit::Value::as_str)
+            != installed_headers
+                .get("X-LAO-Key")
+                .and_then(toml_edit::Value::as_str)
+        || current_environment
+            .get("X-LAO-Local")
+            .and_then(toml_edit::Value::as_str)
+            != installed_environment
+                .get("X-LAO-Local")
+                .and_then(toml_edit::Value::as_str)
+    {
+        return Err(ConfigError::Conflict);
+    }
+    if !original.contains_key("model_catalog_json")
+        && current["model_catalog_json"].as_str() != installed["model_catalog_json"].as_str()
+    {
+        return Err(ConfigError::Conflict);
+    }
+    Ok(())
+}
+
+pub fn restore(
+    current: &[u8],
+    installed: &[u8],
+    original: Option<&[u8]>,
+) -> Result<Vec<u8>, ConfigError> {
+    let original = original.unwrap_or_default();
+    if current == installed {
+        return Ok(original.to_vec());
+    }
+    verify(current, installed, Some(original))?;
+    let mut current = document(current)?;
+    current.remove("model_provider");
+    current.remove("model_providers");
+    if !document(original)?.contains_key("model_catalog_json") {
+        current.remove("model_catalog_json");
+    }
+    Ok(current.to_string().into_bytes())
+}
+
+fn document(bytes: &[u8]) -> Result<toml_edit::DocumentMut, ConfigError> {
+    std::str::from_utf8(bytes)
+        .map_err(|_| ConfigError::Invalid)?
+        .parse()
+        .map_err(|_| ConfigError::Invalid)
+}
+
+fn provider(document: &toml_edit::DocumentMut) -> Result<&toml_edit::Table, ConfigError> {
+    let providers = document["model_providers"]
+        .as_table()
+        .ok_or(ConfigError::Invalid)?;
+    if providers.len() != 1 {
+        return Err(ConfigError::Conflict);
+    }
+    providers["lao"].as_table().ok_or(ConfigError::Invalid)
+}
+
 fn valid_caller(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -298,6 +389,39 @@ mod tests {
                 "/tmp/models.json",
             ),
             Err(ConfigError::Conflict)
+        );
+    }
+
+    #[test]
+    fn preserves_unrelated_edits_when_restoring_managed_settings() {
+        let original = b"model = \"gpt-5.4\"\n";
+        let installed = configure(
+            Some(original),
+            8765,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            "/tmp/models.json",
+        )
+        .unwrap();
+        let mut current = String::from_utf8(installed.clone()).unwrap();
+        current.push_str("\n[projects.\"/tmp/new\"]\ntrust_level = \"trusted\"\n");
+
+        verify(current.as_bytes(), &installed, Some(original)).unwrap();
+        let restored =
+            String::from_utf8(restore(current.as_bytes(), &installed, Some(original)).unwrap())
+                .unwrap();
+        assert!(restored.contains("model = \"gpt-5.4\""));
+        assert!(restored.contains("[projects.\"/tmp/new\"]"));
+        assert!(!restored.contains("model_provider"));
+        assert!(!restored.contains("model_catalog_json"));
+
+        let changed = current.replace("127.0.0.1:8765", "127.0.0.1:9999");
+        assert_eq!(
+            restore(changed.as_bytes(), &installed, Some(original)),
+            Err(ConfigError::Conflict)
+        );
+        assert_eq!(
+            restore(&installed, &installed, Some(original)).unwrap(),
+            original
         );
     }
 }

@@ -119,6 +119,58 @@ pub fn configure(original: Option<&[u8]>, port: u16, caller: &str) -> Result<Vec
     serde_json::to_vec_pretty(&root).map_err(|_| ConfigError::Invalid)
 }
 
+pub fn verify(current: &[u8], installed: &[u8]) -> Result<(), ConfigError> {
+    let current = object(current)?;
+    let installed = object(installed)?;
+    let current_env = current
+        .get("env")
+        .and_then(Value::as_object)
+        .ok_or(ConfigError::Invalid)?;
+    let installed_env = installed
+        .get("env")
+        .and_then(Value::as_object)
+        .ok_or(ConfigError::Invalid)?;
+    for key in ["ANTHROPIC_BASE_URL", "ANTHROPIC_CUSTOM_HEADERS"] {
+        if current_env.get(key) != installed_env.get(key) {
+            return Err(ConfigError::Conflict);
+        }
+    }
+    Ok(())
+}
+
+pub fn restore(
+    current: &[u8],
+    installed: &[u8],
+    original: Option<&[u8]>,
+) -> Result<Vec<u8>, ConfigError> {
+    let original = original.unwrap_or_default();
+    if current == installed {
+        return Ok(original.to_vec());
+    }
+    verify(current, installed)?;
+    let original_had_env = !original.is_empty() && object(original)?.contains_key("env");
+    let mut current = serde_json::from_slice::<Value>(current).map_err(|_| ConfigError::Invalid)?;
+    let root = current.as_object_mut().ok_or(ConfigError::Invalid)?;
+    let env = root
+        .get_mut("env")
+        .and_then(Value::as_object_mut)
+        .ok_or(ConfigError::Invalid)?;
+    env.remove("ANTHROPIC_BASE_URL");
+    env.remove("ANTHROPIC_CUSTOM_HEADERS");
+    if !original_had_env && env.is_empty() {
+        root.remove("env");
+    }
+    serde_json::to_vec_pretty(&current).map_err(|_| ConfigError::Invalid)
+}
+
+fn object(bytes: &[u8]) -> Result<Map<String, Value>, ConfigError> {
+    serde_json::from_slice::<Value>(bytes)
+        .map_err(|_| ConfigError::Invalid)?
+        .as_object()
+        .cloned()
+        .ok_or(ConfigError::Invalid)
+}
+
 fn valid_caller(value: &str) -> bool {
     value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -224,6 +276,43 @@ mod tests {
                 "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             ),
             Err(ConfigError::Conflict)
+        );
+    }
+
+    #[test]
+    fn preserves_unrelated_edits_when_restoring_managed_settings() {
+        let original = br#"{"permissions":{"defaultMode":"default"}}"#;
+        let installed = configure(
+            Some(original),
+            8765,
+            "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        )
+        .unwrap();
+        let mut current: Value = serde_json::from_slice(&installed).unwrap();
+        current["theme"] = Value::String("dark".into());
+        let current = serde_json::to_vec(&current).unwrap();
+
+        verify(&current, &installed).unwrap();
+        let restored: Value =
+            serde_json::from_slice(&restore(&current, &installed, Some(original)).unwrap())
+                .unwrap();
+        assert_eq!(restored["theme"], "dark");
+        assert_eq!(restored["permissions"]["defaultMode"], "default");
+        assert!(restored.get("env").is_none());
+
+        let mut changed: Value = serde_json::from_slice(&installed).unwrap();
+        changed["env"]["ANTHROPIC_BASE_URL"] = Value::String("http://127.0.0.1:9999".into());
+        assert_eq!(
+            restore(
+                &serde_json::to_vec(&changed).unwrap(),
+                &installed,
+                Some(original)
+            ),
+            Err(ConfigError::Conflict)
+        );
+        assert_eq!(
+            restore(&installed, &installed, Some(original)).unwrap(),
+            original
         );
     }
 }

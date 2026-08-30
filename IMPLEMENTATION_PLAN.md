@@ -170,7 +170,7 @@ Current evidence:
 
 - a clean `lao install` downloaded the official runtime archive, verified its exact size, SHA-256, binary build, and Metal visibility, then completed both installed local canaries;
 - the Codex adapter performs a structural TOML edit and the Claude adapter preserves unrelated JSON settings;
-- the CLI stores byte-exact before/after files with original modes, while its crash record contains paths and phase but no caller key;
+- the CLI stores byte-exact before/after files with original modes, accepts unrelated settings that a running client adds, and removes only LAO-owned fields when those additions must be preserved; its crash record contains paths and phase but no caller key;
 - launchd bootstrap must produce a fresh 0600 adoption file and pass the exact inert hello before the first client write;
 - one main transaction test proves exact off, permission restoration, lock exclusion, and user-edit refusal;
 - one fault test induces failure at each of the two client write boundaries and proves both originals remain exact.
@@ -246,7 +246,7 @@ Status: complete (2026-08-30).
 
 Current evidence:
 
-- the final pass removed the unimplemented `doctor` claim and retained only the four exercised CLI operations;
+- the final pass removed the unimplemented `doctor` claim and retained only exercised CLI operations;
 - formatting, all workspace tests, workspace Clippy with warnings denied, the 29-package architecture check, extraction/conformance, and diff hygiene pass;
 - README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
 

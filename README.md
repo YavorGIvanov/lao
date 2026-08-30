@@ -15,7 +15,7 @@ This repository contains the research-backed product specification, implementati
 
 ## Install
 
-This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store, and `lao off` restores the original settings exactly.
+This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed.
 
 Clone the project and install the `lao` command:
 
@@ -92,7 +92,7 @@ When finished—or immediately if a later check fails—restore both clients and
 lao off
 ```
 
-Do not edit the managed Codex or Claude settings between `install` and `off`; the transaction refuses to overwrite unexpected user changes. A successful `off` reports exact restoration and leaves no daemon, worker, listener, plist, runtime key, or log.
+Codex and Claude may update their own unrelated settings while LAO is installed; `lao smoke` accepts those updates and `lao off` preserves them. LAO still refuses changes to the routing fields it owns. A successful `off` leaves no daemon, worker, listener, plist, runtime key, or log.
 
 ## Manifesto
 

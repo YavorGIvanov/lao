@@ -198,7 +198,7 @@
     <table>
       <thead><tr><th>Area</th><th>Code</th><th>Responsibility</th></tr></thead>
       <tbody>
-        <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, and restore harness settings.</td></tr>
+        <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, verify, and restore owned harness settings while preserving unrelated client edits.</td></tr>
         <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
         <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Use the default pinned MiniLM semantic classifier or an optional vLLM Semantic Router; automatic failures stay Cloud.</td></tr>
         <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Own verified llama.cpp by default, or connect to an uncertified protected loopback endpoint.</td></tr>

@@ -18,6 +18,10 @@ const CODEX_BEFORE: &str = "codex.before";
 const CODEX_AFTER: &str = "codex.after";
 const CLAUDE_BEFORE: &str = "claude.before";
 const CLAUDE_AFTER: &str = "claude.after";
+const CODEX_RESTORE_FROM: &str = "codex.restore-from";
+const CODEX_RESTORE_TO: &str = "codex.restore-to";
+const CLAUDE_RESTORE_FROM: &str = "claude.restore-from";
+const CLAUDE_RESTORE_TO: &str = "claude.restore-to";
 const PLIST_AFTER: &str = "launchd.after";
 const RECORD: &str = "install.json";
 const DAEMON_ERROR: &str = "daemon.err";
@@ -286,8 +290,7 @@ impl Transaction {
     }
 
     fn validate_installed(&self) -> io::Result<()> {
-        validate(&self.record.codex, &self.state.join(CODEX_AFTER))?;
-        validate(&self.record.claude, &self.state.join(CLAUDE_AFTER))
+        self.installed_clients().map(|_| ())
     }
 
     fn validate_originals(&self) -> io::Result<()> {
@@ -296,26 +299,67 @@ impl Transaction {
     }
 
     fn restore(&mut self) -> io::Result<()> {
-        self.validate_installed()?;
-        self.phase(Phase::Restoring)?;
+        let (codex_current, claude_current) = self.installed_clients()?;
         let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
         let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
         let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
         let claude_before = fs::read(self.state.join(CLAUDE_BEFORE))?;
-        restore_entry(&self.record.codex, &codex_before)?;
-        if let Err(error) = restore_entry(&self.record.claude, &claude_before) {
-            let rollback = write_entry(&self.record.codex, &codex_after)
-                .and_then(|_| write_entry(&self.record.claude, &claude_after));
-            if rollback.is_ok() {
-                self.phase(Phase::Installed)?;
-                return Err(error);
-            }
-            return Err(io::Error::other(format!(
-                "client restore failed and rollback failed: {}",
-                rollback.unwrap_err()
-            )));
+        let codex_restored = lao_codex::restore(
+            &codex_current,
+            &codex_after,
+            self.record.codex.existed.then_some(codex_before.as_slice()),
+        )
+        .map_err(|_| conflict("managed Codex settings changed"))?;
+        let claude_restored = lao_claude::restore(
+            &claude_current,
+            &claude_after,
+            self.record
+                .claude
+                .existed
+                .then_some(claude_before.as_slice()),
+        )
+        .map_err(|_| conflict("managed Claude settings changed"))?;
+        for (name, bytes) in [
+            (CODEX_RESTORE_FROM, codex_current.as_slice()),
+            (CODEX_RESTORE_TO, codex_restored.as_slice()),
+            (CLAUDE_RESTORE_FROM, claude_current.as_slice()),
+            (CLAUDE_RESTORE_TO, claude_restored.as_slice()),
+        ] {
+            write_atomic(&self.state.join(name), bytes, 0o600)?;
         }
+        self.phase(Phase::Restoring)?;
+        self.finish_restore()?;
         self.phase(Phase::Restored)
+    }
+
+    fn finish_restore(&self) -> io::Result<()> {
+        finish_restore(
+            &self.record.codex,
+            &self.state.join(CODEX_RESTORE_FROM),
+            &self.state.join(CODEX_RESTORE_TO),
+        )?;
+        finish_restore(
+            &self.record.claude,
+            &self.state.join(CLAUDE_RESTORE_FROM),
+            &self.state.join(CLAUDE_RESTORE_TO),
+        )
+    }
+
+    fn installed_clients(&self) -> io::Result<(Vec<u8>, Vec<u8>)> {
+        let codex = read_managed(&self.record.codex)?;
+        let claude = read_managed(&self.record.claude)?;
+        let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
+        let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
+        let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
+        lao_codex::verify(
+            &codex,
+            &codex_after,
+            self.record.codex.existed.then_some(codex_before.as_slice()),
+        )
+        .map_err(|_| conflict("managed Codex settings changed"))?;
+        lao_claude::verify(&claude, &claude_after)
+            .map_err(|_| conflict("managed Claude settings changed"))?;
+        Ok((codex, claude))
     }
 
     fn restore_changed(&self) -> io::Result<()> {
@@ -337,6 +381,10 @@ impl Transaction {
             CODEX_AFTER,
             CLAUDE_BEFORE,
             CLAUDE_AFTER,
+            CODEX_RESTORE_FROM,
+            CODEX_RESTORE_TO,
+            CLAUDE_RESTORE_FROM,
+            CLAUDE_RESTORE_TO,
             PLIST_AFTER,
             RECORD,
         ] {
@@ -597,7 +645,11 @@ fn off() -> Result<()> {
             transaction.restore()?;
         }
         Phase::Installing | Phase::Restoring => {
-            transaction.restore_changed()?;
+            if transaction.record.phase == Phase::Restoring {
+                transaction.finish_restore()?;
+            } else {
+                transaction.restore_changed()?;
+            }
             transaction.phase(Phase::Restored)?;
         }
         Phase::Restored => {}
@@ -607,7 +659,7 @@ fn off() -> Result<()> {
     remove_optional(&paths.state.join(DAEMON_ERROR))?;
     transaction.discard()?;
     remove_optional(&paths.adopted)?;
-    println!("off: original Codex and Claude settings restored exactly");
+    println!("off: LAO settings removed; unrelated client settings preserved");
     Ok(())
 }
 
@@ -940,7 +992,11 @@ fn key_file(path: PathBuf, name: &'static str) -> io::Result<PathBuf> {
 }
 
 fn recover(paths: &Paths, transaction: &Transaction) -> io::Result<()> {
-    transaction.restore_changed()?;
+    if transaction.record.phase == Phase::Restoring {
+        transaction.finish_restore()?;
+    } else {
+        transaction.restore_changed()?;
+    }
     deactivate(paths)?;
     remove_optional(&paths.daemon)?;
     remove_optional(&paths.state.join(DAEMON_ERROR))?;
@@ -989,6 +1045,49 @@ fn restore_entry(entry: &Entry, before: &[u8]) -> io::Result<()> {
     } else {
         remove_optional(&entry.path)
     }
+}
+
+fn finish_restore(entry: &Entry, from: &Path, to: &Path) -> io::Result<()> {
+    let from = fs::read(from)?;
+    let to = fs::read(to)?;
+    let target_exists = entry.existed || !to.is_empty();
+    let current = match fs::symlink_metadata(&entry.path) {
+        Ok(metadata) if metadata.file_type().is_file() => {
+            Some((fs::read(&entry.path)?, metadata.mode() & 0o777))
+        }
+        Ok(_) => return Err(conflict("managed client file changed during restore")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error),
+    };
+    let matches = |expected: &[u8], exists: bool| {
+        if exists {
+            current
+                .as_ref()
+                .is_some_and(|(bytes, mode)| bytes == expected && *mode == entry.mode)
+        } else {
+            current.is_none()
+        }
+    };
+    if matches(&to, target_exists) {
+        return Ok(());
+    }
+    if !matches(&from, true) {
+        return Err(conflict("managed client file changed during restore"));
+    }
+    if target_exists {
+        write_entry(entry, &to)
+    } else {
+        remove_optional(&entry.path)
+    }
+}
+
+fn read_managed(entry: &Entry) -> io::Result<Vec<u8>> {
+    let metadata = fs::symlink_metadata(&entry.path)
+        .map_err(|_| conflict("managed file is missing or changed"))?;
+    if !metadata.file_type().is_file() || metadata.mode() & 0o777 != entry.mode {
+        return Err(conflict("managed file is missing or changed"));
+    }
+    fs::read(&entry.path)
 }
 
 fn restore_if_managed(entry: &Entry, before: &Path, after: &Path) -> io::Result<()> {
@@ -1494,6 +1593,55 @@ mod tests {
             assert_eq!(fs::read(&paths.codex).unwrap(), codex);
             assert_eq!(fs::read(&paths.claude).unwrap(), claude);
         }
+    }
+
+    #[test]
+    fn off_preserves_unrelated_client_edits() {
+        let temp = Temp::new();
+        let (paths, mut transaction, _, _) = prepared(&temp);
+        transaction.apply().unwrap();
+
+        let mut codex = fs::read_to_string(&paths.codex).unwrap();
+        codex.push_str("\n[projects.\"/tmp/new\"]\ntrust_level = \"trusted\"\n");
+        fs::write(&paths.codex, codex).unwrap();
+        fs::set_permissions(&paths.codex, fs::Permissions::from_mode(0o640)).unwrap();
+        let mut claude: serde_json::Value =
+            serde_json::from_slice(&fs::read(&paths.claude).unwrap()).unwrap();
+        claude["theme"] = serde_json::Value::String("dark".into());
+        fs::write(&paths.claude, serde_json::to_vec(&claude).unwrap()).unwrap();
+        fs::set_permissions(&paths.claude, fs::Permissions::from_mode(0o600)).unwrap();
+
+        transaction.validate_installed().unwrap();
+        let codex_current = fs::read(&paths.codex).unwrap();
+        let claude_current = fs::read(&paths.claude).unwrap();
+        let codex_after = fs::read(paths.state.join(CODEX_AFTER)).unwrap();
+        let claude_after = fs::read(paths.state.join(CLAUDE_AFTER)).unwrap();
+        let codex_before = fs::read(paths.state.join(CODEX_BEFORE)).unwrap();
+        let claude_before = fs::read(paths.state.join(CLAUDE_BEFORE)).unwrap();
+        let codex_restored =
+            lao_codex::restore(&codex_current, &codex_after, Some(&codex_before)).unwrap();
+        let claude_restored =
+            lao_claude::restore(&claude_current, &claude_after, Some(&claude_before)).unwrap();
+        for (name, bytes) in [
+            (CODEX_RESTORE_FROM, codex_current.as_slice()),
+            (CODEX_RESTORE_TO, codex_restored.as_slice()),
+            (CLAUDE_RESTORE_FROM, claude_current.as_slice()),
+            (CLAUDE_RESTORE_TO, claude_restored.as_slice()),
+        ] {
+            write_atomic(&paths.state.join(name), bytes, 0o600).unwrap();
+        }
+        transaction.phase(Phase::Restoring).unwrap();
+        write_entry(&transaction.record.codex, &codex_restored).unwrap();
+        transaction.finish_restore().unwrap();
+        transaction.phase(Phase::Restored).unwrap();
+        let codex = fs::read_to_string(&paths.codex).unwrap();
+        assert!(codex.contains("[projects.\"/tmp/new\"]"));
+        assert!(!codex.contains("model_provider"));
+        let claude: serde_json::Value =
+            serde_json::from_slice(&fs::read(&paths.claude).unwrap()).unwrap();
+        assert_eq!(claude["theme"], "dark");
+        assert_eq!(claude["permissions"]["defaultMode"], "default");
+        assert!(claude.get("env").is_none());
     }
 
     #[test]
