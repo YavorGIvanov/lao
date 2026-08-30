@@ -927,7 +927,7 @@ fn uid() -> io::Result<String> {
 fn verify_ready(paths: &Paths, port: u16) -> io::Result<()> {
     let deadline = Instant::now() + Duration::from_secs(60);
     loop {
-        if adoption(paths, port).is_ok() && hello(port).is_ok() {
+        if hello(port).is_ok() && adoption(paths, port).is_ok() {
             return Ok(());
         }
         if Instant::now() >= deadline {
