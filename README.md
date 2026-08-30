@@ -115,6 +115,8 @@ Codex and Claude may update their own unrelated settings while LAO is installed;
 - Never ask twice for the same consent.
 - Improve a little at first.
 - Learn from measured outcomes.
+- Push the practical boundary of speed and efficiency.
+- Treat mediocre performance as unfinished work.
 - Use local only when it helps.
 - Keep cloud as the safe path.
 - Never consume the whole machine.
@@ -147,6 +149,7 @@ Codex and Claude may update their own unrelated settings while LAO is installed;
 - Test contracts and outcomes.
 - Test real paths end to end when cheap.
 - Keep the hot path small.
+- Measure and optimize the hot path before accepting it.
 
 ### Architecture
 
