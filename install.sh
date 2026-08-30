@@ -64,19 +64,6 @@ else
     fail "cargo 1.98.0 is required"
 fi
 
-client() {
-    name=$1
-    preferred="$home/.local/bin/$name"
-    if [ -x "$preferred" ]; then
-        printf '%s\n' "$preferred"
-    else
-        command -v "$name"
-    fi
-}
-codex=$(client codex) || fail "Codex 0.151.0 is required"
-claude=$(client claude) || fail "Claude Code 2.1.251 is required"
-client_path="$(dirname "$codex"):$(dirname "$claude"):${PATH:-/usr/bin:/bin:/usr/sbin:/sbin}"
-
 printf 'Building LAO release binaries...\n'
 (cd "$root" && "$cargo" build --release --locked -p lao-cli -p lao-daemon)
 
@@ -97,9 +84,4 @@ mv -f "$daemon_pending" "$daemon"
 ensure_link "$cli_link" "$cli"
 ensure_link "$daemon_link" "$daemon"
 
-"$cli" preview
-PATH="$client_path" "$cli" install
-
-printf '\nLAO is ready. Start a new Codex process in your work repository.\n'
-printf 'Local proof: lao smoke\n'
-printf 'Turn off:    lao off\n'
+printf '\nLAO is ready. Finish setup with: lao install\n'
