@@ -19,6 +19,7 @@ const CLAUDE_BEFORE: &str = "claude.before";
 const CLAUDE_AFTER: &str = "claude.after";
 const PLIST_AFTER: &str = "launchd.after";
 const RECORD: &str = "install.json";
+const DAEMON_ERROR: &str = "daemon.err";
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -312,6 +313,7 @@ fn install() -> Result<()> {
     write_atomic(&paths.state.join(PLIST_AFTER), plist.as_bytes(), 0o600)?;
     let result = (|| -> Result<()> {
         remove_optional(&paths.adopted)?;
+        write_atomic(&paths.state.join(DAEMON_ERROR), b"", 0o600)?;
         write_atomic(&paths.daemon, &daemon, 0o700)?;
         write_atomic(&paths.plist, plist.as_bytes(), 0o600)?;
         bootstrap(&paths)?;
@@ -323,6 +325,8 @@ fn install() -> Result<()> {
         let _ = transaction.restore_changed();
         let _ = deactivate(&paths);
         let _ = remove_optional(&paths.daemon);
+        let _ = remove_optional(&paths.adopted);
+        let _ = remove_optional(&paths.state.join(DAEMON_ERROR));
         let _ = transaction.discard();
         return Err(error);
     }
@@ -353,6 +357,7 @@ fn off() -> Result<()> {
     }
     deactivate(&paths)?;
     remove_optional(&paths.daemon)?;
+    remove_optional(&paths.state.join(DAEMON_ERROR))?;
     transaction.discard()?;
     remove_optional(&paths.adopted)?;
     println!("off: original Codex and Claude settings restored exactly");
@@ -635,6 +640,7 @@ fn recover(paths: &Paths, transaction: &Transaction) -> io::Result<()> {
     transaction.restore_changed()?;
     deactivate(paths)?;
     remove_optional(&paths.daemon)?;
+    remove_optional(&paths.state.join(DAEMON_ERROR))?;
     transaction.discard()?;
     remove_optional(&paths.adopted)
 }
@@ -829,7 +835,7 @@ fn plist(
     claude: &str,
     codex_cloud: &str,
 ) -> io::Result<String> {
-    let error_path = paths.state.join("daemon.err");
+    let error_path = paths.state.join(DAEMON_ERROR);
     let values = [
         paths.daemon.to_str(),
         paths.adopted.to_str(),
