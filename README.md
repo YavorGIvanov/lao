@@ -29,7 +29,7 @@ Setup stops with a specific error when a prerequisite or existing configuration 
 
 ## Normal use
 
-Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. On the tested Codex version, an ordinary eligible edit is delegated without mentioning LAO. LAO routes each packet independently:
+Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. On the tested Codex and Claude Code versions, an ordinary eligible edit is delegated without mentioning LAO. LAO routes each packet independently:
 
 ```text
 Codex / Claude planner
@@ -53,14 +53,15 @@ lao status
 
 ## Test the experience
 
-Open a new terminal in the repository where you already work and start a new Codex process:
+Open a new terminal in the repository where you already work and start Codex or Claude Code:
 
 ```sh
 cd /absolute/path/to/your/existing-project
 codex
+# or: claude
 ```
 
-Use Codex normally. The tested broad planning packet stayed Cloud, the tested one-file delegated correction routed through OpenCode and Qwen3, and a narrow direct spelling prompt also routed Local. Uncertainty, unsupported work, and classifier failures stay Cloud; routing quality beyond these conservative cases is not yet certified.
+Use either harness normally. In both tested clients, a broad planning request stayed Cloud and an ordinary one-file correction routed through OpenCode and Qwen3. Uncertainty, unsupported work, and classifier failures stay Cloud; routing quality beyond these conservative cases is not yet certified.
 
 To check both installed harnesses and the local model with sanitized pass/fail output:
 
@@ -175,7 +176,7 @@ The cloud-safe baseline is complete. The gate authenticates the caller before re
 
 Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
-The current routed-worker proof used a real Codex cloud turn, not a synthetic planner. Given only a normal spelling-fix request, Codex called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and Codex's independent verifier passed. A broad planning control remained in Codex. The latest warm delegated run took about 35 seconds end to end and the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
+The current routed-worker proof used real Codex and Claude Code cloud turns, not synthetic planners. Given only a normal spelling-fix request, each harness called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and the parent harness independently verified the result. Broad planning controls remained in their cloud harnesses. The measured delegated runs took about 35 seconds in Codex and 26 seconds in Claude Code; the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
 
 `lao install` generates separate caller keys, verifies launchd before either client write, and applies both client settings as one recoverable transaction. The optimizer then warms fixed local Claude and Codex paths in the background. The current Qwen3 runtime remains below the 6 GiB Light ceiling at its 16K context. `lao off` removes the managed changes and service state while preserving unrelated client state. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
 
