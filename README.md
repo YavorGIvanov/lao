@@ -29,7 +29,7 @@ Setup stops with a specific error when a prerequisite or existing configuration 
 
 ## Normal use
 
-Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. LAO routes each packet independently:
+Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. On the tested Codex version, an ordinary eligible edit is delegated without mentioning LAO. LAO routes each packet independently:
 
 ```text
 Codex / Claude planner
@@ -68,7 +68,7 @@ To check both installed harnesses and the local model with sanitized pass/fail o
 lao smoke
 ```
 
-It prints only pass/fail and elapsed time. A warmed local response completes in roughly one to two seconds on the tested Mac. Run `lao status` first if you want to see whether background warming has finished; it does not consume a model request.
+It prints only pass/fail and elapsed time. A warmed local canary completes in roughly two to four seconds on the tested Mac. Run `lao status` first if you want to see whether background warming has finished; it does not consume a model request.
 
 When finished—or immediately if a later check fails—restore both clients and stop LAO from any directory:
 
@@ -175,7 +175,7 @@ The cloud-safe baseline is complete. The gate authenticates the caller before re
 
 Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
-The current routed-worker proof used a real Codex cloud turn, not a synthetic planner. Codex called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and Codex's independent verifier passed. The latest warm delegated run took about 20 seconds end to end and the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
+The current routed-worker proof used a real Codex cloud turn, not a synthetic planner. Given only a normal spelling-fix request, Codex called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and Codex's independent verifier passed. A broad planning control remained in Codex. The latest warm delegated run took about 35 seconds end to end and the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
 
 `lao install` generates separate caller keys, verifies launchd before either client write, and applies both client settings as one recoverable transaction. The optimizer then warms fixed local Claude and Codex paths in the background. The current Qwen3 runtime remains below the 6 GiB Light ceiling at its 16K context. `lao off` removes the managed changes and service state while preserving unrelated client state. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
 

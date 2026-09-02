@@ -1305,6 +1305,7 @@ dependencies = [
 name = "lao-daemon"
 version = "0.1.0"
 dependencies = [
+ "lao-codex",
  "lao-gate",
  "lao-model",
  "lao-optimize",

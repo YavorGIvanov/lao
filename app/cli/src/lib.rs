@@ -963,7 +963,7 @@ fn tools() -> serde_json::Value {
     serde_json::json!({
         "tools": [{
             "name": "execute",
-            "description": "Route one small, bounded implementation packet. Local packets let OpenCode read and edit only the named files; Cloud decisions return the work to you. Review and verify every local result in this harness.",
+            "description": "Before editing directly, call this once when the request is one small mechanical implementation and every writable path is known. Pass one bounded objective and exact repository-relative paths. If LAO returns Cloud, do the work yourself. If Local completes, review its changed paths and verify; do not repeat the edit.",
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -974,7 +974,11 @@ fn tools() -> serde_json::Value {
                         "type": "array",
                         "minItems": 1,
                         "maxItems": 16,
-                        "items": { "type": "string", "maxLength": 1024 }
+                        "items": {
+                            "type": "string",
+                            "maxLength": 1024,
+                            "description": "Exact repository-relative path; absolute paths and Git metadata are rejected."
+                        }
                     },
                     "session_id": { "type": "string", "maxLength": 68 }
                 }
@@ -1135,6 +1139,7 @@ fn smoke() -> Result<()> {
         codex_catalog,
         transaction.record.port,
         &codex_caller,
+        lao_codex::DELEGATION_INSTRUCTIONS,
     )?;
     println!("Codex local: ok ({} ms)", codex_elapsed.as_millis());
     let claude_elapsed = lao_optimize::claude("claude", transaction.record.port, &claude_caller)?;

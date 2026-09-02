@@ -2,6 +2,7 @@ use lao_client_api::Status;
 use std::{error::Error, fmt, path::Path};
 
 pub const OBSERVED: Version = Version(0, 151, 0);
+pub const DELEGATION_INSTRUCTIONS: &str = "Delegate one small mechanical implementation to lao.execute before editing when you can name every writable path. Call it once with a bounded objective and exact repository-relative paths. If it returns Cloud, continue yourself. If Local completes, review changed paths and verify without repeating the edit. Keep planning, broad, ambiguous, security-sensitive, or multi-area work in this cloud harness.";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Version(pub u16, pub u16, pub u16);
@@ -51,7 +52,7 @@ pub enum ConfigError {
 impl fmt::Display for ConfigError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(match self {
-            Self::Conflict => "conflicting Codex provider configuration",
+            Self::Conflict => "conflicting Codex configuration",
             Self::Invalid => "invalid Codex configuration",
         })
     }
@@ -218,6 +219,12 @@ pub fn verify(
             return Err(ConfigError::Conflict);
         }
     }
+    if installed.contains_key("developer_instructions")
+        && current["developer_instructions"].as_str()
+            != installed["developer_instructions"].as_str()
+    {
+        return Err(ConfigError::Conflict);
+    }
     Ok(())
 }
 
@@ -248,6 +255,11 @@ pub fn restore(
         if servers.is_empty() && !original_document.contains_key("mcp_servers") {
             current.remove("mcp_servers");
         }
+    }
+    if installed.contains_key("developer_instructions")
+        && !original_document.contains_key("developer_instructions")
+    {
+        current.remove("developer_instructions");
     }
     Ok(current.to_string().into_bytes())
 }
@@ -284,10 +296,11 @@ pub fn configure_worker(config: &[u8], command: &Path) -> Result<Vec<u8>, Config
     let mut document = text
         .parse::<toml_edit::DocumentMut>()
         .map_err(|_| ConfigError::Invalid)?;
-    if document
-        .get("mcp_servers")
-        .and_then(toml_edit::Item::as_table)
-        .is_some_and(|servers| servers.contains_key("lao"))
+    if document.contains_key("developer_instructions")
+        || document
+            .get("mcp_servers")
+            .and_then(toml_edit::Item::as_table)
+            .is_some_and(|servers| servers.contains_key("lao"))
     {
         return Err(ConfigError::Conflict);
     }
@@ -306,6 +319,7 @@ pub fn configure_worker(config: &[u8], command: &Path) -> Result<Vec<u8>, Config
     tools["execute"] = toml_edit::Item::Table(execute);
     server["tools"] = toml_edit::Item::Table(tools);
     document["mcp_servers"]["lao"] = toml_edit::Item::Table(server);
+    document["developer_instructions"] = toml_edit::value(DELEGATION_INSTRUCTIONS);
     Ok(document.to_string().into_bytes())
 }
 
@@ -458,6 +472,17 @@ mod tests {
             Some("approve")
         );
         assert_eq!(
+            configured["developer_instructions"].as_str(),
+            Some(DELEGATION_INSTRUCTIONS)
+        );
+        assert_eq!(
+            configure_worker(
+                b"developer_instructions = \"keep mine\"\n",
+                Path::new("/tmp/lao")
+            ),
+            Err(ConfigError::Conflict)
+        );
+        assert_eq!(
             configure(
                 Some(b"model_provider = \"other\"\n"),
                 8765,
@@ -490,6 +515,7 @@ mod tests {
         assert!(restored.contains("[mcp_servers.fixture]"));
         assert!(restored.contains("[projects.\"/tmp/new\"]"));
         assert!(!restored.contains("[mcp_servers.lao]"));
+        assert!(!restored.contains("developer_instructions"));
         assert!(!restored.contains("model_provider"));
         assert!(!restored.contains("model_catalog_json"));
 

@@ -182,8 +182,12 @@ pub fn codex(
     catalog: impl AsRef<Path>,
     port: u16,
     caller: &str,
+    instructions: &str,
 ) -> io::Result<Duration> {
     valid(port, caller)?;
+    if instructions.is_empty() || instructions.len() > 4096 {
+        return Err(invalid("Codex developer instructions"));
+    }
     let scratch = Scratch::new("codex")?;
     let catalog_path = scratch.0.join("models_cache.json");
     let catalog_source = fs::symlink_metadata(catalog.as_ref())?;
@@ -210,12 +214,14 @@ pub fn codex(
     let config = format!(
         "model_catalog_json = \"{catalog_path}\"\n\
          model_provider = \"lao\"\n\
+         developer_instructions = {instructions:?}\n\
          [model_providers.lao]\n\
          name = \"LAO\"\n\
          base_url = \"http://127.0.0.1:{port}/oai\"\n\
          requires_openai_auth = true\n\
          supports_websockets = false\n\
-         env_http_headers = {{ X-LAO-Key = \"{CALLER_ENV}\", X-LAO-Local = \"{SELECTOR_ENV}\" }}\n"
+         env_http_headers = {{ X-LAO-Key = \"{CALLER_ENV}\", X-LAO-Local = \"{SELECTOR_ENV}\" }}\n",
+        instructions = instructions,
     );
     write_private(&scratch.0.join("config.toml"), config.as_bytes(), 0o600)?;
     let mut command = Command::new(bin);
@@ -584,6 +590,7 @@ grep -F 'X-LAO-Key = "LAO_OPTIMIZE_CODEX_CALLER"' "$CODEX_HOME/config.toml" >/de
 if grep -F '{caller}' "$CODEX_HOME/config.toml" >/dev/null; then exit 16; fi
 [ "$(stat -f %Lp "$CODEX_HOME/models_cache.json")" = "600" ] || exit 17
 grep -F 'model_catalog_json = ' "$CODEX_HOME/config.toml" >/dev/null || exit 18
+grep -F 'developer_instructions = "delegate"' "$CODEX_HOME/config.toml" >/dev/null || exit 25
 [ "$(stat -f %Lp "$CODEX_HOME/auth.json")" = "600" ] || exit 19
 grep -F '"OPENAI_API_KEY":"lao-local-only"' "$CODEX_HOME/auth.json" >/dev/null || exit 20
 printf '42\n'
@@ -609,7 +616,7 @@ printf '42\n'
         write_private(&claude_bin, claude_script.as_bytes(), 0o700).unwrap();
         write_private(&catalog, b"{}\n", 0o600).unwrap();
 
-        codex(&codex_bin, &catalog, 8765, caller).unwrap();
+        codex(&codex_bin, &catalog, 8765, caller, "delegate").unwrap();
         claude(&claude_bin, 8765, caller).unwrap();
     }
 

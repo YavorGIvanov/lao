@@ -387,6 +387,27 @@ Current evidence:
 - the current Qwen3 4B Q4_K_M worker uses a 16K context and measured about 4.70 GiB RSS under the 6 GiB Light ceiling;
 - focused tests cover routing, gate isolation, Git-metadata rejection, parent-death worker cleanup, merge-aware Claude MCP removal, exact permissions, install restoration, and MCP results. Session reuse is process-local; autonomous task splitting and production routing certification remain deferred. Claude is configured for the same MCP tool, but a real Claude-planner delegation E2E is not yet claimed.
 
+## R5 — Natural Codex handoff
+
+Status: complete (2026-09-02).
+
+Make the bounded worker part of normal Codex use instead of requiring the user to name LAO.
+
+- Install one short supported Codex developer instruction that defines the eligible slice, one-call boundary, exact repository-relative paths, Cloud handoff, and parent verification.
+- Refuse to overwrite an existing developer instruction and remove only the exact LAO-managed value during restoration.
+- Warm the same Codex instruction prefix used during normal work.
+- Keep broad, ambiguous, sensitive, and multi-area work in the cloud harness.
+
+Acceptance and evidence:
+
+- a fresh Codex 0.151.0 process received only a normal spelling-fix request, called `lao.execute` once with `word.txt`, and did not need an approval prompt;
+- MiniLM selected Local, OpenCode/Qwen changed only `word.txt`, and the parent Codex process reviewed the result and passed `verify.sh`;
+- a broad authentication-planning control stayed in Codex and did not call the worker;
+- aligning the warm prefix reduced the post-warm Codex smoke from 25.4 seconds to 3.9 seconds; Claude completed in 2.1 seconds;
+- focused configuration tests prove existing developer instructions conflict safely and uninstall removes LAO's instruction while preserving unrelated edits.
+
+This proves the tested Codex path, not universal planner behavior or Claude parity.
+
 ## Deferred backlog
 
 After the exit gate, choose the next measured bottleneck. The long-term contracts and constraints remain in the product architecture.

@@ -136,7 +136,16 @@ fn warm(
     let claude = String::from_utf8(claude.to_vec())?;
     let plan = Plan::new(
         move || lao_optimize::claude(claude_bin, port, &claude).map(|_| ()),
-        move || lao_optimize::codex(codex_bin, codex_catalog, port, &codex).map(|_| ()),
+        move || {
+            lao_optimize::codex(
+                codex_bin,
+                codex_catalog,
+                port,
+                &codex,
+                lao_codex::DELEGATION_INSTRUCTIONS,
+            )
+            .map(|_| ())
+        },
     );
     optimizer.start(plan)?;
     Ok(())
