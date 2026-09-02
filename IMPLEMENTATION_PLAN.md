@@ -6,9 +6,11 @@ Ship the smallest real proof of this product:
 
 ```text
 Codex + Claude Code → LAO gate → conservative router → llama.cpp or native cloud
+
+Codex / Claude planner → one MCP work packet → semantic router → Cloud or OpenCode → local runtime
 ```
 
-The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow first-turn text request to route automatically. For non-canary routing, unsupported, risky, or ambiguous work and classifier or pre-send Local setup failures stay Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
+The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow text request to route automatically; R4 lets the cloud harness delegate one bounded implementation packet to a real local agent. Each packet is routed independently. Unsupported, risky, or ambiguous work stays Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
 
 Stage 1 targets this 24 GiB Apple M4 Mac. It is a working end-to-end proof, not the final router, catalog, evaluator, or cross-platform release.
 
@@ -35,8 +37,9 @@ Only these components are active in the current proof:
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
 | `svc/optimize` | single-flight background harness warming and non-secret readiness state |
+| `svc/opencode` | one pinned, permission-bounded local agent worker |
 | `app/daemon` | compose the request path and adopt the launchd listener |
-| `app/cli` | `install`, preview, status, smoke, and `off` only |
+| `app/cli` | install, preview, status, MCP worker, smoke, and `off` |
 
 The matching `api/*` packages remain the semantic boundaries. Services never import sibling implementations; applications wire them.
 
@@ -46,7 +49,7 @@ The matching `api/*` packages remain the semantic boundaries. Services never imp
 
 Already proven and retained:
 
-- the 31-package boundary skeleton and architecture checker;
+- the package-boundary skeleton and architecture checker;
 - streaming/keep-alive transport prototype;
 - isolated installed-client probes for Codex and Claude Code;
 - saved-login native cloud E2Es through the private gate for both clients;
@@ -75,13 +78,13 @@ Keep the hardware work inside `run`; add no hardware package.
 - Require the loaded context to equal the artifact's supported context.
 - Own process stop and listener cleanup.
 
-Stage 1 uses Light and the verified 32K Qwen lifecycle fixture. Current measured 24 GiB ceilings at 72% OS availability are approximately 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum; these values change with live pressure.
+Stage 1 uses Light. The current verified Qwen3 lifecycle fixture uses a 16K context. Current measured 24 GiB ceilings at 72% OS availability are approximately 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum; these values change with live pressure.
 
 Acceptance:
 
 - budget is resolved before load and pressure denies a new load;
-- the real 32K fixture stays below the 6 GiB Light ceiling;
-- llama.cpp reports an effective 32K context rather than silently shrinking it;
+- the real 16K fixture stays below the 6 GiB Light ceiling;
+- llama.cpp reports an effective 16K context rather than silently shrinking it;
 - unauthorized local access is rejected and a real model request succeeds;
 - stop leaves no process, key file, or listener;
 - focused tests, lint, boundary check, and extraction pass.
@@ -127,7 +130,7 @@ The S1-03 proof used `LAO_LOCAL_CANARY=1` plus synthetic per-client caller token
 
 Current evidence:
 
-- direct real probes show pinned llama.cpp 10280 serves valid Responses and Messages SSE at 32K;
+- direct real probes show pinned llama.cpp 10280 serves valid Responses and Messages SSE at the configured context;
 - the gate accepts only the exact canary selector, consumes it, and rejects selector/decision mismatch;
 - Local egress contains only the runtime bearer and protocol-safe fields;
 - normal contexts still resolve to Cloud;
@@ -207,7 +210,7 @@ Current evidence:
 - Codex 0.151.0 and Claude Code 2.1.251 completed fixed saved-login cloud outcomes through the installed gate; no local worker started, proving Cloud remained the default;
 - `lao smoke` returned exactly `42` through both real harnesses: Codex cold local took 23.5 seconds and Claude warm local took 1.6 seconds;
 - after a forced daemon restart, both local outcomes passed again at 23.5 seconds and 1.6 seconds;
-- the restart-run worker peaked at 2,146,768 KiB RSS, about 2.05 GiB, with the verified 32K artifact under the 6 GiB Light ceiling;
+- the historical Stage 1 restart-run worker peaked at 2,146,768 KiB RSS, about 2.05 GiB, with its then-current 32K artifact under the 6 GiB Light ceiling;
 - caller tokens, runtime keys, provider credentials, and raw client output were absent from product logs and reported evidence; the daemon error file stayed empty and owner-only;
 - no repeated permission prompt was observed; `lao off` restored both original settings byte-for-byte with their original modes and left no daemon, worker, listener, plist, runtime key, or log.
 
@@ -250,7 +253,7 @@ Current evidence:
 
 - the final pass removed the unimplemented `doctor` claim and retained only exercised CLI operations;
 - `lao status` reports service and per-client readiness without exposing configuration values, caller capabilities, or credentials;
-- formatting, all workspace tests, workspace Clippy with warnings denied, the 31-package architecture check, extraction/conformance, and diff hygiene pass;
+- formatting, all workspace tests, workspace Clippy with warnings denied, the architecture check, extraction/conformance, and diff hygiene pass;
 - README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
 
 ## Stage 1 exit gate
@@ -267,7 +270,7 @@ The result must use saved harness authentication without LAO reading the real to
 
 Status: complete (2026-08-30).
 
-This was the first measured post-Stage 1 slice. The installed local worker used about 2.05 GiB RSS and previously remained resident until daemon shutdown, while the measured cold start was 23.5 seconds. R2 keeps its response lease and pressure-safety behavior but supersedes the idle timeout so useful warmed state remains resident on a healthy machine.
+This was the first measured post-Stage 1 slice. The then-current 1.5B worker used about 2.05 GiB RSS and previously remained resident until daemon shutdown, while the measured cold start was 23.5 seconds. R2 keeps its response lease and pressure-safety behavior but supersedes the idle timeout so useful warmed state remains resident on a healthy machine.
 
 - Acquire one response-held runtime reference only after a Local route decision.
 - Hold the lease through the complete response stream, including cancellation.
@@ -353,6 +356,36 @@ Current evidence:
 - repeated `lao install` measured 6.2 ms, `lao status` 5.6 ms, and integrity-checked same-revision source setup 52.5 ms;
 - the optimizer owns bounded probes, loopback pinning, single-flight state, 0600 atomic readiness state, failure isolation, and retry; the applications only compose or inspect it through its API;
 - focused tests, strict Clippy, and the 31-package architecture check pass.
+
+## R4 — Routed OpenCode worker
+
+Status: complete (2026-09-02).
+
+This is the smallest real cloud-planner/local-worker path. Codex and Claude remain the user-facing harnesses. Their planner may call one MCP tool with a bounded objective and exact relative file paths. LAO routes that packet once; a Cloud result returns it to the current harness, while a Local result runs one pinned OpenCode agent loop entirely against local inference.
+
+- Add `api/agent` as the worker contract and pin OpenCode 1.18.25 behind `svc/opencode`.
+- Give OpenCode exact read/edit permissions for the named files. Deny Git metadata, shell, general network, search, subagents, and unlisted paths.
+- Keep OpenCode's configuration isolated from user plugins and credentials. Bound and verify its pinned support tree before use. Keep runtime credentials ephemeral and local-only.
+- Use the existing semantic router with worker-specific examples. Broad planning stays Cloud; the proven narrow one-file correction selects Local.
+- Put OpenCode's Chat Completions traffic on a separate authenticated local gate path. It cannot fall back to a provider.
+- Keep the runtime API interchangeable: verified llama.cpp/Qwen3 is the default; a user may select a protected external endpoint. vLLM and SGLang remain uncertified examples.
+- Pre-approve only `lao.execute` in the managed Codex and Claude settings. Do not broaden shell, network, or harness permissions.
+
+Acceptance:
+
+- a real Codex cloud turn invokes `lao.execute` once without an approval prompt;
+- the default semantic router selects Local for the bounded packet;
+- real OpenCode and Qwen3 change only the permitted file;
+- the parent Codex process independently verifies the change;
+- a broad packet returns Cloud without starting OpenCode;
+- installer rollback restores the original files; `lao off` restores unchanged managed files exactly and removes only LAO's entry from mutable Claude global state.
+
+Current evidence:
+
+- the installed Codex 0.151.0 E2E called `lao.execute` exactly once, changed `word.txt` from `teh` to `the`, and passed `verify.sh` in about 20 seconds warm without a permission prompt;
+- the direct ignored MCP E2E proves the same Local result plus a Cloud control case and asserts the exact repository change set;
+- the current Qwen3 4B Q4_K_M worker uses a 16K context and measured about 4.70 GiB RSS under the 6 GiB Light ceiling;
+- focused tests cover routing, gate isolation, Git-metadata rejection, parent-death worker cleanup, merge-aware Claude MCP removal, exact permissions, install restoration, and MCP results. Session reuse is process-local; autonomous task splitting and production routing certification remain deferred. Claude is configured for the same MCP tool, but a real Claude-planner delegation E2E is not yet claimed.
 
 ## Deferred backlog
 

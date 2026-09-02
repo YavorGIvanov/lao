@@ -11,11 +11,11 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, complete Stage 1 installed proof, and the first real automatic-routing slice. It does not yet contain production routing certification or release packaging.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, and a working Apple Silicon proof. Codex or Claude can delegate a bounded work packet to LAO; the real semantic router kept the tested broad packet in Cloud and sent the tested narrow packet to OpenCode running Qwen3 locally. It does not yet contain production routing certification or release packaging.
 
 ## Install
 
-This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed.
+This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed; from Claude's mutable global state, it removes only LAO's entry.
 
 Clone the project, install the command, and let LAO finish setup:
 
@@ -25,7 +25,21 @@ git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh && l
 
 That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
 
-Setup stops with a specific error when a prerequisite or existing configuration is unsupported. It verifies or downloads the immutable Qwen inference model and MiniLM router model (1,208,656,003 bytes total), so allow about 1.21 GB of network traffic and cache space on the first run.
+Setup stops with a specific error when a prerequisite or existing configuration is unsupported. The verified Qwen3 model, MiniLM router, llama.cpp runtime, and OpenCode archive total 2,645,805,392 bytes, so allow about 2.7 GB on the first run. OpenCode's pinned support tree is capped at 80 MiB and accepted only when its lockfile and complete tree match the compiled SHA-256 digests.
+
+## Normal use
+
+Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. LAO routes each packet independently:
+
+```text
+Codex / Claude planner
+        ↓ one bounded packet
+LAO semantic router
+   ├─ Cloud → current harness continues
+   └─ Local → OpenCode → Qwen3 / llama.cpp
+```
+
+The default is conservative: planning, broad changes, and uncertain work stay Cloud. A Local packet may read and edit only the paths named by the planner. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
 
 Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
 
@@ -46,9 +60,9 @@ cd /absolute/path/to/your/existing-project
 codex
 ```
 
-Use Codex normally. A separate local MiniLM classifier sends only a narrow, bounded first-turn request to local inference; uncertainty, complex work, unsupported shapes, and every classifier failure stay on the saved-login cloud path. For a visible automatic example, ask Codex: `Correct the spelling error in this one word: teh. Reply with only the corrected word.` The tested answer is `the` from the local Qwen model.
+Use Codex normally. The tested broad planning packet stayed Cloud, the tested one-file delegated correction routed through OpenCode and Qwen3, and a narrow direct spelling prompt also routed Local. Uncertainty, unsupported work, and classifier failures stay Cloud; routing quality beyond these conservative cases is not yet certified.
 
-To prove the fixed local path through both real installed harnesses with sanitized output, run:
+To check both installed harnesses and the local model with sanitized pass/fail output:
 
 ```sh
 lao smoke
@@ -62,7 +76,7 @@ When finished—or immediately if a later check fails—restore both clients and
 lao off
 ```
 
-Codex and Claude may update their own unrelated settings while LAO is installed; `lao smoke` accepts those updates and `lao off` preserves them. LAO still refuses changes to the routing fields it owns. A successful `off` leaves no daemon, worker, listener, plist, runtime key, or log.
+Codex and Claude may update their own unrelated settings while LAO is installed; `lao smoke` accepts those updates and `lao off` preserves them. LAO still refuses changes to the routing entries it owns. A successful `off` removes LAO's client changes and leaves no daemon, runtime process, listener, plist, optimizer state, runtime key, or log.
 
 ## Manifesto
 
@@ -161,9 +175,9 @@ The cloud-safe baseline is complete. The gate authenticates the caller before re
 
 Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
 
-The clean automatic-route proof sent the no-canary spelling request through both harnesses: Codex and Claude each returned `the`. Measured daemon RSS was about 141 MiB with MiniLM loaded. These are proof measurements, not benchmarks.
+The current routed-worker proof used a real Codex cloud turn, not a synthetic planner. Codex called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and Codex's independent verifier passed. The latest warm delegated run took about 20 seconds end to end and the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
 
-`lao install` generates separate 256-bit caller keys, verifies launchd before either client write, and applies settings under one owner-only transaction. The separate optimizer then warms fixed local Claude and Codex canaries in the background. With both harness prefixes cached, the worker peaked at about 2.31 GiB under the 6 GiB Light ceiling. `lao off` restores client settings and removes the daemon, worker, listener, plist, optimizer state, runtime key, and log.
+`lao install` generates separate caller keys, verifies launchd before either client write, and applies both client settings as one recoverable transaction. The optimizer then warms fixed local Claude and Codex paths in the background. The current Qwen3 runtime remains below the 6 GiB Light ceiling at its 16K context. `lao off` removes the managed changes and service state while preserving unrelated client state. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
 
 Each local response holds a runtime lease until its stream completes or is dropped. The healthy worker and both harness prefixes remain in a bounded RAM cache; a five-second watcher unloads them on idle memory pressure. Repeated `lao install`, `lao status`, and same-revision source setup are measured below 100 ms; gateway p95 overhead is below 3.5 ms. Model generation is reported separately.
 

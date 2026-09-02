@@ -1,0 +1,23 @@
+[package]
+name = "lao-opencode"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+getrandom.workspace = true
+lao-agent-api = { path = "../../api/agent", version = "0.1.0" }
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[package.metadata.lao]
+kind = "svc"
+owner = "A06"
+api = "lao-agent-api"
+state = "agent"
+isolate = "linked"
+status = "active"

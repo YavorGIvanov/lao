@@ -9,17 +9,17 @@ use std::{
 use lao_model_api::{Artifact, Status, Verified};
 
 pub static QWEN: Artifact = Artifact {
-    id: "qwen2.5-coder-1.5b-q4",
-    url: "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/edc3bdcfdc6406d6be331753248d4ac9b463cf1b/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
-    revision: "edc3bdcfdc6406d6be331753248d4ac9b463cf1b",
-    file: "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
-    bytes: 1_117_320_768,
-    sha256: "cc324af070c2ecbfd324a30884d2f951a7ff756aba85cb811a6ec436933bb046",
+    id: "qwen3-4b-q4",
+    url: "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf",
+    revision: "bc640142c66e1fdd12af0bd68f40445458f3869b",
+    file: "Qwen3-4B-Q4_K_M.gguf",
+    bytes: 2_497_280_256,
+    sha256: "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
     license: "Apache-2.0",
-    template: "chatml",
-    context: 32_768,
+    template: "qwen3-tools",
+    context: 16_384,
     runtime: "llama.cpp 10280 (61881b1f7)",
-    working_set: 3 * 1024 * 1024 * 1024,
+    working_set: 5 * 1024 * 1024 * 1024,
 };
 
 pub fn prepare(root: &Path) -> io::Result<Verified> {

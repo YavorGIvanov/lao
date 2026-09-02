@@ -44,6 +44,7 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             let port = listener.local_addr()?.port();
             let codex = caller("LAO_CODEX_CALLER")?;
             let claude = caller("LAO_CLAUDE_CALLER")?;
+            let worker = caller_file("LAO_WORKER_KEY_FILE")?;
             let codex_cloud = match env::var("LAO_CODEX_CLOUD").as_deref() {
                 Ok("openai") => lao_gate::CodexCloud::Api,
                 Ok("chatgpt") => lao_gate::CodexCloud::ChatGpt,
@@ -62,7 +63,7 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             let optimize = env::var_os("LAO_OPTIMIZE_STATE").ok_or("LAO_OPTIMIZE_STATE")?;
             let optimizer = lao_optimize::Optimizer::new(lao_optimize::Store::new(optimize))?;
             warm(port, codex, claude, optimizer)?;
-            lao_gate::installed(listener, policy, local, codex, claude, codex_cloud)
+            lao_gate::installed(listener, policy, local, codex, claude, worker, codex_cloud)
         }
         _ => Err("LAO_LOCAL_CANARY".into()),
     }
@@ -168,7 +169,9 @@ impl Local for Lazy {
     fn endpoint(&self) -> io::Result<Arc<Endpoint>> {
         let mut state = self.state.lock().map_err(|_| io::Error::other("local"))?;
         if state.started.is_none() {
-            state.started = Some(start()?);
+            state.started = Some(start().inspect_err(|error| {
+                eprintln!("local runtime unavailable: {error}");
+            })?);
         }
         state
             .started
@@ -241,6 +244,13 @@ fn caller(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
     let value = env::var(name)?;
     value
         .as_bytes()
+        .try_into()
+        .map_err(|_| format!("{name} must be 64 bytes").into())
+}
+
+fn caller_file(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
+    key(name)?
+        .into_bytes()
         .try_into()
         .map_err(|_| format!("{name} must be 64 bytes").into())
 }

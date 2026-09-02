@@ -4,6 +4,7 @@ use std::sync::Arc;
 pub enum Client {
     Codex,
     Claude,
+    Worker,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,6 +14,7 @@ pub enum Op {
     Models,
     Messages,
     Count,
+    Chat,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -5,7 +5,7 @@ use std::{
     error::Error,
     ffi::OsString,
     fs::{self, File, OpenOptions},
-    io::{self, Read, Write},
+    io::{self, BufRead, BufReader, Read, Write},
     net::{Ipv4Addr, SocketAddrV4, TcpListener, TcpStream},
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
     path::{Path, PathBuf},
@@ -23,6 +23,10 @@ const CODEX_RESTORE_FROM: &str = "codex.restore-from";
 const CODEX_RESTORE_TO: &str = "codex.restore-to";
 const CLAUDE_RESTORE_FROM: &str = "claude.restore-from";
 const CLAUDE_RESTORE_TO: &str = "claude.restore-to";
+const CLAUDE_MCP_BEFORE: &str = "claude-mcp.before";
+const CLAUDE_MCP_AFTER: &str = "claude-mcp.after";
+const CLAUDE_MCP_RESTORE_FROM: &str = "claude-mcp.restore-from";
+const CLAUDE_MCP_RESTORE_TO: &str = "claude-mcp.restore-to";
 const PLIST_AFTER: &str = "launchd.after";
 const RECORD: &str = "install.json";
 const DAEMON_ERROR: &str = "daemon.err";
@@ -34,17 +38,21 @@ struct Paths {
     state: PathBuf,
     codex: PathBuf,
     claude: PathBuf,
+    claude_mcp: PathBuf,
     plist: PathBuf,
     adopted: PathBuf,
     model: PathBuf,
     runtime: PathBuf,
     router: PathBuf,
+    worker: PathBuf,
+    worker_key: PathBuf,
     daemon_source: PathBuf,
     daemon: PathBuf,
     optimize: PathBuf,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 enum Router {
     Semantic,
     Safe,
@@ -146,6 +154,7 @@ enum Action {
     Status,
     Smoke,
     Off,
+    Mcp,
 }
 
 struct Clients {
@@ -176,6 +185,10 @@ struct Record {
     port: u16,
     codex: Entry,
     claude: Entry,
+    claude_mcp: Entry,
+    router: Router,
+    router_addr: Option<SocketAddrV4>,
+    router_key: Option<PathBuf>,
 }
 
 struct Lock(File);
@@ -230,27 +243,46 @@ struct Transaction {
     record: Record,
 }
 
+struct McpRestore {
+    current: Option<Vec<u8>>,
+    restored: Option<Vec<u8>>,
+}
+
 impl Transaction {
     fn prepare(
         paths: &Paths,
         port: u16,
         codex_after: &[u8],
         claude_after: &[u8],
+        claude_mcp_after: &[u8],
+        router: Router,
+        adapter: Option<&Adapter>,
     ) -> io::Result<Self> {
         if paths.state.join(RECORD).exists() {
             return Err(conflict("lao is already installed or needs recovery"));
         }
         let (codex, codex_before) = inspect(&paths.codex)?;
         let (claude, claude_before) = inspect(&paths.claude)?;
+        let (claude_mcp, claude_mcp_before) = inspect(&paths.claude_mcp)?;
         write_atomic(&paths.state.join(CODEX_BEFORE), &codex_before, 0o600)?;
         write_atomic(&paths.state.join(CODEX_AFTER), codex_after, 0o600)?;
         write_atomic(&paths.state.join(CLAUDE_BEFORE), &claude_before, 0o600)?;
         write_atomic(&paths.state.join(CLAUDE_AFTER), claude_after, 0o600)?;
+        write_atomic(
+            &paths.state.join(CLAUDE_MCP_BEFORE),
+            &claude_mcp_before,
+            0o600,
+        )?;
+        write_atomic(&paths.state.join(CLAUDE_MCP_AFTER), claude_mcp_after, 0o600)?;
         let record = Record {
             phase: Phase::Installing,
             port,
             codex,
             claude,
+            claude_mcp,
+            router,
+            router_addr: adapter.map(|adapter| adapter.addr),
+            router_key: adapter.and_then(|adapter| adapter.key.clone()),
         };
         write_record(&paths.state, &record)?;
         Ok(Self {
@@ -284,8 +316,10 @@ impl Transaction {
         self.validate_originals()?;
         let codex = fs::read(self.state.join(CODEX_AFTER))?;
         let claude = fs::read(self.state.join(CLAUDE_AFTER))?;
+        let claude_mcp = fs::read(self.state.join(CLAUDE_MCP_AFTER))?;
         if let Err(error) = write(0, &self.record.codex, &codex)
             .and_then(|_| write(1, &self.record.claude, &claude))
+            .and_then(|_| write(2, &self.record.claude_mcp, &claude_mcp))
         {
             let rollback = self.restore_changed();
             return match rollback {
@@ -300,16 +334,19 @@ impl Transaction {
 
     fn validate_installed(&self) -> io::Result<()> {
         self.validate_codex()?;
-        self.validate_claude().map(|_| ())
+        self.validate_claude()?;
+        self.claude_mcp_restore().map(|_| ())
     }
 
     fn validate_originals(&self) -> io::Result<()> {
         validate_original(&self.record.codex, &self.state.join(CODEX_BEFORE))?;
-        validate_original(&self.record.claude, &self.state.join(CLAUDE_BEFORE))
+        validate_original(&self.record.claude, &self.state.join(CLAUDE_BEFORE))?;
+        validate_original(&self.record.claude_mcp, &self.state.join(CLAUDE_MCP_BEFORE))
     }
 
     fn restore(&mut self) -> io::Result<()> {
         let (codex_current, claude_current) = self.installed_clients()?;
+        let claude_mcp = self.claude_mcp_restore()?;
         let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
         let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
         let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
@@ -334,6 +371,17 @@ impl Transaction {
             (CODEX_RESTORE_TO, codex_restored.as_slice()),
             (CLAUDE_RESTORE_FROM, claude_current.as_slice()),
             (CLAUDE_RESTORE_TO, claude_restored.as_slice()),
+            (
+                CLAUDE_MCP_RESTORE_FROM,
+                claude_mcp
+                    .current
+                    .as_deref()
+                    .ok_or_else(|| conflict("managed Claude MCP file is missing"))?,
+            ),
+            (
+                CLAUDE_MCP_RESTORE_TO,
+                claude_mcp.restored.as_deref().unwrap_or_default(),
+            ),
         ] {
             write_atomic(&self.state.join(name), bytes, 0o600)?;
         }
@@ -352,6 +400,11 @@ impl Transaction {
             &self.record.claude,
             &self.state.join(CLAUDE_RESTORE_FROM),
             &self.state.join(CLAUDE_RESTORE_TO),
+        )?;
+        finish_restore(
+            &self.record.claude_mcp,
+            &self.state.join(CLAUDE_MCP_RESTORE_FROM),
+            &self.state.join(CLAUDE_MCP_RESTORE_TO),
         )
     }
 
@@ -390,7 +443,22 @@ impl Transaction {
             &self.record.claude,
             &self.state.join(CLAUDE_BEFORE),
             &self.state.join(CLAUDE_AFTER),
-        )
+        )?;
+        let restore = self.claude_mcp_restore()?;
+        write_optional(&self.record.claude_mcp, restore.restored.as_deref())
+    }
+
+    fn claude_mcp_restore(&self) -> io::Result<McpRestore> {
+        let current = read_managed_optional(&self.record.claude_mcp)?;
+        let before = fs::read(self.state.join(CLAUDE_MCP_BEFORE))?;
+        let original = self.record.claude_mcp.existed.then_some(before.as_slice());
+        let after = fs::read(self.state.join(CLAUDE_MCP_AFTER))?;
+        let restore = lao_claude::restore_worker(current.as_deref(), original, &after)
+            .map_err(|_| conflict("managed Claude MCP entry changed"))?;
+        Ok(McpRestore {
+            current,
+            restored: restore,
+        })
     }
 
     fn discard(&self) -> io::Result<()> {
@@ -403,6 +471,10 @@ impl Transaction {
             CODEX_RESTORE_TO,
             CLAUDE_RESTORE_FROM,
             CLAUDE_RESTORE_TO,
+            CLAUDE_MCP_BEFORE,
+            CLAUDE_MCP_AFTER,
+            CLAUDE_MCP_RESTORE_FROM,
+            CLAUDE_MCP_RESTORE_TO,
             PLIST_AFTER,
             RECORD,
         ] {
@@ -420,10 +492,11 @@ pub fn run() -> Result<()> {
         Some(Action::Status) => status(),
         Some(Action::Smoke) => smoke(),
         Some(Action::Off) => off(),
+        Some(Action::Mcp) => mcp(),
         None => {
             println!(
                 "usage: lao <preview|install> [--router semantic|safe|vllm-semantic] \
-                 [--runtime llama-cpp|external]\n       lao <status|smoke|off>"
+                 [--runtime llama-cpp|external]\n       lao <status|smoke|off|mcp>"
             );
             Ok(())
         }
@@ -444,14 +517,16 @@ fn parse(mut args: impl Iterator<Item = OsString>) -> io::Result<Option<Action>>
                 Action::Install(choice)
             }))
         }
-        "status" | "smoke" | "off" => {
+        "status" | "smoke" | "off" | "mcp" => {
             if args.next().is_some() {
                 return Err(invalid("unexpected option"));
             }
             Ok(Some(match command.as_str() {
                 "status" => Action::Status,
                 "smoke" => Action::Smoke,
-                _ => Action::Off,
+                "off" => Action::Off,
+                "mcp" => Action::Mcp,
+                _ => unreachable!(),
             }))
         }
         _ => Err(invalid("command")),
@@ -621,6 +696,7 @@ fn preview(selected: &Selected) -> Result<()> {
     }
     println!("Codex settings: {}", paths.codex.display());
     println!("Claude settings: {}", paths.claude.display());
+    println!("worker: OpenCode v1.18.25 (local delegated turns)");
     println!("listener: launchd-owned IPv4 loopback port selected at install");
     println!("caller headers: X-LAO-Key: <redacted> (one per client)");
     Ok(())
@@ -662,6 +738,8 @@ fn install(selected: &Selected) -> Result<()> {
         println!("preparing semantic router...");
         lao_route::prepare(&paths.router)?;
     }
+    println!("preparing OpenCode worker...");
+    lao_opencode::prepare(&paths.worker)?;
     if selected.choice.runtime == Runtime::LlamaCpp {
         println!("preparing local runtime...");
         let llama = lao_run::prepare(&paths.runtime)?;
@@ -676,6 +754,7 @@ fn install(selected: &Selected) -> Result<()> {
 
     let codex_original = read_optional(&paths.codex)?;
     let claude_original = read_optional(&paths.claude)?;
+    let claude_mcp_original = read_optional(&paths.claude_mcp)?;
     let codex_catalog = paths
         .codex
         .parent()
@@ -699,9 +778,22 @@ fn install(selected: &Selected) -> Result<()> {
         &codex_caller,
         codex_catalog,
     )?;
+    let command = env::current_exe()?;
+    let codex_after = lao_codex::configure_worker(&codex_after, &command)?;
     let claude_after = lao_claude::configure(claude_original.as_deref(), port, &claude_caller)?;
+    let claude_mcp_after = lao_claude::configure_worker(claude_mcp_original.as_deref(), &command)?;
 
-    let mut transaction = Transaction::prepare(&paths, port, &codex_after, &claude_after)?;
+    let mut transaction = Transaction::prepare(
+        &paths,
+        port,
+        &codex_after,
+        &claude_after,
+        &claude_mcp_after,
+        selected.choice.router,
+        selected.vllm.as_ref(),
+    )?;
+    let worker_caller = caller()?;
+    write_atomic(&paths.worker_key, worker_caller.as_bytes(), 0o600)?;
     let plist = plist(
         &paths,
         selected,
@@ -709,6 +801,7 @@ fn install(selected: &Selected) -> Result<()> {
         &codex_caller,
         &claude_caller,
         &clients,
+        &paths.worker_key,
     )?;
     write_atomic(&paths.state.join(PLIST_AFTER), plist.as_bytes(), 0o600)?;
     let result = (|| -> Result<()> {
@@ -727,6 +820,7 @@ fn install(selected: &Selected) -> Result<()> {
         let _ = remove_optional(&paths.daemon);
         let _ = remove_optional(&paths.adopted);
         let _ = remove_optional(&paths.state.join(DAEMON_ERROR));
+        let _ = remove_optional(&paths.worker_key);
         let _ = transaction.discard();
         return Err(error);
     }
@@ -762,6 +856,7 @@ fn off() -> Result<()> {
     deactivate(&paths)?;
     remove_optional(&paths.daemon)?;
     remove_optional(&paths.state.join(DAEMON_ERROR))?;
+    remove_optional(&paths.worker_key)?;
     transaction.discard()?;
     remove_optional(&paths.adopted)?;
     println!("off: LAO settings removed; unrelated client settings preserved");
@@ -771,6 +866,246 @@ fn off() -> Result<()> {
 #[cfg(not(target_os = "macos"))]
 fn off() -> Result<()> {
     Err(io::Error::new(io::ErrorKind::Unsupported, "macOS only").into())
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ToolArgs {
+    objective: String,
+    allowed_paths: Vec<PathBuf>,
+    #[serde(default)]
+    session_id: Option<String>,
+}
+
+fn mcp() -> Result<()> {
+    let paths = paths()?;
+    let transaction = Transaction::load(&paths.state)?;
+    if transaction.record.phase != Phase::Installed {
+        return Err(conflict("lao is not installed").into());
+    }
+    let policy: Box<dyn lao_route_api::Policy> = match transaction.record.router {
+        Router::Semantic => Box::new(lao_route::Semantic::open(&paths.router)?),
+        Router::Safe => Box::new(lao_route::Router),
+        Router::VllmSemantic => Box::new(lao_route::VllmSemantic::new(
+            transaction
+                .record
+                .router_addr
+                .ok_or_else(|| invalid("worker router"))?,
+            transaction
+                .record
+                .router_key
+                .as_deref()
+                .map(read_bearer)
+                .transpose()?,
+        )),
+    };
+    let mut agent = None;
+    let root = env::current_dir()?;
+    if !root.join(".git").exists() {
+        return Err(invalid("worker repository").into());
+    }
+
+    let stdin = io::stdin();
+    let mut stdout = io::stdout().lock();
+    for line in BufReader::new(stdin.lock()).lines() {
+        let line = line?;
+        let request: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(request) => request,
+            Err(_) => continue,
+        };
+        let Some(id) = request.get("id").cloned() else {
+            continue;
+        };
+        let method = request
+            .get("method")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_default();
+        let response = match method {
+            "initialize" => serde_json::json!({
+                "protocolVersion": request
+                    .pointer("/params/protocolVersion")
+                    .and_then(serde_json::Value::as_str)
+                    .unwrap_or("2025-06-18"),
+                "capabilities": { "tools": { "listChanged": false } },
+                "serverInfo": { "name": "lao", "version": env!("CARGO_PKG_VERSION") }
+            }),
+            "ping" => serde_json::json!({}),
+            "tools/list" => tools(),
+            "tools/call" => call(
+                &request,
+                &*policy,
+                &mut agent,
+                &root,
+                &paths,
+                transaction.record.port,
+            ),
+            _ => {
+                write_rpc(
+                    &mut stdout,
+                    serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "error": { "code": -32601, "message": "method not found" }
+                    }),
+                )?;
+                continue;
+            }
+        };
+        write_rpc(
+            &mut stdout,
+            serde_json::json!({ "jsonrpc": "2.0", "id": id, "result": response }),
+        )?;
+    }
+    Ok(())
+}
+
+fn tools() -> serde_json::Value {
+    serde_json::json!({
+        "tools": [{
+            "name": "execute",
+            "description": "Route one small, bounded implementation packet. Local packets let OpenCode read and edit only the named files; Cloud decisions return the work to you. Review and verify every local result in this harness.",
+            "inputSchema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["objective", "allowed_paths"],
+                "properties": {
+                    "objective": { "type": "string", "maxLength": 4096 },
+                    "allowed_paths": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 16,
+                        "items": { "type": "string", "maxLength": 1024 }
+                    },
+                    "session_id": { "type": "string", "maxLength": 68 }
+                }
+            }
+        }]
+    })
+}
+
+fn call(
+    request: &serde_json::Value,
+    policy: &dyn lao_route_api::Policy,
+    agent: &mut Option<lao_opencode::OpenCode>,
+    root: &Path,
+    paths: &Paths,
+    port: u16,
+) -> serde_json::Value {
+    if request
+        .pointer("/params/name")
+        .and_then(serde_json::Value::as_str)
+        != Some("execute")
+    {
+        return tool_error("unknown tool");
+    }
+    let args = match request
+        .pointer("/params/arguments")
+        .cloned()
+        .and_then(|value| serde_json::from_value::<ToolArgs>(value).ok())
+    {
+        Some(args) if !args.objective.is_empty() && args.objective.len() <= 4096 => args,
+        _ => return tool_error("invalid bounded turn"),
+    };
+    let context =
+        lao_route_api::Context::new(lao_route_api::Client::Worker, lao_route_api::Op::Chat);
+    if policy.decide_query(context, &args.objective) != lao_route_api::Decision::Local {
+        return tool_result(
+            "cloud",
+            "LAO kept this turn in Cloud. Execute it in the current Codex or Claude harness.",
+            None,
+            &[],
+        );
+    }
+    if agent.is_none() {
+        let worker_key = match read_worker_key(&paths.worker_key) {
+            Ok(key) => key,
+            Err(_) => return tool_error("local worker is unavailable"),
+        };
+        let worker = match lao_opencode::OpenCode::new(
+            lao_opencode::binary(&paths.worker),
+            (Ipv4Addr::LOCALHOST, port).into(),
+            worker_key,
+        ) {
+            Ok(worker) => worker,
+            Err(_) => return tool_error("local worker is unavailable"),
+        };
+        *agent = Some(worker);
+    }
+    let task = lao_agent_api::Task {
+        root: root.to_owned(),
+        instruction: args.objective,
+        allowed: args.allowed_paths,
+        session: args.session_id,
+        deadline: Duration::from_secs(10 * 60),
+    };
+    match lao_agent_api::Agent::turn(agent.as_ref().expect("agent initialized"), &task) {
+        Ok(report) => {
+            let status = match report.outcome {
+                lao_agent_api::Outcome::Complete => "complete",
+                lao_agent_api::Outcome::AgentFailed => "agent_failed",
+                lao_agent_api::Outcome::TimedOut => "timed_out",
+            };
+            let message = if report.outcome == lao_agent_api::Outcome::Complete {
+                "Local OpenCode turn completed. Review the changed files and run the appropriate verification in this harness."
+            } else {
+                "Local OpenCode turn stopped. Review before retrying in Cloud."
+            };
+            tool_result(status, message, report.session.as_deref(), &report.changed)
+        }
+        Err(_) => tool_error("local worker rejected or failed the bounded turn"),
+    }
+}
+
+fn tool_result(
+    status: &str,
+    message: &str,
+    session: Option<&str>,
+    changed: &[PathBuf],
+) -> serde_json::Value {
+    let changed: Vec<_> = changed.iter().filter_map(|path| path.to_str()).collect();
+    serde_json::json!({
+        "content": [{ "type": "text", "text": message }],
+        "structuredContent": {
+            "status": status,
+            "session_id": session,
+            "changed_paths": changed
+        },
+        "isError": false
+    })
+}
+
+fn tool_error(message: &str) -> serde_json::Value {
+    serde_json::json!({
+        "content": [{ "type": "text", "text": message }],
+        "isError": true
+    })
+}
+
+fn write_rpc(output: &mut impl Write, value: serde_json::Value) -> io::Result<()> {
+    serde_json::to_writer(&mut *output, &value).map_err(|_| invalid("MCP response"))?;
+    output.write_all(b"\n")?;
+    output.flush()
+}
+
+fn read_worker_key(path: &Path) -> io::Result<String> {
+    key_file(path.to_owned(), "worker key")?;
+    let key = fs::read_to_string(path)?;
+    if key.len() != 64 || !key.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(invalid("worker key"));
+    }
+    Ok(key)
+}
+
+fn read_bearer(path: &Path) -> io::Result<String> {
+    key_file(path.to_owned(), "router key")?;
+    let mut key = fs::read_to_string(path)?;
+    while key.ends_with(['\r', '\n']) {
+        key.pop();
+    }
+    if key.is_empty() || key.len() > 4096 || !key.bytes().all(|byte| byte > b' ' && byte < 0x7f) {
+        return Err(invalid("router key"));
+    }
+    Ok(key)
 }
 
 #[cfg(target_os = "macos")]
@@ -957,6 +1292,7 @@ fn paths() -> io::Result<Paths> {
         state: state.clone(),
         codex: codex_root.join("config.toml"),
         claude: claude_root.join("settings.json"),
+        claude_mcp: home.join(".claude.json"),
         plist: home
             .join("Library/LaunchAgents")
             .join(format!("{LABEL}.plist")),
@@ -964,6 +1300,8 @@ fn paths() -> io::Result<Paths> {
         model: home.join("Library/Caches/lao/models"),
         runtime: home.join("Library/Caches/lao/runtimes"),
         router: home.join("Library/Caches/lao/routers/minilm"),
+        worker: home.join("Library/Caches/lao/workers/opencode"),
+        worker_key: state.join("worker.key"),
         daemon_source,
         daemon: state.join("lao-daemon"),
         optimize: state.join("optimize.state"),
@@ -1021,6 +1359,7 @@ fn recover(paths: &Paths, transaction: &Transaction) -> io::Result<()> {
     deactivate(paths)?;
     remove_optional(&paths.daemon)?;
     remove_optional(&paths.state.join(DAEMON_ERROR))?;
+    remove_optional(&paths.worker_key)?;
     transaction.discard()?;
     remove_optional(&paths.adopted)
 }
@@ -1109,6 +1448,24 @@ fn read_managed(entry: &Entry) -> io::Result<Vec<u8>> {
         return Err(conflict("managed file is missing or changed"));
     }
     fs::read(&entry.path)
+}
+
+fn read_managed_optional(entry: &Entry) -> io::Result<Option<Vec<u8>>> {
+    match fs::symlink_metadata(&entry.path) {
+        Ok(metadata) if metadata.file_type().is_file() && metadata.mode() & 0o777 == entry.mode => {
+            fs::read(&entry.path).map(Some)
+        }
+        Ok(_) => Err(conflict("managed file is missing or changed")),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+fn write_optional(entry: &Entry, bytes: Option<&[u8]>) -> io::Result<()> {
+    match bytes {
+        Some(bytes) => write_entry(entry, bytes),
+        None => remove_optional(&entry.path),
+    }
 }
 
 fn restore_if_managed(entry: &Entry, before: &Path, after: &Path) -> io::Result<()> {
@@ -1258,6 +1615,7 @@ fn plist(
     codex: &str,
     claude: &str,
     clients: &Clients,
+    worker_key: &Path,
 ) -> io::Result<String> {
     let error_path = paths.state.join(DAEMON_ERROR);
     let codex_catalog = paths
@@ -1272,6 +1630,7 @@ fn plist(
         clients.codex.to_str(),
         clients.claude.to_str(),
         paths.optimize.to_str(),
+        worker_key.to_str(),
     ];
     if values.iter().any(Option::is_none) || codex_catalog.to_str().is_none() {
         return Err(invalid("non-UTF-8 install path"));
@@ -1300,11 +1659,12 @@ fn plist(
             .ok_or_else(|| invalid("non-UTF-8 install path"))?,
     );
     Ok(format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_WORKER_KEY_FILE</key><string>{worker}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
         daemon = xml(values[0].unwrap()),
         adopted = xml(values[1].unwrap()),
         error = xml(values[2].unwrap()),
         codex_cloud = clients.cloud,
+        worker = xml(values[6].unwrap()),
     ))
 }
 
@@ -1567,11 +1927,14 @@ mod tests {
                 state: state.clone(),
                 codex: self.0.join("codex/config.toml"),
                 claude: self.0.join("claude/settings.json"),
+                claude_mcp: self.0.join(".claude.json"),
                 plist: self.0.join("daemon.plist"),
                 adopted: state.join("adopted"),
                 model: self.0.join("models"),
                 runtime: self.0.join("runtimes"),
                 router: self.0.join("router"),
+                worker: self.0.join("worker"),
+                worker_key: state.join("worker.key"),
                 daemon_source: self.0.join("lao-daemon-source"),
                 daemon: self.0.join("lao-daemon"),
                 optimize: state.join("optimize.state"),
@@ -1585,16 +1948,19 @@ mod tests {
         }
     }
 
-    fn prepared(temp: &Temp) -> (Paths, Transaction, Vec<u8>, Vec<u8>) {
+    fn prepared(temp: &Temp) -> (Paths, Transaction, Vec<u8>, Vec<u8>, Vec<u8>) {
         let paths = temp.paths();
         fs::create_dir_all(paths.codex.parent().unwrap()).unwrap();
         fs::create_dir_all(paths.claude.parent().unwrap()).unwrap();
         let codex = b"model = \"gpt-5.4\"\n".to_vec();
         let claude = br#"{"permissions":{"defaultMode":"default"}}"#.to_vec();
+        let claude_mcp = br#"{"mcpServers":{}}"#.to_vec();
         fs::write(&paths.codex, &codex).unwrap();
         fs::write(&paths.claude, &claude).unwrap();
+        fs::write(&paths.claude_mcp, &claude_mcp).unwrap();
         fs::set_permissions(&paths.codex, fs::Permissions::from_mode(0o640)).unwrap();
         fs::set_permissions(&paths.claude, fs::Permissions::from_mode(0o600)).unwrap();
+        fs::set_permissions(&paths.claude_mcp, fs::Permissions::from_mode(0o600)).unwrap();
         private_dir(&paths.state).unwrap();
         let codex_after = lao_codex::configure(
             Some(&codex),
@@ -1609,14 +1975,26 @@ mod tests {
             "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
         )
         .unwrap();
-        let transaction = Transaction::prepare(&paths, 8765, &codex_after, &claude_after).unwrap();
-        (paths, transaction, codex, claude)
+        let codex_after = lao_codex::configure_worker(&codex_after, Path::new("/tmp/lao")).unwrap();
+        let claude_mcp_after =
+            lao_claude::configure_worker(Some(&claude_mcp), Path::new("/tmp/lao")).unwrap();
+        let transaction = Transaction::prepare(
+            &paths,
+            8765,
+            &codex_after,
+            &claude_after,
+            &claude_mcp_after,
+            Router::Semantic,
+            None,
+        )
+        .unwrap();
+        (paths, transaction, codex, claude, claude_mcp)
     }
 
     #[test]
     fn settings_install_and_off_are_exact_and_conflict_aware() {
         let temp = Temp::new();
-        let (paths, mut transaction, codex, claude) = prepared(&temp);
+        let (paths, mut transaction, codex, claude, _claude_mcp) = prepared(&temp);
         let _lock = Lock::acquire(&paths.state).unwrap();
         assert!(Lock::acquire(&paths.state).is_err());
         transaction.apply().unwrap();
@@ -1633,16 +2011,24 @@ mod tests {
             &fs::read(paths.state.join(CLAUDE_AFTER)).unwrap(),
         )
         .unwrap();
+        let mut live: serde_json::Value =
+            serde_json::from_slice(&fs::read(&paths.claude_mcp).unwrap()).unwrap();
+        live["usageCount"] = serde_json::Value::from(3);
+        fs::write(&paths.claude_mcp, serde_json::to_vec(&live).unwrap()).unwrap();
         transaction.restore().unwrap();
         assert_eq!(fs::read(&paths.codex).unwrap(), codex);
         assert_eq!(fs::read(&paths.claude).unwrap(), claude);
+        let restored: serde_json::Value =
+            serde_json::from_slice(&fs::read(&paths.claude_mcp).unwrap()).unwrap();
+        assert_eq!(restored["usageCount"], 3);
+        assert!(restored["mcpServers"].get("lao").is_none());
     }
 
     #[test]
     fn failure_at_either_client_write_restores_both_originals() {
-        for boundary in 0..=1 {
+        for boundary in 0..=2 {
             let temp = Temp::new();
-            let (paths, mut transaction, codex, claude) = prepared(&temp);
+            let (paths, mut transaction, codex, claude, claude_mcp) = prepared(&temp);
             let result = transaction.apply_with(|index, entry, bytes| {
                 if index == boundary {
                     Err(io::Error::other("induced write failure"))
@@ -1653,13 +2039,14 @@ mod tests {
             assert!(result.is_err());
             assert_eq!(fs::read(&paths.codex).unwrap(), codex);
             assert_eq!(fs::read(&paths.claude).unwrap(), claude);
+            assert_eq!(fs::read(&paths.claude_mcp).unwrap(), claude_mcp);
         }
     }
 
     #[test]
     fn off_preserves_unrelated_client_edits() {
         let temp = Temp::new();
-        let (paths, mut transaction, _, _) = prepared(&temp);
+        let (paths, mut transaction, _, _, _) = prepared(&temp);
         transaction.apply().unwrap();
 
         let mut codex = fs::read_to_string(&paths.codex).unwrap();
@@ -1691,6 +2078,19 @@ mod tests {
         ] {
             write_atomic(&paths.state.join(name), bytes, 0o600).unwrap();
         }
+        let claude_mcp = transaction.claude_mcp_restore().unwrap();
+        write_atomic(
+            &paths.state.join(CLAUDE_MCP_RESTORE_FROM),
+            claude_mcp.current.as_deref().unwrap(),
+            0o600,
+        )
+        .unwrap();
+        write_atomic(
+            &paths.state.join(CLAUDE_MCP_RESTORE_TO),
+            claude_mcp.restored.as_deref().unwrap_or_default(),
+            0o600,
+        )
+        .unwrap();
         transaction.phase(Phase::Restoring).unwrap();
         write_entry(&transaction.record.codex, &codex_restored).unwrap();
         transaction.finish_restore().unwrap();
@@ -1789,7 +2189,16 @@ mod tests {
                 claude: temp.0.join("claude"),
                 cloud: "chatgpt",
             };
-            let bytes = plist(&paths, &selected, 8765, "codex", "claude", &clients).unwrap();
+            let bytes = plist(
+                &paths,
+                &selected,
+                8765,
+                "codex",
+                "claude",
+                &clients,
+                &paths.worker_key,
+            )
+            .unwrap();
             for expected in [
                 "<key>LAO_CODEX_CATALOG</key>",
                 "<key>LAO_ROUTER</key><string>vllm-semantic</string>",

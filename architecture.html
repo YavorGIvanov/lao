@@ -99,63 +99,49 @@
 <main>
   <header>
     <div class="note">LOCAL AGENT OPTIMIZER · SYSTEM MAP</div>
-    <h1>Where each coding request goes.</h1>
-    <p>Codex and Claude Code remain the user interface. LAO privately classifies small requests, sends only a conservative subset to a local model, and keeps cloud as the safe path.</p>
+    <h1>Where each work packet goes.</h1>
+    <p>Codex and Claude Code remain the planner and user interface. LAO routes each bounded packet to Cloud or to an interchangeable local worker.</p>
   </header>
 
   <section>
-    <h2>1. Request and control paths</h2>
-    <div class="flow" aria-label="Codex and Claude Code reach the per-user LAO daemon through a launchd-owned IPv4 loopback listener, then use local inference or the native cloud path.">
+    <h2>1. One packet, one decision</h2>
+    <div class="flow" aria-label="Codex and Claude Code send a bounded work packet to LAO. The semantic router returns it to the cloud harness or sends it through OpenCode to local inference.">
       <div class="stack">
-        <div class="node"><strong>Codex</strong><small>same command + harness</small></div>
-        <div class="node"><strong>Claude Code</strong><small>same command + harness</small></div>
+        <div class="node"><strong>Codex</strong><small>cloud planner</small></div>
+        <div class="node"><strong>Claude Code</strong><small>cloud planner</small></div>
       </div>
       <div class="arrow">→</div>
       <div class="lao-boundary">
-        <div class="node"><strong>loopback listener</strong><small>owned by launchd across restarts</small></div>
-        <div class="arrow">→</div>
         <div class="node main">
-          <strong>lao-daemon</strong>
-          <small>resident gate + lazy classifier</small>
+          <strong><code>lao.execute</code></strong>
+          <small>one bounded packet</small>
           <div class="inside">
-            <span>gate</span><span>MiniLM router</span><span>runtime API</span><span>optimizer</span>
+            <span>named files</span><span>MiniLM decision</span><span>Cloud by default</span>
           </div>
         </div>
       </div>
       <div class="arrow">→</div>
       <div class="split">
-        <div class="node"><strong>local inference</strong><small>runtime API → owned llama.cpp · external optional</small></div>
-        <div class="node"><strong>native cloud</strong><small>original provider path</small></div>
+        <div class="node"><strong>Local</strong><small>OpenCode → runtime API → Qwen3</small></div>
+        <div class="node"><strong>Cloud</strong><small>current harness continues</small></div>
       </div>
     </div>
-    <div class="control-flow" aria-label="The short-lived lao command configures the clients and controls the daemon, but does not carry coding requests.">
+    <div class="control-flow" aria-label="The lao command installs and controls the service; its MCP mode carries bounded delegated work packets.">
       <div class="node"><strong><code>lao</code> control</strong><small>install · status · smoke · off</small></div>
       <div class="arrow">⇢</div>
-      <div class="control-target"><code>verified runtime + model</code><br><code>client adapters · launchd</code><br>then the command exits</div>
+      <div class="control-target"><code>per-user launchd listener + daemon</code><br><code>verified OpenCode · router · runtime · model</code></div>
     </div>
-    <p class="note">LAO installs per user—no root service or separate runtime package is needed. <code>lao install</code> fetches and verifies the runtime and models, or reuses a healthy setup, then returns while the optimizer warms both harness paths. <code>lao status</code> reads non-secret readiness state without a model request. Launchd keeps the local door available through daemon restarts. Release packaging still needs one stable signed and notarized identity.</p>
+    <p class="note">LAO installs per user with no root service or separate runtime package. Install verifies or reuses MiniLM, OpenCode, llama.cpp, and Qwen3, then the optimizer warms both harness paths. <code>lao status</code> reports non-secret readiness. User-managed vLLM routing and protected vLLM/SGLang-compatible endpoints remain optional, uncertified alternatives behind the same APIs.</p>
   </section>
 
   <section>
     <h2>2. Trust boundaries</h2>
     <div class="checks">
-      <div class="check"><b>Caller</b><p>Each request needs that client's private caller key. Same-user malware is out of scope.</p></div>
-      <div class="check"><b>Decision</b><p>Automatic requests use a separate semantic model; failure or a threshold miss means Cloud. The explicit canary bypasses classification.</p></div>
-      <div class="check"><b>Secrets</b><p>Provider credentials stay away from the local model.</p></div>
+      <div class="check"><b>Files</b><p>A Local worker may read and edit only the paths named in its packet.</p></div>
+      <div class="check"><b>Decision</b><p>Planning, uncertainty, or classifier failure means Cloud.</p></div>
+      <div class="check"><b>Secrets</b><p>OpenCode and the local model never receive harness provider credentials.</p></div>
     </div>
-    <div class="flow" aria-label="The gate authenticates the local caller, gives bounded current-user text to the router, then freezes a clean local or exact native cloud route.">
-      <div class="node"><strong>client request</strong><small>from Codex or Claude Code</small></div>
-      <div class="arrow">→</div>
-      <div class="node main"><strong>private gate</strong><small>authenticate and protect secrets</small></div>
-      <div class="arrow">→</div>
-      <div class="node"><strong>semantic router</strong><small>small local classifier</small></div>
-      <div class="arrow">→</div>
-      <div class="split">
-        <div class="node"><strong>local</strong><small>bounded request</small></div>
-        <div class="node"><strong>cloud</strong><small>uncertain or complex</small></div>
-      </div>
-    </div>
-    <p class="note">Protocol limits, recovery mechanics, and acceptance evidence live in the implementation plan—not on this map.</p>
+    <p class="note">Only <code>lao.execute</code> is pre-approved. OpenCode has no shell or network tool and cannot widen the named-file boundary. Codex or Claude reviews the result and runs verification.</p>
   </section>
 
   <section>
@@ -201,6 +187,7 @@
         <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, verify, and restore owned harness settings while preserving unrelated client edits.</td></tr>
         <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
         <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Use the default pinned MiniLM semantic classifier or an optional vLLM Semantic Router; automatic failures stay Cloud.</td></tr>
+        <tr><td>Local agent</td><td><a href="api/agent/Cargo.toml">api/agent</a> · <a href="svc/opencode/Cargo.toml">svc/opencode</a></td><td>Run a bounded OpenCode packet with only its named-file permissions and local model.</td></tr>
         <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Own verified llama.cpp by default, or connect to an uncertified protected loopback endpoint.</td></tr>
         <tr><td>Latency optimizer</td><td><a href="api/optimize/Cargo.toml">api/optimize</a> · <a href="svc/optimize/Cargo.toml">svc/optimize</a></td><td>Own single-flight background harness warming and non-secret readiness state.</td></tr>
         <tr><td>Applications</td><td><a href="app/daemon/Cargo.toml">app/daemon</a> · <a href="app/cli/Cargo.toml">app/cli</a></td><td>Wire components; own the long- and short-lived process roots.</td></tr>

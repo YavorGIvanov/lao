@@ -73,6 +73,7 @@ fn installed_clients_are_semantically_routed_to_real_local_inference() {
             local,
             *CODEX.as_bytes().first_chunk().unwrap(),
             *CLAUDE.as_bytes().first_chunk().unwrap(),
+            [0; 64],
             lao_gate::CodexCloud::ChatGpt,
         );
     });

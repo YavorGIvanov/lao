@@ -1,5 +1,5 @@
 use candle_semantic_router::BertSimilarity;
-use lao_route_api::{Context, Decision, Policy};
+use lao_route_api::{Client, Context, Decision, Policy};
 use serde_json::Value;
 use std::{
     fs::{self, OpenOptions},
@@ -65,6 +65,7 @@ struct Loaded {
     model: BertSimilarity,
     easy: Vec<Vec<f32>>,
     hard: Vec<Vec<f32>>,
+    work_easy: Vec<Vec<f32>>,
 }
 
 impl Semantic {
@@ -77,7 +78,7 @@ impl Semantic {
         })
     }
 
-    fn query(&self, query: &str) -> Option<Decision> {
+    fn query(&self, context: Context, query: &str) -> Option<Decision> {
         if query.len() > 4096 || risky(query) {
             return Some(Decision::Cloud);
         }
@@ -92,7 +93,14 @@ impl Semantic {
             return Some(Decision::Cloud);
         };
         let query = vector(&loaded.model, query)?;
-        let easy = score(&query, &loaded.easy)?;
+        let easy = score(
+            &query,
+            if context.client() == Client::Worker {
+                &loaded.work_easy
+            } else {
+                &loaded.easy
+            },
+        )?;
         let hard = score(&query, &loaded.hard)?;
         Some(if hard - easy < -0.08 {
             Decision::Local
@@ -124,7 +132,21 @@ impl Loaded {
             ],
         )
         .ok()?;
-        Some(Self { model, easy, hard })
+        let work_easy = embed(
+            &model,
+            &[
+                "Make one small mechanical code change in one named file and run one existing test.",
+                "Fix a narrow typo or formatting issue and verify the exact result.",
+                "Add one bounded test for already understood behavior.",
+            ],
+        )
+        .ok()?;
+        Some(Self {
+            model,
+            easy,
+            hard,
+            work_easy,
+        })
     }
 }
 
@@ -145,7 +167,7 @@ impl Policy for Semantic {
         if context.is_canary() {
             return Decision::Local;
         }
-        self.query(query).unwrap_or(Decision::Cloud)
+        self.query(context, query).unwrap_or(Decision::Cloud)
     }
 }
 
@@ -569,6 +591,20 @@ mod tests {
             router.decide_query(
                 Context::new(Client::Codex, Op::Responses),
                 "Research current dependencies, redesign the architecture across many files, and deploy it to production."
+            ),
+            Decision::Cloud
+        );
+        assert_eq!(
+            router.decide_query(
+                Context::new(Client::Worker, Op::Chat),
+                "Change only word.txt from teh to the and run the existing ./verify.sh check."
+            ),
+            Decision::Local
+        );
+        assert_eq!(
+            router.decide_query(
+                Context::new(Client::Worker, Op::Chat),
+                "Plan and implement a broad authentication architecture across many files."
             ),
             Decision::Cloud
         );

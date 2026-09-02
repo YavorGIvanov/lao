@@ -19,7 +19,15 @@ pub fn closed(
     listener: TcpListener,
     policy: impl Policy + 'static,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    serve(listener, policy, None, [0; 64], [0; 64], CodexCloud::Api)
+    serve(
+        listener,
+        policy,
+        None,
+        [0; 64],
+        [0; 64],
+        [0; 64],
+        CodexCloud::Api,
+    )
 }
 
 pub fn canary(
@@ -35,6 +43,7 @@ pub fn canary(
         Some(Arc::new(Ready(Arc::new(endpoint)))),
         codex,
         claude,
+        [0; 64],
         CodexCloud::Api,
     )
 }
@@ -45,9 +54,18 @@ pub fn installed(
     local: Arc<dyn Local>,
     codex: [u8; 64],
     claude: [u8; 64],
+    worker: [u8; 64],
     codex_cloud: CodexCloud,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    serve(listener, policy, Some(local), codex, claude, codex_cloud)
+    serve(
+        listener,
+        policy,
+        Some(local),
+        codex,
+        claude,
+        worker,
+        codex_cloud,
+    )
 }
 
 fn serve(
@@ -56,6 +74,7 @@ fn serve(
     local: Option<Arc<dyn Local>>,
     codex: [u8; 64],
     claude: [u8; 64],
+    worker: [u8; 64],
     codex_cloud: CodexCloud,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     tokio::runtime::Builder::new_current_thread()
@@ -68,6 +87,7 @@ fn serve(
             local,
             codex,
             claude,
+            worker,
             codex_cloud,
         ))
 }

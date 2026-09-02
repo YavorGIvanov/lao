@@ -1226,6 +1226,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "lao-agent-api"
+version = "0.1.0"
+
+[[package]]
 name = "lao-capture"
 version = "0.1.0"
 dependencies = [
@@ -1259,12 +1263,15 @@ name = "lao-cli"
 version = "0.1.0"
 dependencies = [
  "getrandom 0.2.17",
+ "lao-agent-api",
  "lao-claude",
  "lao-codex",
  "lao-model",
+ "lao-opencode",
  "lao-optimize",
  "lao-optimize-api",
  "lao-route",
+ "lao-route-api",
  "lao-run",
  "libc",
  "serde",
@@ -1367,6 +1374,15 @@ name = "lao-model-api"
 version = "0.1.0"
 dependencies = [
  "lao-core-api",
+]
+
+[[package]]
+name = "lao-opencode"
+version = "0.1.0"
+dependencies = [
+ "getrandom 0.2.17",
+ "lao-agent-api",
+ "serde_json",
 ]
 
 [[package]]

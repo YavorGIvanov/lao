@@ -212,6 +212,12 @@ pub fn verify(
     {
         return Err(ConfigError::Conflict);
     }
+    if let Some(installed_worker) = worker(&installed)? {
+        let current_worker = worker(&current)?.ok_or(ConfigError::Conflict)?;
+        if current_worker.to_string() != installed_worker.to_string() {
+            return Err(ConfigError::Conflict);
+        }
+    }
     Ok(())
 }
 
@@ -225,11 +231,23 @@ pub fn restore(
         return Ok(original.to_vec());
     }
     verify(current, installed, Some(original))?;
+    let installed = document(installed)?;
+    let original_document = document(original)?;
     let mut current = document(current)?;
     current.remove("model_provider");
     current.remove("model_providers");
-    if !document(original)?.contains_key("model_catalog_json") {
+    if !original_document.contains_key("model_catalog_json") {
         current.remove("model_catalog_json");
+    }
+    if worker(&installed)?.is_some() {
+        let servers = current
+            .get_mut("mcp_servers")
+            .and_then(toml_edit::Item::as_table_mut)
+            .ok_or(ConfigError::Conflict)?;
+        servers.remove("lao");
+        if servers.is_empty() && !original_document.contains_key("mcp_servers") {
+            current.remove("mcp_servers");
+        }
     }
     Ok(current.to_string().into_bytes())
 }
@@ -249,6 +267,46 @@ fn provider(document: &toml_edit::DocumentMut) -> Result<&toml_edit::Table, Conf
         return Err(ConfigError::Conflict);
     }
     providers["lao"].as_table().ok_or(ConfigError::Invalid)
+}
+
+fn worker(document: &toml_edit::DocumentMut) -> Result<Option<&toml_edit::Item>, ConfigError> {
+    let Some(servers) = document.get("mcp_servers") else {
+        return Ok(None);
+    };
+    Ok(servers.as_table().ok_or(ConfigError::Invalid)?.get("lao"))
+}
+
+pub fn configure_worker(config: &[u8], command: &Path) -> Result<Vec<u8>, ConfigError> {
+    if !command.is_absolute() {
+        return Err(ConfigError::Invalid);
+    }
+    let text = std::str::from_utf8(config).map_err(|_| ConfigError::Invalid)?;
+    let mut document = text
+        .parse::<toml_edit::DocumentMut>()
+        .map_err(|_| ConfigError::Invalid)?;
+    if document
+        .get("mcp_servers")
+        .and_then(toml_edit::Item::as_table)
+        .is_some_and(|servers| servers.contains_key("lao"))
+    {
+        return Err(ConfigError::Conflict);
+    }
+    if !document.contains_key("mcp_servers") {
+        document["mcp_servers"] = toml_edit::Item::Table(toml_edit::Table::new());
+    }
+    let command = command.to_str().ok_or(ConfigError::Invalid)?;
+    let mut server = toml_edit::Table::new();
+    server["command"] = toml_edit::value(command);
+    server["args"] = toml_edit::value(toml_edit::Array::from_iter(["mcp"]));
+    server["tool_timeout_sec"] = toml_edit::value(600);
+    server["enabled_tools"] = toml_edit::value(toml_edit::Array::from_iter(["execute"]));
+    let mut execute = toml_edit::Table::new();
+    execute["approval_mode"] = toml_edit::value("approve");
+    let mut tools = toml_edit::Table::new();
+    tools["execute"] = toml_edit::Item::Table(execute);
+    server["tools"] = toml_edit::Item::Table(tools);
+    document["mcp_servers"]["lao"] = toml_edit::Item::Table(server);
+    Ok(document.to_string().into_bytes())
 }
 
 fn valid_caller(value: &str) -> bool {
@@ -381,6 +439,24 @@ mod tests {
             configured["mcp_servers"]["fixture"]["command"].as_str(),
             Some("true")
         );
+        let configured =
+            configure_worker(configured.to_string().as_bytes(), Path::new("/tmp/lao")).unwrap();
+        let configured = String::from_utf8(configured)
+            .unwrap()
+            .parse::<toml_edit::DocumentMut>()
+            .unwrap();
+        assert_eq!(
+            configured["mcp_servers"]["lao"]["command"].as_str(),
+            Some("/tmp/lao")
+        );
+        assert_eq!(
+            configured["mcp_servers"]["lao"]["enabled_tools"][0].as_str(),
+            Some("execute")
+        );
+        assert_eq!(
+            configured["mcp_servers"]["lao"]["tools"]["execute"]["approval_mode"].as_str(),
+            Some("approve")
+        );
         assert_eq!(
             configure(
                 Some(b"model_provider = \"other\"\n"),
@@ -394,7 +470,7 @@ mod tests {
 
     #[test]
     fn preserves_unrelated_edits_when_restoring_managed_settings() {
-        let original = b"model = \"gpt-5.4\"\n";
+        let original = b"model = \"gpt-5.4\"\n[mcp_servers.fixture]\ncommand = \"true\"\n";
         let installed = configure(
             Some(original),
             8765,
@@ -402,6 +478,7 @@ mod tests {
             "/tmp/models.json",
         )
         .unwrap();
+        let installed = configure_worker(&installed, Path::new("/tmp/lao")).unwrap();
         let mut current = String::from_utf8(installed.clone()).unwrap();
         current.push_str("\n[projects.\"/tmp/new\"]\ntrust_level = \"trusted\"\n");
 
@@ -410,7 +487,9 @@ mod tests {
             String::from_utf8(restore(current.as_bytes(), &installed, Some(original)).unwrap())
                 .unwrap();
         assert!(restored.contains("model = \"gpt-5.4\""));
+        assert!(restored.contains("[mcp_servers.fixture]"));
         assert!(restored.contains("[projects.\"/tmp/new\"]"));
+        assert!(!restored.contains("[mcp_servers.lao]"));
         assert!(!restored.contains("model_provider"));
         assert!(!restored.contains("model_catalog_json"));
 

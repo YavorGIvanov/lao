@@ -23,6 +23,7 @@ pub(super) struct Gate {
     pub codex_cloud: Cloud,
     pub claude: [u8; 64],
     pub claude_cloud: Cloud,
+    pub worker: [u8; 64],
     pub local: Option<Arc<dyn Local>>,
 }
 
@@ -83,9 +84,15 @@ impl<B> Task<B> {
     }
 
     pub fn validate_auth(&self, gate: &Gate) -> Result<(), Err> {
+        if self.client == Client::Worker {
+            return valid_auth(self.client, Route::Local, self.request.headers())
+                .then_some(())
+                .ok_or_else(|| deny("route"));
+        }
         let cloud = Route::Cloud(match self.client {
             Client::Codex => gate.codex_cloud,
             Client::Claude => gate.claude_cloud,
+            Client::Worker => unreachable!(),
         });
         valid_auth(self.client, cloud, self.request.headers())
             .then_some(())
@@ -103,6 +110,7 @@ impl<B> Task<B> {
             (Decision::Cloud, false, _) => Route::Cloud(match self.client {
                 Client::Codex => gate.codex_cloud,
                 Client::Claude => gate.claude_cloud,
+                Client::Worker => return Err(deny("route")),
             }),
             _ => return Err(deny("route")),
         };
@@ -180,10 +188,10 @@ pub(super) fn admit<B>(mut request: Request<B>, gate: &Gate) -> Result<Option<Ta
             Err(deny("auth"))
         };
     }
-    let key = if client == Client::Codex {
-        &gate.codex
-    } else {
-        &gate.claude
+    let key = match client {
+        Client::Codex => &gate.codex,
+        Client::Claude => &gate.claude,
+        Client::Worker => &gate.worker,
     };
     if !one(request.headers(), "x-lao-key", |value| {
         constant_time(value, key)
@@ -192,9 +200,23 @@ pub(super) fn admit<B>(mut request: Request<B>, gate: &Gate) -> Result<Option<Ta
     }
     request.headers_mut().remove("x-lao-key");
     let mut routes = request.headers().get_all("x-lao-local").iter();
-    let canary = match (routes.next(), routes.next()) {
-        (None, None) => false,
-        (Some(value), None)
+    let canary = match (client, routes.next(), routes.next()) {
+        (Client::Worker, None, None)
+            if op == Op::Chat
+                && request
+                    .headers()
+                    .get(CONTENT_LENGTH)
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(|value| value.parse::<u64>().ok())
+                    .is_some_and(|length| (1..=2 * 1024 * 1024).contains(&length))
+                && one(request.headers(), CONTENT_TYPE, |value| {
+                    value == b"application/json"
+                }) =>
+        {
+            true
+        }
+        (_, None, None) => false,
+        (_, Some(value), None)
             if value.as_bytes() == b"canary"
                 && matches!(op, Op::Responses | Op::Messages)
                 && request
@@ -243,6 +265,7 @@ fn operation<B>(request: &Request<B>) -> Result<(Client, Op, Ingress), Err> {
         (&Method::POST, "/ant/v1/messages/count_tokens") => {
             (Client::Claude, Op::Count, Ingress::Plain)
         }
+        (&Method::POST, "/wrk/v1/chat/completions") => (Client::Worker, Op::Chat, Ingress::Plain),
         _ => return Err(deny("path")),
     })
 }
@@ -271,6 +294,7 @@ fn valid_auth(client: Client, route: Route, headers: &HeaderMap) -> bool {
         (Client::Claude, Route::Cloud(Cloud::AnthropicKey)) => {
             auth.is_empty() && key == 1 && account == 0 && !openai
         }
+        (Client::Worker, Route::Local) => bearer && key == 0 && account == 0 && !anthropic,
         _ => false,
     }
 }
@@ -317,6 +341,15 @@ fn target(route: Route, op: Op, beta: bool, local: Option<&Endpoint>) -> Result<
                 .to_string()
                 .into(),
             "/v1/messages",
+            false,
+        ),
+        (Route::Local, Op::Chat) => (
+            local
+                .ok_or_else(|| deny("local"))?
+                .addr()
+                .to_string()
+                .into(),
+            "/v1/chat/completions",
             false,
         ),
         _ => return Err(deny("route")),
@@ -428,6 +461,7 @@ mod tests {
 
     const OAI_KEY: &str = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC";
     const ANT_KEY: &str = "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD";
+    const WORKER_KEY: &str = "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE";
 
     #[test]
     fn ingress_is_exact_and_hello_is_inert() {
@@ -672,6 +706,53 @@ mod tests {
         }
     }
 
+    #[test]
+    fn worker_is_local_only_and_credential_clean() {
+        let mut gate = gate();
+        gate.worker = *WORKER_KEY.as_bytes().first_chunk().unwrap();
+        let task = admit(
+            request(
+                Method::POST,
+                "/wrk/v1/chat/completions",
+                &[
+                    ("X-LAO-Key", WORKER_KEY),
+                    ("Authorization", "Bearer local"),
+                    ("Content-Type", "application/json"),
+                    ("Content-Length", "2"),
+                ],
+            ),
+            &gate,
+        )
+        .unwrap()
+        .unwrap();
+        task.validate_auth(&gate).unwrap();
+        let frozen = task
+            .freeze(Decision::Local, &gate, Some(&endpoint()))
+            .unwrap()
+            .take()
+            .1;
+        assert_eq!(frozen.uri(), "/v1/chat/completions");
+        assert_eq!(frozen.headers()[AUTHORIZATION], "Bearer runtime");
+        assert!(!frozen.headers().contains_key("x-lao-key"));
+
+        let cloud = admit(
+            request(
+                Method::POST,
+                "/wrk/v1/chat/completions",
+                &[
+                    ("X-LAO-Key", WORKER_KEY),
+                    ("Authorization", "Bearer local"),
+                    ("Content-Type", "application/json"),
+                    ("Content-Length", "2"),
+                ],
+            ),
+            &gate,
+        )
+        .unwrap()
+        .unwrap();
+        assert!(cloud.freeze(Decision::Cloud, &gate, None).is_err());
+    }
+
     fn request(method: Method, path: &str, headers: &[(&str, &str)]) -> Request<Vec<u8>> {
         let body = if method == Method::POST {
             b"{}".to_vec()
@@ -700,6 +781,7 @@ mod tests {
             codex_cloud: Cloud::OpenAi,
             claude: *ANT_KEY.as_bytes().first_chunk().unwrap(),
             claude_cloud: Cloud::AnthropicBearer,
+            worker: *WORKER_KEY.as_bytes().first_chunk().unwrap(),
             local: None,
         }
     }

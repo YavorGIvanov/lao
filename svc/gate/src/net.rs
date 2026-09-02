@@ -19,7 +19,7 @@ use hyper::{
     service::service_fn,
 };
 use hyper_util::rt::TokioIo;
-use lao_route_api::{Decision, Policy};
+use lao_route_api::{Client, Decision, Policy};
 use lao_run_api::{Endpoint, Local};
 use rustls::{ClientConfig, pki_types::ServerName};
 use rustls_platform_verifier::BuilderVerifierExt;
@@ -61,6 +61,7 @@ pub(super) async fn configured(
     local: Option<Arc<dyn Local>>,
     codex: [u8; 64],
     claude: [u8; 64],
+    worker: [u8; 64],
     codex_cloud: CodexCloud,
 ) -> Result<(), Err> {
     listener.set_nonblocking(true)?;
@@ -75,6 +76,7 @@ pub(super) async fn configured(
             },
             claude,
             claude_cloud: Cloud::AnthropicBearer,
+            worker,
             local,
         },
         policy: Arc::new(policy),
@@ -106,6 +108,11 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
         return Ok(hello());
     };
     task.validate_auth(&plan.gate)?;
+    let task = if task.client == Client::Worker {
+        prepare_worker(task).await?
+    } else {
+        task
+    };
     let (mut task, query, local_body) = if plan.policy.requires_query() && !task.canary {
         inspect(task).await?
     } else {
@@ -180,6 +187,59 @@ async fn send(request: Request<Incoming>, plan: Plan) -> Result<Response<Body>, 
     } else {
         send_ready(request, sender.ok_or_else(|| deny("local"))?, endpoint).await
     }
+}
+
+async fn prepare_worker(task: Task<Body>) -> Result<Task<Body>, Err> {
+    let Task {
+        mut request,
+        client,
+        op,
+        beta,
+        canary,
+        automatic,
+    } = task;
+    let (parts, body) = request.into_parts();
+    let bytes = body.collect().await?.to_bytes();
+    let bytes = tokio::task::spawn_blocking(move || worker_body(&bytes))
+        .await
+        .ok()
+        .flatten()
+        .ok_or_else(|| deny("worker body"))?;
+    request = Request::from_parts(parts, full(bytes.clone()));
+    request.headers_mut().insert(
+        CONTENT_LENGTH,
+        HeaderValue::from_str(&bytes.len().to_string())?,
+    );
+    Ok(Task {
+        request,
+        client,
+        op,
+        beta,
+        canary,
+        automatic,
+    })
+}
+
+fn worker_body(bytes: &[u8]) -> Option<Bytes> {
+    let mut value = serde_json::from_slice::<serde_json::Value>(bytes).ok()?;
+    let root = value.as_object_mut()?;
+    let tools = root.get("tools").and_then(serde_json::Value::as_array)?;
+    if tools.is_empty() {
+        return None;
+    }
+    let messages = root.get("messages").and_then(serde_json::Value::as_array)?;
+    let edited = messages
+        .iter()
+        .filter_map(|message| message.get("tool_calls")?.as_array())
+        .flatten()
+        .filter_map(|call| call.pointer("/function/name")?.as_str())
+        .any(|name| matches!(name, "edit" | "write"));
+    root.insert(
+        "tool_choice".into(),
+        serde_json::Value::String(if edited { "auto" } else { "required" }.into()),
+    );
+    root.insert("parallel_tool_calls".into(), serde_json::Value::Bool(false));
+    serde_json::to_vec(&value).ok().map(Bytes::from)
 }
 
 async fn decide(
@@ -300,6 +360,7 @@ fn local_body(bytes: &[u8], client: lao_route_api::Client) -> Option<Bytes> {
             "stream": true,
             "tools": []
         }),
+        lao_route_api::Client::Worker => return None,
     };
     serde_json::to_vec(&local).ok().map(Bytes::from)
 }
@@ -348,6 +409,7 @@ fn user_text(value: &serde_json::Value, client: lao_route_api::Client) -> Option
             }
             text_content(messages[0].get("content")?, &["text"])
         }
+        lao_route_api::Client::Worker => None,
     }
 }
 
@@ -907,6 +969,25 @@ mod tests {
     }
 
     #[test]
+    fn worker_requires_native_tools_until_the_edit() {
+        let first = worker_body(
+            br#"{"model":"lao-local","messages":[{"role":"user","content":"edit"}],"tools":[{"type":"function","function":{"name":"read"}}]}"#,
+        )
+        .unwrap();
+        let first: serde_json::Value = serde_json::from_slice(&first).unwrap();
+        assert_eq!(first["tool_choice"], "required");
+        assert_eq!(first["parallel_tool_calls"], false);
+
+        let edited = worker_body(
+            br#"{"model":"lao-local","messages":[{"role":"assistant","tool_calls":[{"type":"function","function":{"name":"edit","arguments":"{}"}}]}],"tools":[{"type":"function","function":{"name":"edit"}}]}"#,
+        )
+        .unwrap();
+        let edited: serde_json::Value = serde_json::from_slice(&edited).unwrap();
+        assert_eq!(edited["tool_choice"], "auto");
+        assert!(worker_body(br#"{"messages":[],"tools":[]}"#).is_none());
+    }
+
+    #[test]
     fn rejected_requests_never_connect_upstream() {
         rt(async {
             for (line, length, expected) in [
@@ -1114,6 +1195,7 @@ mod tests {
                 codex_cloud: Cloud::OpenAi,
                 claude: *b"DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
                 claude_cloud: Cloud::AnthropicBearer,
+                worker: [0; 64],
                 local: Some(ready("127.0.0.1:10000".parse().unwrap())),
             },
             policy,
@@ -1177,6 +1259,7 @@ mod tests {
                                 codex_cloud: cloud,
                                 claude: *CLAUDE.as_bytes().first_chunk().unwrap(),
                                 claude_cloud: cloud,
+                                worker: [0; 64],
                                 local: None,
                             },
                             policy: Arc::new(Fixed(Decision::Cloud)),

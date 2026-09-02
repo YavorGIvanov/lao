@@ -118,9 +118,9 @@ or:
 
     claude
 
-There is no replacement REPL, nested agent, mandatory MCP delegation, or new permission model. The original client remains responsible for its terminal UI, tools, approvals, context handling, and agent loop.
+There is no replacement REPL or mandatory delegation. The original client remains responsible for its terminal UI, planning, approvals, context, and verification. For a bounded implementation packet it may call the optional `lao.execute` MCP tool; LAO then routes that packet to Cloud or to a permission-bounded OpenCode worker.
 
-The overlay remains silent during normal success. Route explanations, local success, resource use, and learned evidence are available through status and report commands. It interrupts only when a user policy cannot be honored or when a destructive recovery requires a decision.
+The overlay remains silent during normal success. The current proof exposes concise install, status, smoke, worker-outcome, and cleanup results; richer reporting remains future release work.
 
 ### 3.3 Initial routing posture
 
@@ -175,7 +175,7 @@ Admission is calculated during setup and repeated immediately before every cold 
 
 | Mode | User-facing promise | Maximum inference allocation | CPU policy | Context target | Residency | Disk policy |
 |---|---|---|---|---:|---|---|
-| Light | Stay out of the way | min(25% of T, A minus max(8 GiB, 35% of T)) | At most 25% of logical CPUs, capped at 4 threads, low priority | 32K | Keep a useful bounded cache while healthy; unload immediately on idle pressure | One artifact normally at most 6 GiB; 12 GiB total cache |
+| Light | Stay out of the way | min(25% of T, A minus max(8 GiB, 35% of T)) | At most 25% of logical CPUs, capped at 4 threads, low priority | 16K in the current proof | Keep a useful bounded cache while healthy; unload immediately on idle pressure | One artifact normally at most 6 GiB; 12 GiB total cache |
 | Auto | Recommended balance | min(45% of T, A minus max(8 GiB, 30% of T)) | At most 50% of logical CPUs, normal-low priority | 64K | Keep useful bounded caches while healthy; adapt to pressure, battery, and thermal state | One artifact normally at most 16 GiB; 24 GiB total cache |
 | Maximum | Strongest practical local option while retaining an OS reserve | min(70% of T, A minus max(6 GiB, 15% of T)) | Up to 90% of logical CPUs while active | 128K where supported | May remain resident only after explicit opt-in; pressure eviction still wins | Confirm any artifact above 32 GiB and show total cache impact |
 
@@ -191,7 +191,7 @@ Illustrative resolved ceilings when A initially equals T; reserve binding explai
 
 These numbers are ceilings, not promises to allocate the full amount. Current free memory, Metal working-set limits, display-GPU reserve, cgroup limits, battery state, thermal pressure, and actual llama.cpp fitting can reduce them.
 
-Stage 1 implements only the Apple unified-memory case. On the 24 GiB M4 test machine, the pinned llama.cpp build reports a 16 GiB Metal ceiling and macOS reported 72 percent availability. The resolved sample was 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum. The installed restart run measured about 2.05 GiB peak RSS for the real 32K Qwen fixture under Light. Its immutable revision, 1,117,320,768-byte length, SHA-256, Apache-2.0 license, context, and working-set estimate now form the only Stage 1 artifact record. Host and Metal are one pool; discrete host/VRAM planning remains drafted for later platforms.
+Stage 1 implements only the Apple unified-memory case. On the 24 GiB M4 test machine, the pinned llama.cpp build reports a 16 GiB Metal ceiling and macOS reported 72 percent availability. The resolved sample was 6.0 GiB Light, 9.28 GiB Auto, and 11.28 GiB Maximum. The current Qwen3 4B Q4_K_M worker measured about 4.70 GiB RSS at its 16K context under Light. Its immutable revision, 2,497,280,256-byte length, SHA-256, Apache-2.0 license, context, and working-set estimate form the current artifact record. Host and Metal are one pool; discrete host/VRAM planning remains drafted for later platforms.
 
 ### 4.2 Model classes
 
@@ -375,6 +375,7 @@ Deployment is deliberately different from package ownership:
 
 - `lao-daemon` is the lightweight always-on composition root for gateway, authentication, routing, and control packages.
 - Product-owned llama.cpp is always supervised as a separate process; an optional external runtime remains user-managed.
+- OpenCode is a pinned, short-lived local worker for explicitly delegated packets; it never replaces the user's harness.
 - four tiny least-authority workers run capture, vault, evaluation, or training only when their explicitly enabled workflow needs them.
 - the CLI is a separate client of the authenticated local control contract.
 
@@ -401,6 +402,8 @@ Normal contexts resolve to Cloud. Local is possible only when the gate consumed 
 
 The first automatic slice extends that proven path without replacing it. After caller authentication, the gate buffers only a non-empty, length-bounded JSON Responses or Messages body and extracts the bounded current user text. The default router uses vLLM Semantic Router's pinned Candle engine with a separate MiniLM embedding model and conservative easy/hard prototype banks. Classifier errors and unsupported bodies remain Cloud. A final Local decision builds a tool-free body from only the final user text and model name `lao-local`; Cloud preserves the original body. The credential firewall and native streaming path remain unchanged. A bounded adapter can instead consume decisions from a user-managed full vLLM Semantic Router `/api/v1/eval` endpoint.
 
+The delegated-worker slice adds one explicit packet boundary that the HTTP overlay cannot infer. Codex or Claude calls `lao.execute` with an objective and exact relative paths. The same semantic policy routes the packet once. Cloud returns control to the current harness. Local starts a pinned OpenCode run whose read/edit permissions are limited to those paths and whose model traffic can reach only the authenticated local runtime path. OpenCode owns the coherent tool loop for that packet; the parent harness reviews and verifies the result. The managed client settings pre-approve only this one constrained MCP tool.
+
 The first post-Stage 1 latency slice adds leased residency and background warming without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. The healthy worker and two harness prompt prefixes remain in a bounded RAM cache; a five-second watcher stops them when it observes idle macOS memory pressure. Pressure-probe failure evicts safely and active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud requests never acquire runtime leases. A separate optimizer component owns single-flight Claude-then-Codex warm probes and exposes only `idle`, `warming`, `ready`, or `failed` state.
 
 ### 6.1 Core interfaces
@@ -410,6 +413,7 @@ The implementation must keep the public boundaries stable. Each public interface
 - ClientAdapter: detect, configure, verify, pause, and restore Codex or Claude Code; register hooks and correlate sessions.
 - Gate: expose only sanitized TaskContext and an immutable RouteDecision boundary; credential sealing and egress materialization remain private ordered stages inside `svc/gate`.
 - RouterPolicy: accept TaskContext and return an explainable RouteDecision. The implemented contract receives client, operation, canary, and optionally bounded current-user text; Local or Cloud comes out.
+- AgentWorker: accept one bounded objective and exact file allowlist, then return only outcome, session identifier, and changed paths. The pinned OpenCode implementation owns the local packet loop.
 - ManagedRuntime: prepare, start, health-check, benchmark, lease, cancel, and stop a product-owned model process.
 - ExternalEndpoint: probe, fingerprint, health-check, benchmark, and send requests without pulling, deleting, stopping, or reconfiguring user-owned Ollama or LM Studio instances.
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
@@ -542,7 +546,7 @@ For local or third-party routes:
 
 Routing and credential handling are separate state machines. A route cannot change after an egress-auth action is created. A route confusion bug must fail closed.
 
-The current handoff is intentionally tiny. After caller validation, the private gate retains the request and passes `Context(client, operation, canary)` plus optional bounded current-user text to `api/route::Policy`. The deterministic router keeps the Stage 1 canary behavior. The default MiniLM semantic classifier or optional vLLM Semantic Router adapter may return Local only for a narrow first-turn text shape, and every adapter failure returns Cloud. The gate consumes the task and decision into one frozen target. A Local target must be the loopback `Endpoint` returned by the selected runtime; the gate strips the caller selector, native credentials, and provider-only headers, then injects only the endpoint's bearer. A Cloud target uses the client's private configured native profile and matching authentication class. Routers never receive raw headers, targets, or credentials.
+The current handoff is intentionally tiny. After caller validation, the private gate retains the request and passes bounded routing context to `api/route::Policy`. The default MiniLM semantic classifier or optional vLLM Semantic Router adapter may return Local only for a narrow supported shape, and every adapter failure returns Cloud. For normal client traffic, the gate consumes the decision into one frozen local or native-cloud target. For an MCP worker packet, Cloud returns the packet to the parent harness and Local starts OpenCode with exact named-file permissions. Routers never receive raw headers, targets, or credentials.
 
 The gate uses one implementation for policy and transport. `admit` validates the exact local surface and consumes the caller capability. The proof canary retains its exact selector and bounded media rules. Automatic routing additionally buffers only validated JSON Responses or Messages bodies, extracts bounded current-user text, and preserves the original body for Cloud. `freeze` validates native authentication or rebuilds the local header set, then binds the route, semantic target, Host, and path in one value. Hyper can connect only by consuming that frozen value. Synthetic transport proofs still cover streaming, unknown native headers, hop-by-hop removal, reflected-credential suppression, native error preservation, and secret-free local egress. A clean default install routed the no-canary spelling request through the launchd-owned path in Codex 0.151.0 and Claude Code 2.1.251, each returning exactly `the`; the separate ignored E2E records both semantic decisions and runtime resolutions.
 
@@ -604,7 +608,7 @@ The Rust supervisor launches one pinned llama-server process:
 - startup parsing plus health checks;
 - cancellation, graceful termination, crash cleanup, and no orphan ports.
 
-The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies its size, SHA-256, binary build, and Metal device, then downloads the model. No separately installed runtime participates. The verified 1.04 GiB Qwen2.5-Coder 1.5B Q4_K_M artifact runs at 32K behind a capability-protected loopback endpoint. With a 384 MiB prompt cache retaining both harness prefixes, the worker peaked at about 2.31 GiB RSS. Installed Codex and Claude completed both the fixed canary and eligible no-canary spelling fixture. The daemon leases the load through active responses, retains it while healthy, and unloads it on safe idle pressure detection. This proves fit, lifecycle, protocol compatibility, bounded residency, and the automatic control loop; useful 7B/14B selection and routing-quality certification remain open.
+The direct proof runs llama.cpp build 10280 at commit `61881b1f7` on the 24 GiB Apple M4 test Mac. `lao install` downloads its official Apple Silicon archive into LAO-owned cache state, verifies the pinned size and SHA-256 before extraction, and verifies the exact binary build and Metal device before model download. No separately installed runtime or package-manager path participates. The current verified Qwen3 4B Q4_K_M artifact starts on a capability-protected ephemeral loopback port under the Light guard, exposes the stable alias `lao-local`, allocates its exact 16K context, and supports native tool calls for the OpenCode worker. The delegated-worker run measured about 4.70 GiB RSS. The daemon leases that load through active response streams, retains useful warmed state while healthy, and unloads it on safe idle pressure detection. This proves fit, lifecycle, protocol compatibility, bounded residency, and one real local agent packet; wider routing-quality certification remains open.
 
 ### 8.4 v1 runtime adapters
 
@@ -623,9 +627,13 @@ Do not call a cloud model to decide whether to avoid cloud, and do not ask the s
 
 This substring risk veto is a conservative quality guard, not a security classifier. The absence of tools and the credential firewall enforce the current safety boundary.
 
-### 9.2 Deferred routing controls
+### 9.2 Implemented R4 packet routing
 
-Task/session/repository stickiness, personal priors, cloud-to-local retry correlation, semantic repair, operating modes, circuit breakers, contextual rankers, and controlled exploration are future work. The current slice avoids mid-task routing by admitting only closed first-turn text shapes. A local resolution, connect, or HTTP handshake failure may return the untouched request to Cloud only before any upstream request byte is sent.
+Codex or Claude may explicitly call `lao.execute` for one objective with at most 16 exact repository-relative paths. The semantic router decides Local or Cloud for that packet, not for each hidden OpenCode model call. A Local packet stays on Qwen3 for its complete OpenCode tool loop. The session identifier can be reused only while the same harness-owned MCP process remains alive. There is no automatic task splitter, cross-process session store, side-effect retry, or mid-loop model switch.
+
+### 9.3 Deferred routing controls
+
+Cross-process task/session/repository stickiness, personal priors, cloud-to-local retry correlation, semantic repair, operating modes, circuit breakers, contextual rankers, and controlled exploration are future work. A local resolution, connect, or HTTP handshake failure may return untouched direct traffic to Cloud only before any upstream request byte is sent; a delegated packet with possible edits is never retried automatically.
 
 ## 10. Capture, privacy, and storage
 
@@ -853,12 +861,13 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 
 ### Phase 0: proof of concept
 
-- Keep the full component skeleton, but implement only Codex, Claude Code, gate, route, run, model, daemon, and CLI.
+- Keep the full component skeleton, but implement only Codex, Claude Code, gate, route, local agent, run, model, daemon, and CLI.
 - Support one 24 GiB Apple Silicon machine, one pinned llama.cpp build, and one verified prequantized model.
 - Preserve each harness's saved-login native cloud path without LAO reading its credential.
 - Admit one explicit bounded local canary through llama.cpp's native Responses and Messages streaming, without a translation layer.
-- Keep unsupported, risky, ambiguous, and non-first-turn requests on cloud; permit only the narrow R2 first-turn text slice to route automatically.
-- Install and turn off transactionally with exact configuration restoration.
+- Keep unsupported, risky, and ambiguous work in Cloud. Permit the narrow R2 direct-text slice and route each explicit R4 delegated packet once before its local tool loop.
+- Use pinned OpenCode only for a bounded delegated packet; keep the parent harness responsible for planning, review, and verification.
+- Install and turn off transactionally; restore unchanged managed files exactly and remove only LAO's entry from mutable client state.
 - Prove the full real Codex + Claude → router → llama.cpp/cloud path, resource bounds, credential isolation, cleanup, and rollback.
 - Leave capture, vault, evaluation, training, multiple inference models, and other platforms as disabled drafts.
 
