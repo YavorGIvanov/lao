@@ -52,7 +52,6 @@ pub struct OpenCode {
     config: PathBuf,
     addr: SocketAddr,
     bearer: Box<str>,
-    state: Temp,
     lock: Mutex<()>,
 }
 
@@ -77,7 +76,6 @@ impl OpenCode {
             config,
             addr,
             bearer,
-            state: Temp::new("opencode-state")?,
             lock: Mutex::new(()),
         })
     }
@@ -87,6 +85,7 @@ impl Agent for OpenCode {
     fn turn(&self, task: &Task) -> io::Result<Report> {
         let _turn = self.lock.lock().map_err(|_| invalid("agent state"))?;
         let valid = ValidTask::new(task)?;
+        let state = Temp::new("opencode-turn")?;
         let before = fingerprints(&valid.root, &valid.allowed)?;
         let config = config(&valid.allowed, self.addr, &self.bearer)?;
         let auth = r#"{"lao":{"type":"api","key":"local"}}"#;
@@ -109,25 +108,17 @@ impl Agent for OpenCode {
             .arg("--dir")
             .arg(&valid.root)
             .current_dir(&valid.root);
-        if let Some(session) = &task.session {
-            command.arg("--session").arg(session);
-        }
         command.arg(prompt);
-        isolated(&mut command, &self.state, &self.config, &config, auth);
+        isolated(&mut command, &state, &self.config, &config, auth);
         let result = run(&mut command, deadline)?;
-        let parsed = output(&result.stdout);
-        let session = parsed
-            .as_ref()
-            .and_then(|session| session.clone())
-            .or_else(|| task.session.clone());
 
         if result.timed_out {
-            return report(Outcome::TimedOut, session, &valid, &before);
+            return report(Outcome::TimedOut, &valid, &before);
         }
-        if !result.status.success() || result.truncated || parsed.is_none() {
-            return report(Outcome::AgentFailed, session, &valid, &before);
+        if !result.status.success() || result.truncated || output(&result.stdout).is_none() {
+            return report(Outcome::AgentFailed, &valid, &before);
         }
-        let mut report = report(Outcome::Complete, session, &valid, &before)?;
+        let mut report = report(Outcome::Complete, &valid, &before)?;
         if report.changed.is_empty() {
             report.outcome = Outcome::AgentFailed;
         }
@@ -497,7 +488,6 @@ impl ValidTask {
             || task.allowed.len() > MAX_ALLOWED
             || task.deadline.is_zero()
             || task.deadline > MAX_DEADLINE
-            || task.session.as_deref().is_some_and(|id| !valid_session(id))
         {
             return Err(invalid("task"));
         }
@@ -523,10 +513,11 @@ impl ValidTask {
 }
 
 fn clean_relative(path: &Path) -> io::Result<PathBuf> {
+    let text = path.to_str().ok_or_else(|| invalid("allowed path"))?;
     if path.as_os_str().is_empty()
         || path.is_absolute()
         || path.as_os_str().len() > 4096
-        || path.to_str().is_none()
+        || text.contains(['*', '?', '\\'])
     {
         return Err(invalid("allowed path"));
     }
@@ -582,7 +573,7 @@ fn config(allowed: &[PathBuf], addr: SocketAddr, bearer: &str) -> io::Result<Str
     files.insert("*".into(), Value::String("deny".into()));
     for path in allowed {
         files.insert(
-            path.to_string_lossy().replace('\\', "/"),
+            path.to_string_lossy().into_owned(),
             Value::String("allow".into()),
         );
     }
@@ -822,41 +813,16 @@ fn drain(mut reader: impl Read) -> io::Result<()> {
     Ok(())
 }
 
-fn output(bytes: &[u8]) -> Option<Option<String>> {
-    let mut found = None;
+fn output(bytes: &[u8]) -> Option<()> {
     let mut values = 0;
     for line in std::str::from_utf8(bytes).ok()?.lines() {
         if line.trim().is_empty() {
             continue;
         }
-        let value = serde_json::from_str::<Value>(line).ok()?;
+        serde_json::from_str::<Value>(line).ok()?;
         values += 1;
-        found = found.or_else(|| find_session(&value));
     }
-    (values > 0).then_some(found)
-}
-
-fn find_session(value: &Value) -> Option<String> {
-    match value {
-        Value::Object(map) => {
-            for key in ["sessionID", "session_id"] {
-                if let Some(value) = map.get(key).and_then(Value::as_str)
-                    && valid_session(value)
-                {
-                    return Some(value.to_owned());
-                }
-            }
-            map.values().find_map(find_session)
-        }
-        Value::Array(values) => values.iter().find_map(find_session),
-        _ => None,
-    }
-}
-
-fn valid_session(value: &str) -> bool {
-    value.strip_prefix("ses_").is_some_and(|id| {
-        !id.is_empty() && id.len() <= 64 && id.bytes().all(|byte| byte.is_ascii_alphanumeric())
-    })
+    (values > 0).then_some(())
 }
 
 #[derive(Eq, PartialEq)]
@@ -899,7 +865,6 @@ fn fingerprint(path: &Path) -> io::Result<Fingerprint> {
 
 fn report(
     outcome: Outcome,
-    session: Option<String>,
     task: &ValidTask,
     before: &HashMap<PathBuf, Fingerprint>,
 ) -> io::Result<Report> {
@@ -910,11 +875,7 @@ fn report(
         .filter(|path| before.get(*path) != after.get(*path))
         .cloned()
         .collect();
-    Ok(Report {
-        outcome,
-        session,
-        changed,
-    })
+    Ok(Report { outcome, changed })
 }
 
 fn hex<const N: usize>() -> io::Result<String> {
@@ -952,7 +913,6 @@ mod tests {
                 config: self.0.path().join("config"),
                 addr: "127.0.0.1:9".parse().unwrap(),
                 bearer: "secret".into(),
-                state: Temp::new("opencode-test-state").unwrap(),
                 lock: Mutex::new(()),
             }
         }
@@ -961,7 +921,6 @@ mod tests {
             Task {
                 root: self.0.path().join("repo"),
                 instruction: "Inspect the file and make no unnecessary change.".into(),
-                session: Some("ses_prior".into()),
                 allowed: vec!["file.txt".into()],
                 deadline: Duration::from_secs(2),
             }
@@ -969,16 +928,31 @@ mod tests {
     }
 
     #[test]
-    fn one_bounded_turn_returns_only_report_metadata() {
+    fn each_packet_has_fresh_state_and_returns_only_report_metadata() {
         let fixture = Fixture::new(
-            "#!/bin/sh\n[ \"$OPENCODE_DISABLE_PROJECT_CONFIG\" = 1 ] || exit 2\n[ \"$OPENCODE_AUTH_CONTENT\" = '{\"lao\":{\"type\":\"api\",\"key\":\"local\"}}' ] || exit 3\nprevious=\nfor arg in \"$@\"; do if [ \"$previous\" = --session ]; then case \"$arg\" in ses_prior|ses_test) found=1;; esac; fi; previous=$arg; done\n[ \"$found\" = 1 ] || exit 4\ncase \"$OPENCODE_CONFIG_CONTENT\" in *'/wrk/v1'*'X-LAO-Key'*secret*) ;; *) exit 5;; esac\nif [ -f \"$XDG_DATA_HOME/seen\" ]; then id=ses_second; else mkdir -p \"$XDG_DATA_HOME\" && : > \"$XDG_DATA_HOME/seen\"; id=ses_test; fi\nprintf '%s\\n' \"$id\" > file.txt\nprintf '{\"type\":\"step_finish\",\"sessionID\":\"%s\"}\\n' \"$id\"\n",
+            r#"#!/bin/sh
+[ "$OPENCODE_DISABLE_PROJECT_CONFIG" = 1 ] || exit 2
+[ "$OPENCODE_AUTH_CONTENT" = '{"lao":{"type":"api","key":"local"}}' ] || exit 3
+for arg in "$@"; do [ "$arg" != --session ] || exit 4; done
+case "$OPENCODE_CONFIG_CONTENT" in *'/wrk/v1'*'X-LAO-Key'*secret*) ;; *) exit 5;; esac
+[ ! -e "$XDG_DATA_HOME/seen" ] || exit 6
+mkdir -p "$XDG_DATA_HOME" && : > "$XDG_DATA_HOME/seen"
+printf '%s\n' "$TMPDIR" > file.txt
+printf '{"type":"step_finish"}\n'
+"#,
         );
         let agent = fixture.agent();
-        let mut task = fixture.task();
-        let report = agent.turn(&task).unwrap();
-        assert_eq!(report.outcome, Outcome::Complete);
-        assert_eq!(report.session.as_deref(), Some("ses_test"));
-        assert_eq!(report.changed, [PathBuf::from("file.txt")]);
+        let task = fixture.task();
+        let mut previous = String::new();
+        for _ in 0..2 {
+            let report = agent.turn(&task).unwrap();
+            assert_eq!(report.outcome, Outcome::Complete);
+            assert_eq!(report.changed, [PathBuf::from("file.txt")]);
+            let state = fs::read_to_string(task.root.join("file.txt")).unwrap();
+            assert_ne!(state, previous);
+            assert!(!Path::new(state.trim()).exists());
+            previous = state;
+        }
         let config: Value = serde_json::from_str(
             &config(
                 &[PathBuf::from("file.txt")],
@@ -995,23 +969,21 @@ mod tests {
             config["provider"]["lao"]["models"]["lao-local"]["tool_call"],
             true
         );
-        task.session = report.session;
-        assert_eq!(
-            agent.turn(&task).unwrap().session.as_deref(),
-            Some("ses_second")
-        );
     }
 
     #[test]
     fn failed_agent_is_bounded_evidence() {
-        let fixture = Fixture::new("#!/bin/sh\nexit 1\n");
-        let report = fixture.agent().turn(&fixture.task()).unwrap();
+        let fixture = Fixture::new("#!/bin/sh\nprintf '%s\\n' \"$TMPDIR\" > file.txt\nexit 1\n");
+        let task = fixture.task();
+        let report = fixture.agent().turn(&task).unwrap();
         assert_eq!(report.outcome, Outcome::AgentFailed);
-        assert_eq!(report.session.as_deref(), Some("ses_prior"));
+        assert_eq!(report.changed, [PathBuf::from("file.txt")]);
+        let state = fs::read_to_string(task.root.join("file.txt")).unwrap();
+        assert!(!Path::new(state.trim()).exists());
     }
 
     #[test]
-    fn rejects_paths_outside_the_repository() {
+    fn packets_require_exact_paths_inside_the_repository() {
         let fixture = Fixture::new("#!/bin/sh\nexit 0\n");
         let mut task = fixture.task();
         task.allowed = vec!["../outside".into()];
@@ -1029,12 +1001,13 @@ mod tests {
             fixture.agent().turn(&task).unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
-        task.allowed = vec!["file.txt".into()];
-        task.session = Some("invalid/session".into());
-        assert_eq!(
-            fixture.agent().turn(&task).unwrap_err().kind(),
-            io::ErrorKind::InvalidInput
-        );
+        for path in ["*", "file?.txt", "nested\\file.txt"] {
+            task.allowed = vec![path.into()];
+            assert_eq!(
+                fixture.agent().turn(&task).unwrap_err().kind(),
+                io::ErrorKind::InvalidInput
+            );
+        }
     }
 
     #[test]

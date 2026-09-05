@@ -2,7 +2,7 @@
 
 Research snapshot: 23–26 August 2026
 
-Status: decision-complete product blueprint
+Status: Apple Silicon research proof; implementation reviewed 5 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
 
 Working title: Local Agent Optimizer
 
@@ -408,12 +408,12 @@ The first post-Stage 1 latency slice adds leased residency and background warmin
 
 ### 6.1 Core interfaces
 
-The implementation must keep the public boundaries stable. Each public interface below lives in a versioned contract package; its concrete implementation lives elsewhere. A component may not import a sibling implementation, and only an application composition root may wire implementations together:
+The following names describe target responsibilities, not a list of implemented methods. Current `api/client` and `api/gate` are marker boundaries; hardware probing belongs to `svc/run`, and the model component exposes one compiled artifact rather than a catalog. The implementation must preserve independently owned public boundaries. Each public interface below lives in a versioned contract package; its concrete implementation lives elsewhere. A component may not import a sibling implementation, and only an application composition root may wire implementations together:
 
 - ClientAdapter: detect, configure, verify, pause, and restore Codex or Claude Code; register hooks and correlate sessions.
 - Gate: expose only sanitized TaskContext and an immutable RouteDecision boundary; credential sealing and egress materialization remain private ordered stages inside `svc/gate`.
 - RouterPolicy: accept TaskContext and return an explainable RouteDecision. The implemented contract receives client, operation, canary, and optionally bounded current-user text; Local or Cloud comes out.
-- AgentWorker: accept one bounded objective and exact file allowlist, then return only outcome, session identifier, and changed paths. The pinned OpenCode implementation owns the local packet loop.
+- AgentWorker (implemented): accept one bounded objective and exact file allowlist, then return only outcome and changed paths. The pinned OpenCode implementation owns one local packet loop with fresh disposable state; there is no continuation handle.
 - ManagedRuntime: prepare, start, health-check, benchmark, lease, cancel, and stop a product-owned model process.
 - ExternalEndpoint: probe, fingerprint, health-check, benchmark, and send requests without pulling, deleting, stopping, or reconfiguring user-owned Ollama or LM Studio instances.
 - HardwareProbe: expose normalized static hardware, dynamic pressure, backend visibility, and accelerator memory topology.
@@ -426,7 +426,7 @@ The implementation must keep the public boundaries stable. Each public interface
 - Trainer: prepare eligible data, launch an optional training backend, evaluate an adapter, and support explicit promotion and rollback.
 - ArtifactOptimizer: transform an approved source artifact into a separately identified candidate artifact and emit provenance, resource estimates, and verification evidence without mutating the active artifact.
 
-### 6.2 Central records
+### 6.2 Planned central records
 
 ModelManifest contains:
 
@@ -629,7 +629,9 @@ This substring risk veto is a conservative quality guard, not a security classif
 
 ### 9.2 Implemented R4 packet routing
 
-Codex or Claude may explicitly call `lao.execute` for one objective with at most 16 exact repository-relative paths. The semantic router decides Local or Cloud for that packet, not for each hidden OpenCode model call. A Local packet stays on Qwen3 for its complete OpenCode tool loop. The session identifier can be reused only while the same harness-owned MCP process remains alive. There is no automatic task splitter, cross-process session store, side-effect retry, or mid-loop model switch.
+Codex or Claude may explicitly call `lao.execute` for one objective with at most 16 exact repository-relative paths. The semantic router decides Local or Cloud for that packet, not for each hidden OpenCode model call. A Local packet stays on Qwen3 for its complete OpenCode tool loop. Every call creates fresh owner-only temporary worker state, removed on normal return, including failure or timeout. No session identifier is accepted or returned, so later packets cannot resume earlier transcripts. Abrupt host-process termination is not a secure-erasure guarantee. There is no automatic task splitter, session store, side-effect retry, or mid-loop model switch.
+
+The allowlist rejects absolute paths, Git metadata, symlinks, wildcard characters (`*`, `?`), and backslashes before worker execution. OpenCode enforces tool permissions; this is not an OS filesystem sandbox. Changed paths are detected among allowed files, not by a whole-repository audit. The parent harness reviews the actual diff and verifies the outcome, including partial edits after failure. Execution status alone is not quality certification.
 
 ### 9.3 Deferred routing controls
 

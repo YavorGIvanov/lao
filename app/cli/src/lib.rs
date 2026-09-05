@@ -873,8 +873,6 @@ fn off() -> Result<()> {
 struct ToolArgs {
     objective: String,
     allowed_paths: Vec<PathBuf>,
-    #[serde(default)]
-    session_id: Option<String>,
 }
 
 fn mcp() -> Result<()> {
@@ -977,10 +975,9 @@ fn tools() -> serde_json::Value {
                         "items": {
                             "type": "string",
                             "maxLength": 1024,
-                            "description": "Exact repository-relative path; absolute paths and Git metadata are rejected."
+                            "description": "Exact repository-relative path; absolute paths, Git metadata, wildcards and backslashes are rejected."
                         }
-                    },
-                    "session_id": { "type": "string", "maxLength": 68 }
+                    }
                 }
             }
         }]
@@ -1016,7 +1013,6 @@ fn call(
         return tool_result(
             "cloud",
             "LAO kept this turn in Cloud. Execute it in the current Codex or Claude harness.",
-            None,
             &[],
         );
     }
@@ -1039,7 +1035,6 @@ fn call(
         root: root.to_owned(),
         instruction: args.objective,
         allowed: args.allowed_paths,
-        session: args.session_id,
         deadline: Duration::from_secs(10 * 60),
     };
     match lao_agent_api::Agent::turn(agent.as_ref().expect("agent initialized"), &task) {
@@ -1054,24 +1049,18 @@ fn call(
             } else {
                 "Local OpenCode turn stopped. Review before retrying in Cloud."
             };
-            tool_result(status, message, report.session.as_deref(), &report.changed)
+            tool_result(status, message, &report.changed)
         }
         Err(_) => tool_error("local worker rejected or failed the bounded turn"),
     }
 }
 
-fn tool_result(
-    status: &str,
-    message: &str,
-    session: Option<&str>,
-    changed: &[PathBuf],
-) -> serde_json::Value {
+fn tool_result(status: &str, message: &str, changed: &[PathBuf]) -> serde_json::Value {
     let changed: Vec<_> = changed.iter().filter_map(|path| path.to_str()).collect();
     serde_json::json!({
         "content": [{ "type": "text", "text": message }],
         "structuredContent": {
             "status": status,
-            "session_id": session,
             "changed_paths": changed
         },
         "isError": false
@@ -1912,6 +1901,22 @@ mod tests {
     use super::*;
     use std::os::unix::ffi::OsStringExt;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn packets_reject_session_continuation() {
+        let mut args = serde_json::json!({
+            "objective": "Fix one typo.",
+            "allowed_paths": ["word.txt"]
+        });
+        assert!(serde_json::from_value::<ToolArgs>(args.clone()).is_ok());
+        args["session_id"] = serde_json::json!("ses_prior");
+        assert!(serde_json::from_value::<ToolArgs>(args).is_err());
+        assert!(
+            tools()
+                .pointer("/tools/0/inputSchema/properties/session_id")
+                .is_none()
+        );
+    }
 
     struct Temp(PathBuf);
 

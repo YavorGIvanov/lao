@@ -385,7 +385,7 @@ Current evidence:
 - the installed Codex 0.151.0 E2E called `lao.execute` exactly once, changed `word.txt` from `teh` to `the`, and passed `verify.sh` in about 20 seconds warm without a permission prompt;
 - the direct ignored MCP E2E proves the same Local result plus a Cloud control case and asserts the exact repository change set;
 - the current Qwen3 4B Q4_K_M worker uses a 16K context and measured about 4.70 GiB RSS under the 6 GiB Light ceiling;
-- focused tests cover routing, gate isolation, Git-metadata rejection, parent-death worker cleanup, merge-aware Claude MCP removal, exact permissions, install restoration, and MCP results. Session reuse is process-local; autonomous task splitting and production routing certification remain deferred. Real natural planner handoffs for both clients are recorded in R5.
+- focused tests cover routing, gate isolation, Git-metadata rejection, parent-death worker cleanup, merge-aware Claude MCP removal, exact permissions, install restoration, and MCP results. R6 subsequently removes session reuse; autonomous task splitting and production routing certification remain deferred. Real natural planner handoffs for both clients are recorded in R5.
 
 ## R5 — Natural harness handoff
 
@@ -410,6 +410,32 @@ Acceptance and evidence:
 - focused configuration tests prove existing developer instructions conflict safely and uninstall removes LAO's instruction while preserving unrelated edits.
 
 This proves both tested client paths, not universal planner behavior across future models or versions.
+
+## R6 — Independent packets and adversarial simplification
+
+Status: complete (2026-09-05).
+
+The first-principles review keeps the product loop and removes state that the proof does not need. Each packet declares its own objective and file boundary. Resuming a prior worker session carried earlier file contents and instructions into a later packet, even if its allowed files changed. No acceptance evidence required that behavior.
+
+Changes:
+
+- remove the session input/output fields, resume flag, session-ID validation, and recursive output search;
+- create owner-only temporary worker state per call, cleaned on normal success, failure, or timeout; retain binary/config verification and the serial turn guard;
+- reject wildcard paths and backslashes: filenames must not expand into OpenCode permission patterns or be silently rewritten;
+- replace continuation evidence with two independent turns through one worker object, state cleanup on success and failure, stale MCP session rejection, and exact-path rejection;
+- rebuild the human architecture map around the two current flows, process/state ownership, failure behavior, and evidence limits;
+- align agent instructions with OpenAI's Astra guidance while retaining the manifesto, consent rules, API boundaries, cloud default, and proportional testing.
+
+Retained deliberately: disabled strategic stubs are already tiny; runtime leases, pressure checks, install rollback, credential isolation, and pinned support-tree checks protect exercised requirements. Removing them would reduce safety or erase useful architectural seams. No new framework, dependency, backend, or automation was added.
+
+Evidence and limits:
+
+- focused tests passed before and after editing; 81 workspace tests passed with 11 opt-in tests skipped, strict workspace Clippy passed, all 33 packages passed the architecture guard, and extraction/conformance, formatting, and diff hygiene passed;
+- the existing installed worker fixture passed in 18.89 seconds using the changed source: the broad control stayed Cloud, the Local packet changed only `word.txt`, and the independent verifier passed; historical Codex/Claude natural-handoff timings remain historical;
+- architecture link targets and section IDs passed validation; desktop and mobile renders were visually reviewed;
+- a delegated README edit in this review changed only its allowed file but returned `agent_failed`; independent diff review retained the correct edit. This is not a new successful worker benchmark;
+- OpenCode tool permissions are not an OS sandbox, and reported changed paths cover the allowlist only. Parent verification remains required;
+- no net cloud-cost or quota reduction, broad task success rate, or Astra gateway compatibility is claimed.
 
 ## Deferred backlog
 

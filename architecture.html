@@ -3,212 +3,220 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LAO request flow</title>
+  <meta name="description" content="A human map of Local Agent Optimizer: current request flows, process boundaries, code ownership, and proof limits.">
+  <title>LAO — Architecture of the working proof</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --board: #111814;
-      --chalk: #eee9d8;
-      --dim: #b8b9aa;
-      --green: #a8d5ad;
-      --yellow: #e3cf88;
-      --line: #7f8d81;
-    }
+    :root { color-scheme: light; --paper: #f5f4ef; --ink: #172c30; --muted: #506369; --line: #cad3cd; --green: #17674f; --wash: #e5eee7; --amber: #815713; --white: #fffefa; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--board);
-      color: var(--chalk);
-      font-family: "Chalkboard SE", "Comic Sans MS", ui-monospace, monospace;
-      line-height: 1.45;
-    }
-    main { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 64px; }
-    header { border-bottom: 2px solid var(--line); padding-bottom: 20px; }
+    html { scroll-behavior: smooth; scroll-padding-top: 24px; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 system-ui, sans-serif; }
+    a { color: var(--green); text-underline-offset: .2em; }
+    a:hover { text-decoration-thickness: 2px; }
+    a:focus-visible, summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 5px; }
+    .skip { position: absolute; left: 16px; top: -80px; padding: 10px; background: var(--white); }
+    .skip:focus { top: 10px; }
+    main, .masthead, footer { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
+    .masthead { display: flex; justify-content: space-between; gap: 24px; padding-block: 26px; border-bottom: 1px solid var(--line); }
+    .brand, .eyebrow, .number { font: 650 .76rem/1.4 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+    .brand { color: var(--ink); text-decoration: none; }
+    nav { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: .85rem; }
+    nav a { color: var(--muted); }
     h1, h2, h3, p { margin-top: 0; }
-    h1 { font-size: clamp(2rem, 6vw, 4.6rem); line-height: .95; margin-bottom: 14px; letter-spacing: -.04em; }
-    h2 { font-size: clamp(1.35rem, 3vw, 2rem); margin-bottom: 18px; }
-    h3 { color: var(--green); font-size: 1rem; margin-bottom: 8px; }
-    p { max-width: 72ch; color: var(--dim); }
-    code { color: var(--yellow); font-family: inherit; }
-    a { color: inherit; text-decoration-color: var(--line); text-underline-offset: 3px; }
-    section { padding: 34px 0; border-bottom: 1px dashed var(--line); }
-    .note { color: var(--green); font-size: .9rem; }
-    .flow, .layers, .control-flow, .lao-boundary { display: flex; align-items: center; justify-content: center; gap: 14px; }
-    .flow { min-height: 210px; }
-    .control-flow { margin-top: 22px; }
-    .control-target { color: var(--dim); }
-    .stack { display: grid; gap: 10px; }
-    .node {
-      border: 2px solid var(--chalk);
-      padding: 13px 16px;
-      text-align: center;
-      min-width: 120px;
-      box-shadow: 2px 2px 0 var(--line);
-    }
+    h1 { font-size: clamp(2.7rem, 6.4vw, 5.2rem); letter-spacing: -.055em; line-height: 1.02; max-width: 850px; margin-block: 18px 26px; font-weight: 620; }
+    h2 { font-size: clamp(1.7rem, 3vw, 2.5rem); letter-spacing: -.035em; line-height: 1.15; margin-bottom: 16px; font-weight: 620; }
+    h3 { font-size: 1.1rem; line-height: 1.35; margin-bottom: 10px; }
+    p { max-width: 76ch; margin-bottom: 16px; }
+    code { font: .86em/1.5 ui-monospace, monospace; overflow-wrap: anywhere; }
+    .hero { padding-block: 64px 46px; }
+    .eyebrow, .number { color: var(--green); }
+    .lead { font-size: 1.17rem; color: var(--muted); max-width: 770px; }
+    .status { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
+    .status span { padding: 6px 11px; border: 1px solid var(--line); border-radius: 3px; font-size: .8rem; }
+    .status .live { background: var(--wash); color: var(--green); border-color: #a8c5b6; }
+    section { padding-block: 44px; border-top: 1px solid var(--line); }
+    .section-head { display: grid; grid-template-columns: 64px 1fr; gap: 16px; margin-bottom: 24px; }
+    .number { padding-top: 8px; }
+    .section-head p { margin-bottom: 0; color: var(--muted); }
+    .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .principles article { border-left: 3px solid var(--green); padding-left: 18px; }
+    .principles p { color: var(--muted); font-size: .93rem; margin-bottom: 0; }
+    .flow { background: var(--white); border: 1px solid var(--line); padding: 28px; margin-top: 22px; }
+    .flow-title { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); margin-bottom: 24px; padding-bottom: 16px; }
+    .flow-title h3 { margin: 0; font-size: 1.25rem; }
+    .label { font: .76rem/1.5 ui-monospace, monospace; color: var(--muted); }
+    .lane { display: grid; grid-template-columns: 1fr 28px 1.2fr 28px 1.35fr; gap: 12px; align-items: center; }
+    .node { border: 1px solid var(--line); padding: 18px; min-width: 0; }
     .node strong, .node small { display: block; }
-    .node small { color: var(--dim); margin-top: 5px; }
-    .node.main { min-width: 280px; border-color: var(--green); transform: rotate(-.4deg); }
-    .lao-boundary { position: relative; border: 1px dashed var(--green); padding: 28px 14px 14px; }
-    .lao-boundary::before { content: "LAO · per user · no admin"; position: absolute; top: 5px; left: 10px; color: var(--green); font-size: .72rem; }
-    .arrow { color: var(--yellow); font-size: 2rem; line-height: 1; }
-    .split { display: grid; gap: 12px; }
-    .inside { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin-top: 12px; }
-    .inside span { border: 1px solid var(--line); padding: 3px 7px; font-size: .78rem; }
-    .layers { align-items: stretch; }
-    .layer { flex: 1; border: 2px solid var(--chalk); padding: 18px; min-width: 0; }
-    .layer:nth-child(1) { transform: rotate(-.25deg); }
-    .layer:nth-child(3) { transform: rotate(.25deg); }
-    .layer b { display: block; font-size: 1.15rem; color: var(--green); }
-    .layer span { display: block; color: var(--dim); margin-top: 7px; }
-    .rule { margin: 20px auto 0; width: fit-content; color: var(--yellow); text-align: center; }
-    .grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 28px; }
-    pre {
-      margin: 0;
-      padding: 18px;
-      border-left: 3px solid var(--green);
-      color: var(--dim);
-      font: .9rem/1.55 ui-monospace, monospace;
-      white-space: pre-wrap;
-    }
+    .node small { color: var(--muted); margin-top: 7px; font-size: .83rem; line-height: 1.5; }
+    .node.local { border-color: #a8c5b6; background: var(--wash); }
+    .node.cloud { border-color: #9dadb1; }
+    .branch { display: grid; gap: 12px; }
+    .arrow { color: var(--green); text-align: center; font-size: 1.6rem; }
+    .return { margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: .9rem; }
+    .return b { color: var(--green); }
+    .note { color: var(--muted); font-size: .88rem; margin: 18px 0 0; }
+    .processes { display: grid; grid-template-columns: 1fr 1.45fr 1fr; gap: 18px; }
+    .process { border-top: 3px solid var(--ink); background: var(--white); padding: 22px; }
+    .process h3 { margin-top: 12px; }
+    .process p { font-size: .9rem; color: var(--muted); }
+    .process ul { padding-left: 18px; font-size: .9rem; }
+    .process li + li { margin-top: 9px; }
+    .process .label { color: var(--green); }
+    .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-    th, td { padding: 10px 8px; border-bottom: 1px dashed var(--line); text-align: left; vertical-align: top; }
-    th { color: var(--green); font-weight: normal; }
-    td:first-child { color: var(--yellow); }
-    .checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-    .check { border-top: 2px solid var(--chalk); padding-top: 12px; }
-    .check b { color: var(--green); }
-    footer { padding-top: 24px; color: var(--dim); font-size: .85rem; }
-    @media (max-width: 800px) {
-      .flow { flex-direction: column; }
-      .flow .arrow { transform: rotate(90deg); }
-      .lao-boundary { flex-direction: column; width: 100%; }
-      .lao-boundary .arrow { transform: rotate(90deg); }
-      .control-flow { align-items: flex-start; }
-      .layers, .grid { grid-template-columns: 1fr; display: grid; }
-      .layer { width: 100%; }
-      .checks { grid-template-columns: 1fr; }
-      table { display: block; overflow-x: auto; }
+    caption { text-align: left; font-weight: 650; padding-bottom: 14px; }
+    th, td { text-align: left; vertical-align: top; padding: 14px 16px 14px 0; border-bottom: 1px solid var(--line); }
+    th { font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+    td:first-child { font-weight: 600; width: 18%; }
+    td:nth-child(2) { width: 28%; }
+    .rules { padding: 24px; background: var(--ink); color: var(--white); margin-top: 26px; }
+    .rules code { color: #b6e0c9; }
+    .rules p { margin: 8px 0 0; color: #d0dbd7; font-size: .9rem; }
+    .evidence { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+    .evidence article { padding: 24px; border: 1px solid var(--line); }
+    .evidence .unproven { border-top: 3px solid var(--amber); }
+    .evidence ul { padding-left: 20px; font-size: .93rem; }
+    .evidence li + li { margin-top: 12px; }
+    details { border-bottom: 1px solid var(--line); padding: 18px 0; }
+    summary { cursor: pointer; font-weight: 600; }
+    details p { margin: 12px 0 0; color: var(--muted); font-size: .93rem; }
+    footer { border-top: 1px solid var(--line); padding-block: 26px 40px; color: var(--muted); font-size: .83rem; }
+    @media (max-width: 760px) {
+      main, .masthead, footer { width: calc(100% - 32px); }
+      .masthead, .flow-title { flex-direction: column; gap: 12px; }
+      .hero { padding-block: 40px; }
+      .principles, .processes, .evidence { grid-template-columns: 1fr; }
+      .section-head { grid-template-columns: 32px 1fr; gap: 8px; }
+      .flow { padding: 18px; }
+      .lane { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      table { min-width: 660px; }
     }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
     @media print {
-      :root { color-scheme: light; --board: #fff; --chalk: #111; --dim: #333; --green: #174c28; --yellow: #644d00; --line: #777; }
-      main { width: 100%; padding: 0; }
+      body { background: white; font-size: 10pt; }
+      .masthead nav, .skip { display: none; }
+      main, .masthead, footer { width: 100%; }
+      .hero, section { padding-block: 20px; }
+      h1 { font-size: 32pt; }
+      .flow, .process, tr { break-inside: avoid; }
+      .rules { background: white; color: var(--ink); border: 1px solid var(--line); }
+      .rules p, .rules code { color: var(--ink); }
     }
   </style>
 </head>
 <body>
-<main>
-  <header>
-    <div class="note">LOCAL AGENT OPTIMIZER · SYSTEM MAP</div>
-    <h1>Where each work packet goes.</h1>
-    <p>Codex and Claude Code remain the planner and user interface. LAO routes each bounded packet to Cloud or to an interchangeable local worker.</p>
+<a class="skip" href="#content">Skip to architecture</a>
+<header class="masthead">
+  <a class="brand" href="README.md">LAO / repository atlas</a>
+  <nav aria-label="Page sections"><a href="#flows">Request flows</a><a href="#processes">Processes</a><a href="#code">Code map</a><a href="#evidence">Evidence</a><a href="#reading">Read next</a></nav>
+</header>
+<main id="content">
+  <header class="hero">
+    <div class="eyebrow">Architecture of the working proof · 5 September 2026</div>
+    <h1>Keep the harness.<br>Bound the local work.</h1>
+    <p class="lead">Local Agent Optimizer lets Codex and Claude Code keep control of the user's work. A conservative router can send a small implementation packet to a local worker; the parent harness reviews and verifies the result.</p>
+    <div class="status" aria-label="Implementation status"><span class="live">Working Apple Silicon proof</span><span>Cloud by default</span><span>One pinned local model</span><span>Capture / eval / training disabled</span></div>
   </header>
 
-  <section>
-    <h2>1. One packet, one decision</h2>
-    <div class="flow" aria-label="Codex and Claude Code send a bounded work packet to LAO. The semantic router returns it to the cloud harness or sends it through OpenCode to local inference.">
-      <div class="stack">
-        <div class="node"><strong>Codex</strong><small>cloud planner</small></div>
-        <div class="node"><strong>Claude Code</strong><small>cloud planner</small></div>
-      </div>
-      <div class="arrow">→</div>
-      <div class="lao-boundary">
-        <div class="node main">
-          <strong><code>lao.execute</code></strong>
-          <small>one bounded packet</small>
-          <div class="inside">
-            <span>named files</span><span>MiniLM decision</span><span>Cloud by default</span>
-          </div>
+  <section aria-labelledby="intent">
+    <div class="section-head"><span class="number">01</span><div><h2 id="intent">What this repository is trying to prove</h2><p>Local execution must earn its place through verified outcomes and acceptable resource use. The current proof establishes a narrow path; it does not establish net savings or broad coding quality.</p></div></div>
+    <div class="principles">
+      <article><h3>Keep the user's workflow</h3><p>Codex and Claude remain the planners, interfaces, and verifiers. LAO installs once and restores its managed client changes with <code>lao off</code>.</p></article>
+      <article><h3>Spend trust carefully</h3><p>Native credentials stay inside the gate. Local packets get exact file permissions and fresh state. Capture, cloud evaluation, spend, and training require explicit consent.</p></article>
+      <article><h3>Stay small on the machine</h3><p>One owned llama.cpp engine, a Light memory budget, bounded caches, and pressure eviction. Components communicate through APIs and own their private state.</p></article>
+    </div>
+  </section>
+
+  <section id="flows" aria-labelledby="flows-title">
+    <div class="section-head"><span class="number">02</span><div><h2 id="flows-title">Two entry points, one protected runtime</h2><p>The MCP packet path and native HTTP overlay coexist. They have different decision boundaries and both matter when reading the code.</p></div></div>
+    <article class="flow" aria-labelledby="packet-flow">
+      <div class="flow-title"><h3 id="packet-flow">A. Delegated implementation packet</h3><span class="label">Harness → stdio MCP → <code>lao mcp</code></span></div>
+      <div class="lane">
+        <div class="node"><strong>Codex / Claude planner</strong><small>One objective + up to 16 exact repository-relative file paths.</small><small><code>lao.execute</code></small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="node"><strong>CLI + semantic router</strong><small><code>app/cli</code> owns the MCP loop and composes <code>svc/route</code>. MiniLM judges the objective once.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="branch">
+          <div class="node cloud"><strong>Cloud → return control</strong><small>The current harness implements the work. No OpenCode worker starts.</small></div>
+          <div class="node local"><strong>Local → OpenCode → Qwen3</strong><small>Fresh state per call. Exact read/edit tool permissions. Model calls go through authenticated <code>/wrk/v1/chat/completions</code> on the daemon.</small></div>
         </div>
       </div>
-      <div class="arrow">→</div>
-      <div class="split">
-        <div class="node"><strong>Local</strong><small>OpenCode → runtime API → Qwen3</small></div>
-        <div class="node"><strong>Cloud</strong><small>current harness continues</small></div>
+      <p class="return"><b>Return to the parent:</b> outcome + changed allowed paths. The harness inspects the actual diff and verifies the task. No session continuation, automatic retry, or mid-loop cloud fallback.</p>
+    </article>
+    <article class="flow" aria-labelledby="http-flow">
+      <div class="flow-title"><h3 id="http-flow">B. Native model request overlay</h3><span class="label">Responses / Messages HTTP + SSE</span></div>
+      <div class="lane">
+        <div class="node"><strong>Codex / Claude request</strong><small>The existing harness sends native model traffic through its configured LAO endpoint.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="node"><strong>Gate + router in daemon</strong><small>Authenticate first. Keep headers, credentials, and targets private. Expose only bounded current-user text to the router.</small></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="branch">
+          <div class="node cloud"><strong>Cloud → native provider</strong><small>Original body passes through to the approved native origin.</small></div>
+          <div class="node local"><strong>Local → llama.cpp</strong><small>Automatic text routing rebuilds a tool-free body from final user text and <code>lao-local</code>. The explicit smoke canary has its own validated path.</small></div>
+        </div>
       </div>
-    </div>
-    <div class="control-flow" aria-label="The lao command installs and controls the service; its MCP mode carries bounded delegated work packets.">
-      <div class="node"><strong><code>lao</code> control</strong><small>install · status · smoke · off</small></div>
-      <div class="arrow">⇢</div>
-      <div class="control-target"><code>per-user launchd listener + daemon</code><br><code>verified OpenCode · router · runtime · model</code></div>
-    </div>
-    <p class="note">LAO installs per user with no root service or separate runtime package. Install verifies or reuses MiniLM, OpenCode, llama.cpp, and Qwen3, then the optimizer warms both harness paths. <code>lao status</code> reports non-secret readiness. User-managed vLLM routing and protected vLLM/SGLang-compatible endpoints remain optional, uncertified alternatives behind the same APIs.</p>
+      <p class="return"><b>Stream back through the gate:</b> the runtime lease lasts until the response completes or is dropped. Native provider credentials never go to local inference.</p>
+    </article>
+    <p class="note">Both paths use the same router implementation, instantiated in their own process. Worker model calls are already committed to Local and are not independent semantic-routing decisions. Unsupported automatic text requests and classifier failures stay Cloud.</p>
   </section>
 
-  <section>
-    <h2>2. Trust boundaries</h2>
-    <div class="checks">
-      <div class="check"><b>Files</b><p>A Local worker may read and edit only the paths named in its packet.</p></div>
-      <div class="check"><b>Decision</b><p>Planning, uncertainty, or classifier failure means Cloud.</p></div>
-      <div class="check"><b>Secrets</b><p>OpenCode and the local model never receive harness provider credentials.</p></div>
+  <section id="processes" aria-labelledby="process-title">
+    <div class="section-head"><span class="number">03</span><div><h2 id="process-title">What runs, and for how long</h2><p>Process boundaries protect lifecycle and private data. Package boundaries protect ownership even when code shares a process.</p></div></div>
+    <div class="processes">
+      <article class="process"><span class="label">User-invoked application</span><h3><code>lao</code> CLI</h3><p><code>app/cli</code></p><ul><li><code>install</code>, <code>preview</code>, <code>status</code>, <code>smoke</code>, <code>off</code>.</li><li>Owns the install lock, recovery record, and before/after settings snapshots.</li><li>In MCP mode, lives with the harness and starts a worker for each Local packet.</li></ul></article>
+      <article class="process"><span class="label">Per-user launchd service</span><h3><code>lao-daemon</code></h3><p><code>app/daemon</code> composes gate, router, runtime, model, and optimizer.</p><ul><li>Adopts the loopback listener and owns caller authentication and streaming.</li><li>Loads MiniLM lazily; starts local inference only when a local path needs it.</li><li>Warms fixed Codex and Claude canaries in the background.</li><li>Retains bounded runtime caches; checks idle memory pressure every five seconds.</li></ul></article>
+      <article class="process"><span class="label">Supervised child processes</span><h3>OpenCode + llama.cpp</h3><p>OpenCode 1.18.25 executes a packet. llama.cpp 10280 serves Qwen3 4B Q4_K_M.</p><ul><li>OpenCode gets disposable HOME/data/cache/state directories per turn.</li><li>The engine uses a 16K context, bounded threads, and a fresh fit check before cold load.</li><li>Model cache residency is separate from worker transcript state.</li></ul></article>
     </div>
-    <p class="note">On the tested Codex and Claude Code versions, ordinary eligible edits enter this flow automatically. Only <code>lao.execute</code> is pre-approved. OpenCode has no shell or network tool and cannot widen the named-file boundary. Codex or Claude reviews the result and runs verification.</p>
+    <p class="note">Install verifies and pins runtime/model artifacts and the OpenCode support tree. It checks launchd readiness before transactional client writes. <code>off</code> stops owned processes and restores LAO-owned settings while preserving unrelated client edits. External runtime endpoints remain user-owned.</p>
   </section>
 
-  <section>
-    <h2>3. The one dependency rule</h2>
-    <div class="layers" aria-label="Applications may use services and APIs. Services may use APIs. APIs never use services.">
-      <div class="layer"><b>app/*</b><span>Chooses concrete parts and wires them together.</span></div>
-      <div class="arrow">→</div>
-      <div class="layer"><b>svc/*</b><span>Does the work. Never imports another service.</span></div>
-      <div class="arrow">→</div>
-      <div class="layer"><b>api/*</b><span>Defines promises, messages and errors. No implementation.</span></div>
+  <section id="code" aria-labelledby="code-title">
+    <div class="section-head"><span class="number">04</span><div><h2 id="code-title">Find the owner before changing the code</h2><p>Follow a responsibility to its service; follow its public seam to <code>api/</code>. Only applications select and connect concrete services.</p></div></div>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Component ownership table">
+      <table><caption>Current components and their private state</caption><thead><tr><th scope="col">Responsibility</th><th scope="col">Source + public seam</th><th scope="col">Owns / does</th></tr></thead><tbody>
+        <tr><td>Client integration</td><td><a href="svc/codex/src/lib.rs">svc/codex</a> · <a href="svc/claude/src/lib.rs">svc/claude</a><br><a href="api/client/src/lib.rs">api/client</a></td><td>Detect supported clients; edit and restore only managed settings. The CLI owns transaction persistence. The API is currently a marker boundary.</td></tr>
+        <tr><td>Credential gate</td><td><a href="svc/gate/src/policy.rs">svc/gate/policy</a> · <a href="svc/gate/src/net.rs">net</a><br><a href="api/gate/src/lib.rs">api/gate</a></td><td>Caller capabilities, native credentials, origin/path validation, clean local egress, and HTTP/SSE relay. Internal request types stay private; the API is a marker.</td></tr>
+        <tr><td>Routing</td><td><a href="svc/route/src/lib.rs">svc/route</a><br><a href="api/route/src/lib.rs">api/route</a></td><td>MiniLM state and prototype scores. Returns Local or Cloud. Supports deterministic safe routing and an opt-in loopback vLLM Semantic Router adapter.</td></tr>
+        <tr><td>Local worker</td><td><a href="svc/opencode/src/lib.rs">svc/opencode</a><br><a href="api/agent/src/lib.rs">api/agent</a></td><td>Verified OpenCode binary/support tree, exact tool permissions, disposable turn state, deadline, process cleanup, and changed-file metadata.</td></tr>
+        <tr><td>Inference + fit</td><td><a href="svc/run/src/lib.rs">svc/run</a> · <a href="svc/run/src/resource.rs">resource</a><br><a href="api/run/src/lib.rs">api/run</a></td><td>Hardware budget, owned llama.cpp child, local bearer, and protected endpoint. The daemon composes response leases and pressure eviction.</td></tr>
+        <tr><td>Model artifact</td><td><a href="svc/model/src/lib.rs">svc/model</a><br><a href="api/model/src/lib.rs">api/model</a></td><td>One immutable artifact record, bounded download, SHA-256 verification, and verified local path. No model catalog or preference database.</td></tr>
+        <tr><td>Background warming</td><td><a href="svc/optimize/src/lib.rs">svc/optimize</a><br><a href="api/optimize/src/lib.rs">api/optimize</a></td><td>Single-flight warm plan and private readiness state: idle, warming, ready, failed. No routing policy or sibling-service imports.</td></tr>
+        <tr><td>Composition</td><td><a href="app/cli/src/lib.rs">app/cli</a> · <a href="app/daemon/src/lib.rs">app/daemon</a></td><td>Wiring, application lifecycle, install recovery, and configuration selection. The two active application roots.</td></tr>
+        <tr><td>Deferred data path</td><td><code>api/</code>, <code>svc/</code>, <code>app/</code><br><code>capture · vault · eval · train</code></td><td>Disabled stubs preserve strategic seams. No active capture pipeline, encrypted task store, replay evaluation, or training.</td></tr>
+        <tr><td>Contract proof</td><td><a href="api/core/src/lib.rs">api/core</a> · <a href="api/wire/src/lib.rs">api/wire</a><br><a href="test/kit/src/lib.rs">test/kit</a> · <a href="xtask/src/main.rs">xtask</a></td><td>Boundary markers, draft local RPC framing, conformance fixtures, architecture guard, and extraction proof. RPC scaffolding is not the active model transport.</td></tr>
+      </tbody></table>
     </div>
-    <div class="rule">svc/route ─✕→ svc/run<br><small>the app connects both through their APIs</small></div>
+    <div class="rules"><code>app/* → svc/* → api/*</code><p>Services may import APIs, never sibling service implementations. APIs do not import services. No shared database or private-state shortcuts. Cargo package metadata and <code>cargo xtask check</code> enforce the declared boundaries.</p></div>
   </section>
 
-  <section>
-    <h2>4. Workspace map</h2>
-    <div class="grid">
-      <pre aria-label="Repository folder tree">lao/
-├── Cargo.toml       Rust workspace
-├── api/             public contracts + wire
-├── svc/             private implementations
-├── app/             process entry points
-├── test/kit/        shared conformance proof
-├── xtask/           architecture guard
-├── README.md        manifesto
-└── architecture.html  this map</pre>
-      <div>
-        <h3>Why a monorepo?</h3>
-        <p>Contracts and consumers can change atomically while the project is young. Package boundaries—not repository boundaries—enforce ownership. A component can move out later without changing its API.</p>
-        <h3>What is a component?</h3>
-        <p>Usually one <code>api/x</code> package plus one <code>svc/x</code> package. An <code>app</code> selects implementations and gives them a process.</p>
-        <h3>What is private?</h3>
-        <p>State, migrations and sensitive internal stages. Credentials remain inside <code>svc/gate</code>. If capture is implemented and enabled later, raw content stays inside <code>svc/capture</code>.</p>
-      </div>
+  <section aria-labelledby="failure-title">
+    <div class="section-head"><span class="number">05</span><div><h2 id="failure-title">What the boundary actually guarantees</h2><p>Keep model quality, permission enforcement, and lifecycle cleanup separate. They provide different kinds of evidence.</p></div></div>
+    <div class="table-wrap" tabindex="0" role="region" aria-label="Failure behavior table"><table><thead><tr><th scope="col">Situation</th><th scope="col">Behavior</th><th scope="col">Important limit</th></tr></thead><tbody>
+      <tr><td>Uncertain routing</td><td>Automatic classifier failure or unsupported request shape stays Cloud.</td><td>Prototype similarity is a quality heuristic, not a security classifier or certified difficulty model.</td></tr>
+      <tr><td>Local file access</td><td>Reject absolute paths, Git metadata, symlinks, wildcards, and backslashes; grant only named read/edit tools.</td><td>Enforced by pinned OpenCode permissions, not an OS filesystem sandbox. Parent diff review remains necessary.</td></tr>
+      <tr><td>Worker stops after an edit</td><td>Return bounded failure/timeout metadata and observed allowed-file changes when available.</td><td>Edits may already exist. Inspect before retrying. A complete status is also not proof that the objective was met.</td></tr>
+      <tr><td>Next packet arrives</td><td>Create fresh worker state; accept no session continuation handle.</td><td>State is removed on normal return. Abrupt host termination is not a secure-erasure guarantee.</td></tr>
+      <tr><td>Memory pressure</td><td>Evict an idle runtime; a later cold load repeats the fit check.</td><td>Active response leases prevent eviction during a stream. This is a supported-Mac proof, not portable resource certification.</td></tr>
+      <tr><td>Client settings diverge</td><td>Preserve unrelated edits; reject conflicts in LAO-owned entries.</td><td>Install/off manage only supported settings and versions, never harness credential stores.</td></tr>
+    </tbody></table></div>
+  </section>
+
+  <section id="evidence" aria-labelledby="evidence-title">
+    <div class="section-head"><span class="number">06</span><div><h2 id="evidence-title">Working proof, with a visible edge</h2><p>Historical measurements belong to the configuration that produced them. Source checks protect contracts; they do not recreate installed-client results.</p></div></div>
+    <div class="evidence">
+      <article><h3>Evidence retained</h3><ul><li>Saved-login cloud/local/restart/off acceptance on the supported Mac.</li><li>Natural one-file delegation through Codex 0.151.0 and Claude Code 2.1.251; broad planning controls stayed Cloud.</li><li>Recorded delegated turns: about 35 seconds in Codex and 26 seconds in Claude; runtime RSS about 4.70 GiB under the 6 GiB Light ceiling.</li><li>Focused checks for independent packet state, partial-failure cleanup, rejected continuation arguments, exact file paths, and parent-death worker cleanup.</li></ul><a href="IMPLEMENTATION_PLAN.md#r6--independent-packets-and-adversarial-simplification">Open the dated acceptance ledger →</a></article>
+      <article class="unproven"><h3>Not established by this proof</h3><ul><li>Net cost/quota savings, broad coding success, or production routing certification.</li><li>Astra gateway compatibility or future Codex/Claude version parity.</li><li>OS-level worker sandboxing, signed release packaging, or a full interactive/API-key compatibility matrix.</li><li>Certified vLLM/SGLang inference, cross-platform support, personal evaluation, or model training.</li></ul><p class="note">User-managed loopback adapters exist. Their presence is an API seam, not an integration certificate.</p></article>
     </div>
   </section>
 
-  <section>
-    <h2>5. Component ownership</h2>
-    <table>
-      <thead><tr><th>Area</th><th>Code</th><th>Responsibility</th></tr></thead>
-      <tbody>
-        <tr><td>Clients</td><td><a href="api/client/Cargo.toml">api/client</a> · <a href="svc/codex/Cargo.toml">svc/codex</a> · <a href="svc/claude/Cargo.toml">svc/claude</a></td><td>Detect, configure, verify, and restore owned harness settings while preserving unrelated client edits.</td></tr>
-        <tr><td>Gate</td><td><a href="api/gate/Cargo.toml">api/gate</a> · <a href="svc/gate/Cargo.toml">svc/gate</a></td><td>Authenticate callers, retain secrets, and freeze egress.</td></tr>
-        <tr><td>Route</td><td><a href="api/route/Cargo.toml">api/route</a> · <a href="svc/route/Cargo.toml">svc/route</a></td><td>Use the default pinned MiniLM semantic classifier or an optional vLLM Semantic Router; automatic failures stay Cloud.</td></tr>
-        <tr><td>Local agent</td><td><a href="api/agent/Cargo.toml">api/agent</a> · <a href="svc/opencode/Cargo.toml">svc/opencode</a></td><td>Run a bounded OpenCode packet with only its named-file permissions and local model.</td></tr>
-        <tr><td>Local runtime</td><td><a href="api/run/Cargo.toml">api/run</a> · <a href="svc/run/Cargo.toml">svc/run</a> · <a href="api/model/Cargo.toml">api/model</a> · <a href="svc/model/Cargo.toml">svc/model</a></td><td>Own verified llama.cpp by default, or connect to an uncertified protected loopback endpoint.</td></tr>
-        <tr><td>Latency optimizer</td><td><a href="api/optimize/Cargo.toml">api/optimize</a> · <a href="svc/optimize/Cargo.toml">svc/optimize</a></td><td>Own single-flight background harness warming and non-secret readiness state.</td></tr>
-        <tr><td>Applications</td><td><a href="app/daemon/Cargo.toml">app/daemon</a> · <a href="app/cli/Cargo.toml">app/cli</a></td><td>Wire components; own the long- and short-lived process roots.</td></tr>
-        <tr><td>Deferred data path</td><td><code>capture · vault · eval · train</code></td><td>Disabled contract stubs; not active in this slice.</td></tr>
-      </tbody>
-    </table>
+  <section id="reading" aria-labelledby="reading-title">
+    <div class="section-head"><span class="number">07</span><div><h2 id="reading-title">Choose the next useful read</h2><p>Each document has a different job. Start with the current behavior before using the long-term blueprint.</p></div></div>
+    <details open><summary>I want to use or contribute to LAO</summary><p><a href="README.md">README</a> covers install, normal use, the manifesto, and contributor checks. <a href="AGENTS.md">AGENTS.md</a> gives concise execution rules, including Astra-informed follow-through and verification guidance.</p></details>
+    <details open><summary>I want to change a component</summary><p>Use the ownership table above, then read its <code>Cargo.toml</code>, API, and closest existing tests. <a href="IMPLEMENTATION_PLAN.md">The implementation plan</a> records acceptance criteria and evidence. Run focused tests; API changes also need workspace tests, architecture checks, and extraction.</p></details>
+    <details open><summary>I want to understand the longer-term product</summary><p><a href="PRODUCT_VISION_AND_ARCHITECTURE.md">Product vision and architecture</a> explains hardware fit, trust, consent, evaluation, and personalization decisions. Deferred records and workers describe intent, not current functionality.</p></details>
   </section>
-
-  <section>
-    <h2>6. The architecture is executable</h2>
-    <div class="checks">
-      <div class="check"><b>cargo xtask check</b><p>Rejects forbidden imports, cycles, state collisions, hidden paths and policy mistakes.</p></div>
-      <div class="check"><b>cargo test --workspace</b><p>Builds every package and runs boundary and linked/RPC conformance tests.</p></div>
-      <div class="check"><b>cargo xtask extract</b><p>Builds a fake component outside the repo using only public seams.</p></div>
-    </div>
-    <p class="note">Detailed acceptance evidence lives in <a href="IMPLEMENTATION_PLAN.md">IMPLEMENTATION_PLAN.md</a>; product principles live in <a href="README.md">README.md</a>.</p>
-  </section>
-
-  <footer>
-    Package metadata in each Cargo.toml is the source of truth.
-  </footer>
 </main>
+<footer>This map describes checked-in source. It does not inspect or certify the user's live installation. Check live readiness with <code>lao status</code>; keep proof claims tied to the <a href="IMPLEMENTATION_PLAN.md">implementation ledger</a>.</footer>
 </body>
 </html>

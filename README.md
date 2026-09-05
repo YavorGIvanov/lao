@@ -39,7 +39,7 @@ LAO semantic router
    └─ Local → OpenCode → Qwen3 / llama.cpp
 ```
 
-The default is conservative: planning, broad changes, and uncertain work stay Cloud. A Local packet may read and edit only the paths named by the planner. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
+The default is conservative: planning, broad changes, and uncertain work stay Cloud. Each Local packet starts with fresh disposable worker state and may read and edit only the paths named by the planner. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
 
 Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
 
@@ -147,18 +147,26 @@ Codex and Claude may update their own unrelated settings while LAO is installed;
 
 ## Contributor workflow
 
-1. Read the product architecture and implementation plan below.
-2. Run `cargo xtask check`, `cargo test --workspace`, and `cargo xtask extract` to verify the boundary baseline.
-3. Keep cloud as the default and preserve the exact installed proof above.
-4. Leave capture, eval, training, and extra backends disabled behind their APIs until the plan activates them.
+Start with [AGENTS.md](AGENTS.md) and the manifesto above. Use the [visual architecture map](architecture.html) to locate the running path and its owner, then read the relevant acceptance criteria in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The [product vision](PRODUCT_VISION_AND_ARCHITECTURE.md) describes the longer-term decisions; its deferred features are not an instruction to build them now.
 
-Every agent starts here. If two solutions are equally safe and functional, choose the smaller one.
+For Rust changes, run the closest tests first. API or dependency changes also require the workspace boundary checks:
 
-## Documents
+```sh
+cargo test --workspace -j 2
+cargo clippy --workspace --all-targets -j 2 -- -D warnings
+cargo xtask check
+CARGO_BUILD_JOBS=2 cargo xtask extract
+cargo fmt --all -- --check
+git diff --check
+```
 
-- [Visual architecture map](architecture.html)
-- [Product vision and system architecture](PRODUCT_VISION_AND_ARCHITECTURE.md)
-- [Decision-complete implementation plan](IMPLEMENTATION_PLAN.md)
+Installed-client and model tests are opt-in. `cargo test --workspace` does not establish new saved-login or installed-runtime evidence. Keep capture, eval, training, and extra backends disabled until their own acceptance work is authorized.
+
+### Working with Astra
+
+The repository instructions follow OpenAI's [GPT-6 Astra prompting guidance](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices) and [AGENTS.md guidance](https://developers.openai.com/codex/agent-configuration/agents-md), reviewed on 5 September 2026. They make task completion and approval boundaries explicit, keep skill conflicts visible, bound delegation, and scale verification to the change. Keep these instructions concise and behavioral; the manifesto remains the product's authority.
+
+This is guidance for the coding harness working on LAO. It does not select a cloud model, change the pinned local model, or certify Astra through the installed gateway. Harness compatibility evidence remains tied to the recorded client versions.
 
 ## Current architectural decision
 
@@ -172,15 +180,13 @@ The proof of concept is Apple Silicon-first, preserves the original Codex and Cl
 
 ## Status
 
-The cloud-safe baseline is complete. The gate authenticates the caller before reading a body and retains headers, credentials, and targets. For automatic routing it extracts only bounded current-user text and asks the selected router for Local or Cloud. Cloud keeps the original body. A final Local decision creates a tool-free body containing only the final user text and model name `lao-local`, strips native secrets, and binds it to the runtime's protected loopback endpoint. For automatic routing, any unsupported body, router error, timeout, busy classifier, or unknown answer remains Cloud.
+The supported Apple Silicon proof has two working paths: native Responses/Messages requests through the private gate, and bounded MCP implementation packets through OpenCode. The gate authenticates callers before inspecting bodies, retains native credentials, and passes Cloud bodies unchanged. Automatic Local text requests receive a tool-free body containing only final user text and `lao-local`; delegated OpenCode calls use a separate authenticated local-only Chat Completions path.
 
-Stage 1 is complete on the supported test Mac. The pinned local runtime serves native Responses and Messages HTTP/SSE, so this slice passes request bodies and response streams without a translation layer and exposes the model only as `lao-local`. The supported installed Codex and Claude Code clients each completed saved-login cloud requests and the same real local canary through one gate and router, including after a daemon restart.
+The recorded natural handoff proof used Codex 0.151.0 and Claude Code 2.1.251. Each delegated a one-file correction without an approval prompt; broad planning controls stayed Cloud. The runs took about 35 seconds in Codex and 26 seconds in Claude, with about 4.70 GiB loaded runtime RSS at a 16K context. These are individual proof measurements, not benchmarks or evidence of net cost savings.
 
-The current routed-worker proof used real Codex and Claude Code cloud turns, not synthetic planners. Given only a normal spelling-fix request, each harness called `lao.execute` once without an approval prompt; MiniLM selected Local; OpenCode 1.18.25 used Qwen3 4B through llama.cpp to change only `word.txt`; and the parent harness independently verified the result. Broad planning controls remained in their cloud harnesses. The measured delegated runs took about 35 seconds in Codex and 26 seconds in Claude Code; the loaded llama.cpp worker measured about 4.70 GiB RSS. These are single proof measurements, not benchmarks.
+Each Local packet now uses fresh disposable worker state. Session continuation is removed; absolute paths, Git metadata, symlinks, wildcard paths, and backslashes are rejected. Worker permissions depend on pinned OpenCode enforcement, not an OS filesystem sandbox. A worker may stop after editing, and `complete` is execution metadata, not independent proof of correctness. The parent harness must review the actual diff and verify the requested outcome.
 
-`lao install` generates separate caller keys, verifies launchd before either client write, and applies both client settings as one recoverable transaction. The optimizer then warms fixed local Claude and Codex paths in the background. The current Qwen3 runtime remains below the 6 GiB Light ceiling at its 16K context. `lao off` removes the managed changes and service state while preserving unrelated client state. This remains a research proof rather than a supported release: signed packaging, interactive harness surfaces, API-key E2Es, and broader adapters remain future work.
-
-Each local response holds a runtime lease until its stream completes or is dropped. The healthy worker and both harness prefixes remain in a bounded RAM cache; a five-second watcher unloads them on idle memory pressure. Repeated `lao install`, `lao status`, and same-revision source setup are measured below 100 ms; gateway p95 overhead is below 3.5 ms. Model generation is reported separately.
+Install/off transactions, runtime leases, bounded background warming, and pressure eviction remain in place. Capture, encrypted task storage, evaluation, training, signed packaging, API-key E2Es, and broader routing certification remain deferred. See the [proof ledger and current review](IMPLEMENTATION_PLAN.md#r6--independent-packets-and-adversarial-simplification) for acceptance evidence and its limits.
 
 The default `lao install` selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
 
