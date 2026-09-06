@@ -25,7 +25,7 @@ Use [example.json](example.json) as the complete input shape. Unknown fields and
 | `cache` | `cold` or `warm`; use separate reports and matched starting conditions. Worker state is fresh in both. |
 | `baseline`, `candidate` | Declared configurations; details below. |
 | `tasks` | Unique public fixture IDs, 1–100. This is a pilot limit, not a statistically sufficient sample definition. |
-| `rounds` | Equal repetitions, 1–5. One round is a smoke check; planned R8 pilots start with three. No sample size enables promotion through this tool. |
+| `rounds` | Equal repetitions, 1–5. One round is a smoke check; planned R9 pilots start with three. No sample size enables promotion through this tool. |
 | `trials` | Exactly one row for every task × round × arm. Row order is execution order; alternate arms in collection. The checker validates membership/completeness, not scheduling or health. |
 
 Identifiers use 1–128 ASCII letters, digits, dots, hyphens, or underscores. Hashes are hex strings of the declared length. They are syntactically checked; referenced files are not opened or hashed by this command.
@@ -52,6 +52,6 @@ The checker reports per-arm trial count, verified count, worker completion/failu
 
 The synthetic example deliberately has a completed but incorrect candidate row and a failed worker with an independently verified correct result. Baseline verifies 2/2, candidate verifies 1/2, candidate median time is 1,500 ms, and the delta is −50 percentage points. These invented values demonstrate why execution metadata cannot score correctness.
 
-No report emits p90/p95, statistical significance, a routing recommendation, or a cost/quota-saving estimate. Validation cannot establish source authenticity, actual health/cache state, consent, honest timing, verifier provenance, correct scope, safe replay, or absence of cherry-picking. A trusted producer must enforce these before declaring measured evidence complete. See [R8](../../IMPLEMENTATION_PLAN.md#r8--measure-the-whole-bounded-task) for the planned collection gate and [personal evaluation statistics](../../PRODUCT_VISION_AND_ARCHITECTURE.md#112-statistics) for later promotion criteria.
+No report emits p90/p95, statistical significance, a routing recommendation, or a cost/quota-saving estimate. Validation cannot establish source authenticity, actual health/cache state, consent, honest timing, verifier provenance, correct scope, safe replay, or absence of cherry-picking. A trusted producer must enforce these before declaring measured evidence complete. See [R9](../../IMPLEMENTATION_PLAN.md#r9--measure-the-whole-bounded-task) for the planned collection gate and [personal evaluation statistics](../../PRODUCT_VISION_AND_ARCHITECTURE.md#112-statistics) for later promotion criteria.
 
 Collection stays opt-in. This task authorized offline tooling and synthetic data, not private capture or paid/unattended model campaigns. Do not put raw harness output, prompts, patches, process command lines, local paths, credentials, or user identifiers into reports. Parse errors and summaries deliberately omit supplied strings.

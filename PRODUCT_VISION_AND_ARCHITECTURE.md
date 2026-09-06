@@ -893,11 +893,11 @@ Sequence work by evidence rather than launching every platform and data componen
 
 1. Pin a public bounded-task pilot and validate complete paired reports offline. Reuse the installed one-file fixture and a broad/risky Cloud control; do not widen routing from those examples.
 2. With explicit execution/spend approval where needed, measure complete task latency and verified outcomes on the current M4 with both supported harnesses. Keep cold and warm cohorts separate, use equal limits and alternate order, and include repair. Remain a research preview when evidence is insufficient.
-3. Improve only the measured bottleneck: parent overhead, worker reliability, prefill, decode, or routing. Require held-out correctness and matched configuration evidence before promotion. Cache tuning and another engine are conditional experiments.
-4. Harden the proven Mac release: signed packaging, supported-version compatibility checks, rollback, resource and credential regressions. Add another hardware/backend combination only after its admission contract passes.
+3. Improve only the measured bottleneck: parent overhead, worker reliability, prefill, decode, or routing. Require held-out correctness and matched configuration evidence before promotion. Cache tuning stays within the supported llama.cpp configuration; additional engines follow the first release.
+4. Harden the proven Mac release: signed packaging, supported-version compatibility checks, rollback, resource and credential regressions. Keep llama.cpp as the first release engine.
 5. Build consented capture, encrypted vault and isolated personal replay as one narrow slice; then add retention/export/deletion and task reports. Cloud campaigns retain their separate scoped consent and hard budget.
 
-Windows/Linux, NVIDIA/AMD, multi-model catalogs, llama-swap and broader adapters remain expansion candidates after the first supported release earns its quality and utility gates. They are not prerequisites for it. The personal evidence loop remains the long-term differentiator, not an excuse to activate every draft service now.
+After the llama.cpp proof and first supported release, add optional engines behind the runtime API and let the user explicitly choose a compatible engine. Keep llama.cpp as the default; each new choice must pass hardware, protocol, authentication, resource and verified-task admission. Windows/Linux, NVIDIA/AMD, multi-model catalogs, llama-swap and broader adapters remain expansion candidates after that release earns its quality and utility gates. They are not prerequisites for it. The personal evidence loop remains the long-term differentiator, not an excuse to activate every draft service now.
 
 ### Phase 2: owned intelligence
 

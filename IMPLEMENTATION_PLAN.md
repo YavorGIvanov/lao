@@ -12,7 +12,7 @@ Codex / Claude planner → one MCP work packet → semantic router → Cloud or 
 
 The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow text request to route automatically; R4 lets the cloud harness delegate one bounded implementation packet to a real local agent. Each packet is routed independently. Unsupported, risky, or ambiguous work stays Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
 
-Stage 1 targeted this 24 GiB Apple M4 Mac and is complete. The historical S1/R1–R6 ledger below records that proof, not the final router, catalog, evaluator, or cross-platform release. The next steps are ordered below; a deferred contract is not current functionality.
+Stage 1 targeted this 24 GiB Apple M4 Mac and is complete. The historical S1/R1–R7 ledger below records that proof, not the final router, catalog, evaluator, or cross-platform release. The next steps are ordered below; a deferred contract is not current functionality.
 
 ## Rules
 
@@ -31,13 +31,14 @@ Replanned 6 September 2026 around complete task evidence. Keep llama.cpp/Qwen3, 
 
 | Order | Slice | Owner / files | Exit gate |
 |---|---|---|---|
-| R7 | Offline paired evidence contract | `xtask`, `docs/benchmarks` | A small synthetic example is accepted; incomplete pairs and changed configuration are rejected; worker status cannot substitute for verification. No inference or capture. |
-| R8 | Public-fixture task pilot | Existing opt-in `app/cli` worker/harness fixtures; composition owns collection | Same public task, pinned verifier, both harnesses, equal trial limits and complete failure accounting; report counts and total task medians with explicit limits. |
-| R9 | One measured improvement | The component identified by R8 | Independent held-out outcomes preserved; measured task utility improves under the same hardware/budget; no broad routing promotion from a canary. |
-| R10 | Supported Mac release gate | CLI/client/gate/run owners | Signed artifacts, version-specific install/local/cloud/off checks, resource and trust regressions pass; no unearned cross-platform claim. |
+| R8 | Offline paired evidence contract | `xtask`, `docs/benchmarks` | A small synthetic example is accepted; incomplete pairs and changed configuration are rejected; worker status cannot substitute for verification. No inference or capture. |
+| R9 | Public-fixture task pilot | Existing opt-in `app/cli` worker/harness fixtures; composition owns collection | Same public task, pinned verifier, both harnesses, equal trial limits and complete failure accounting; report counts and total task medians with explicit limits. |
+| R10 | One measured improvement | The component identified by R9 | Independent held-out outcomes preserved; measured task utility improves under the same hardware/budget; no broad routing promotion from a canary. |
+| R11 | Supported Mac release gate | CLI/client/gate/run owners | Signed artifacts, version-specific install/local/cloud/off checks, resource and trust regressions pass; no unearned cross-platform claim. |
+| After R11 | User-selectable engines | `api/run`, runtime and CLI owners | Integrate one compatible engine at a time after the llama.cpp release; users explicitly select it, with llama.cpp retained as the default. |
 | Later | Personal evidence loop | Separate capture/vault/eval APIs and workers | Scoped capture consent, encrypted storage and isolated replay form one exercised vertical slice before training or more platforms. |
 
-### R7 — Evidence before new performance claims
+### R8 — Evidence before new performance claims
 
 Status: complete (2026-09-06), offline tooling and synthetic evidence only.
 
@@ -58,14 +59,14 @@ Current evidence:
 
 - `cargo xtask evidence docs/benchmarks/example.json` accepts the documented synthetic pairs and reports baseline 2/2, candidate 1/2 and a 1,500 ms candidate median. These are invented test values, not a performance result.
 - The main case proves that worker completion cannot replace independent verifier/scope success; the integrity case rejects missing pairs and observed-version drift. A real CLI failure check also rejects drift without echoing supplied content.
-- All 12 focused `xtask` tests and strict focused Clippy pass. Workspace verification passes 83 tests, with 11 opt-in tests skipped; strict workspace Clippy, the 33-package architecture guard, extraction/conformance, formatting and diff hygiene pass. Builds used at most two jobs.
+- The original evidence run passed all 12 focused `xtask` tests and strict focused Clippy, plus 83 workspace tests with 11 opt-in tests skipped. Strict workspace Clippy, the 33-package architecture guard, extraction/conformance, formatting and diff hygiene also passed. These counts precede integration with the R7 sandbox branch; builds used at most two jobs.
 - Independent benchmark-contract review found no code blocker. The parent reviewed trust and architecture: the command has bounded input, sanitized errors, no subprocess/model execution, no service-state access and no new dependency; it cannot authenticate a report or promote a model. The simplification pass retained the existing service seams and removed no exercised protections.
 - README, architecture map, product vision and this plan now share the same boundary. Local links/anchors and HTML IDs were checked. A fresh browser render was unavailable because the computer-use environment exposed no browser; no new visual QA is claimed.
-- No new installed-client, inference-engine, private-capture or paid-cloud benchmark ran. Historical R1–R6 measurements remain tied to their original configurations. R8–R10 remain planned work, not completed evidence.
+- No new installed-client, inference-engine, private-capture or paid-cloud benchmark ran. Historical R1–R7 measurements remain tied to their original configurations. R9–R11 remain planned work, not completed evidence.
 
-### R8 — Measure the whole bounded task
+### R9 — Measure the whole bounded task
 
-Status: planned; no new installed-client/cloud campaign is claimed by R7.
+Status: planned; no new installed-client/cloud campaign is claimed by R8.
 
 Start with the existing public one-file spelling fixture and an essential broad/risky Cloud control. These expose overhead and routing boundaries, not general coding ability. Use independent fresh copies of the starting fixture and keep verifier expectations outside worker access. Do not use private captures or activate data workers.
 
@@ -81,24 +82,30 @@ Acceptance: all planned pairs accounted for, untouched-baseline verifier behavio
 
 Do not calculate p90/p95 or claim general savings from this tiny pilot. Require the product architecture's larger held-out task and uncertainty gates before quality/promotion claims. Actual token/quota/currency savings need measured provider usage and an explicit baseline; latency is not a proxy for spend.
 
-### R9 — Optimize only the observed bottleneck
+### R10 — Optimize only the observed bottleneck
 
-Status: conditional on R8 evidence.
+Status: conditional on R9 evidence.
 
 - If parent orchestration dominates, reduce a demonstrated handoff/review cost while retaining parent verification and one-call routing.
 - If local reliability dominates, fix that failure before increasing Local coverage. Extend evidence with an independent held-out task, not another memorized canary.
 - If prefill dominates, reuse `optimize`/`run`: exact token and model/tokenizer/template identity, bounded cache/scratch bytes, pressure eviction, fresh worker state. Test divergent prefixes and eviction only when that behavior changes.
-- If decode dominates on compatible hardware, compare a maintained engine through `api/run`; keep any experimental adapter opt-in. First prove auth rejection, required tools/streaming/native endpoints, model identity, effective context, cancellation, cleanup and fresh fit.
+- If decode dominates, measure and tune the supported llama.cpp configuration. Additional engine integrations and user selection follow the first llama.cpp release; they are not prerequisites for R11.
 
 Reject any runtime that fails hardware, protocol, or authentication admission. Sending a bearer to an unprotected server does not add protection. Do not adapt by silently deleting tool fields or faking streaming. Do not fork inference kernels, add a capability registry, or download a larger checkpoint without a measured need and suitable hardware.
 
 Exit: one small change improves the predeclared complete-task measure without critical correctness/resource/trust regression. Publish its matched before/after configuration and failures. Otherwise keep the current implementation and record the negative result.
 
-### R10 — Release the supported slice
+### R11 — Release the supported slice
 
-Status: planned after a useful R8/R9 result; retain research-preview status otherwise.
+Status: planned after a useful R9/R10 result; retain research-preview status otherwise.
 
 Harden signed packaging, supported harness versions, artifact verification, rollback, installed health and resource behavior on the current Mac. Require fresh version-specific compatibility evidence where runtime/client code changes. Keep authentication, wrong-origin, exact-path, partial-failure, pressure and cleanup gates. Expand hardware and model catalogs one admitted combination at a time; personal capture/replay follows its own consent and isolation gate. No Windows/Linux or training prerequisite is added to the first supported Mac release.
+
+### After release — User-selectable engines
+
+Status: deferred until the llama.cpp proof and first supported release are complete.
+
+Add optional engines behind `api/run`, one admitted hardware/model combination at a time. Let the user explicitly choose a compatible engine; keep llama.cpp as the default. Before exposing a choice, prove hardware and memory fit, exact artifact/model identity, required protocols and tools, authenticated access, effective context, cancellation, cleanup and verified task outcomes. Preserve the native harnesses and existing Cloud path. Do not run multiple resident engines beyond the resource budget.
 
 ## Implemented components
 
@@ -539,7 +546,7 @@ Evidence and limits:
 
 ## Deferred backlog
 
-The R7–R10 order above replaces an unordered post-proof backlog. These remaining candidates have no implementation authorization from their presence here; select them only when the preceding evidence or a specific user task requires them. The long-term contracts and constraints remain in the product architecture.
+The R8–R11 order above replaces an unordered post-proof backlog. These remaining candidates have no implementation authorization from their presence here; select them only when the preceding evidence or a specific user task requires them. The long-term contracts and constraints remain in the product architecture.
 
 Deferred product work:
 

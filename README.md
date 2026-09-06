@@ -192,6 +192,8 @@ Install/off transactions, runtime leases, bounded background warming, and pressu
 
 The next slice measures complete verified tasks before changing engines or widening routing. Contributor tooling now validates [paired pilot evidence](docs/benchmarks/README.md), rejecting incomplete comparisons and configuration drift while keeping worker status separate from correctness. Run `cargo xtask evidence docs/benchmarks/example.json` to check the **synthetic** example. This adds no model campaign or live evaluation service, and establishes no new speed, quality, or savings result.
 
+Additional engine integrations and user selection are planned after the llama.cpp proof and first supported release. llama.cpp remains the default.
+
 The default `lao install` selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
 
 To select a running vLLM or SGLang server without giving LAO ownership of it:
