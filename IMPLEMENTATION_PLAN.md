@@ -2,7 +2,7 @@
 
 ## Outcome
 
-Ship the smallest real proof of this product:
+Retain the working proof and earn the next claim: useful local work with independently verified outcomes and a measured total cost in time and resources.
 
 ```text
 Codex + Claude Code → LAO gate → conservative router → llama.cpp or native cloud
@@ -12,7 +12,7 @@ Codex / Claude planner → one MCP work packet → semantic router → Cloud or 
 
 The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow text request to route automatically; R4 lets the cloud harness delegate one bounded implementation packet to a real local agent. Each packet is routed independently. Unsupported, risky, or ambiguous work stays Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
 
-Stage 1 targets this 24 GiB Apple M4 Mac. It is a working end-to-end proof, not the final router, catalog, evaluator, or cross-platform release.
+Stage 1 targeted this 24 GiB Apple M4 Mac and is complete. The historical S1/R1–R6 ledger below records that proof, not the final router, catalog, evaluator, or cross-platform release. The next steps are ordered below; a deferred contract is not current functionality.
 
 ## Rules
 
@@ -24,6 +24,70 @@ Stage 1 targets this 24 GiB Apple M4 Mac. It is a working end-to-end proof, not 
 - Keep every noncritical component as a disabled draft.
 - Finish every task with focused adversarial review and simplification.
 - Keep [architecture.html](architecture.html), this plan, the README, and the [product architecture](PRODUCT_VISION_AND_ARCHITECTURE.md) consistent.
+
+## Next steps
+
+Replanned 6 September 2026 around complete task evidence. Keep llama.cpp/Qwen3, the native harnesses, and Cloud defaults. Measure independently verified outcomes and total task latency before changing engines or widening routing, then optimize the measured bottleneck.
+
+| Order | Slice | Owner / files | Exit gate |
+|---|---|---|---|
+| R7 | Offline paired evidence contract | `xtask`, `docs/benchmarks` | A small synthetic example is accepted; incomplete pairs and changed configuration are rejected; worker status cannot substitute for verification. No inference or capture. |
+| R8 | Public-fixture task pilot | Existing opt-in `app/cli` worker/harness fixtures; composition owns collection | Same public task, pinned verifier, both harnesses, equal trial limits and complete failure accounting; report counts and total task medians with explicit limits. |
+| R9 | One measured improvement | The component identified by R8 | Independent held-out outcomes preserved; measured task utility improves under the same hardware/budget; no broad routing promotion from a canary. |
+| R10 | Supported Mac release gate | CLI/client/gate/run owners | Signed artifacts, version-specific install/local/cloud/off checks, resource and trust regressions pass; no unearned cross-platform claim. |
+| Later | Personal evidence loop | Separate capture/vault/eval APIs and workers | Scoped capture consent, encrypted storage and isolated replay form one exercised vertical slice before training or more platforms. |
+
+### R7 — Evidence before new performance claims
+
+Scope of this repository update: implement contributor tooling to validate an already collected, sanitized paired pilot report. Keep it out of the daemon and disabled evaluation services. Reuse the existing `xtask` dependencies; add no framework or model download.
+
+Acceptance:
+
+- versioned strict input with declared fixture/verifier hashes, machine identity, cache condition, dispatch-through-verification timer boundary, source/runtime/model/harness configuration, and planned tasks/rounds;
+- actual configuration in every arm must equal its declaration; missing/duplicate arms, invalid timing, unknown fields and infrastructure-invalid trials make the comparison unusable;
+- synthetic and measured evidence remain visibly distinct; worker completion, verifier success and scope verdict remain independent;
+- preserve failed/timed-out worker rows and total elapsed time; display counts and medians only, with no automatic model promotion, tail statistics, or inferred money/quota savings;
+- bounded local read, sanitized errors and aggregate output; no raw task content, process arguments, credentials, or model traffic;
+- one main outcome test and one essential integrity-failure test, focused strict Clippy, formatting and diff hygiene.
+
+This is an internal consistency check, not proof of authentic measurements, correct verdicts, consent, or a secure replay environment. Collection and artifact hashing remain producer responsibilities. Full personal evaluation statistics remain governed by the product architecture.
+
+### R8 — Measure the whole bounded task
+
+Status: planned; no new installed-client/cloud campaign is claimed by R7.
+
+Start with the existing public one-file spelling fixture and an essential broad/risky Cloud control. These expose overhead and routing boundaries, not general coding ability. Use independent fresh copies of the starting fixture and keep verifier expectations outside worker access. Do not use private captures or activate data workers.
+
+Pre-register before execution:
+
+1. Pin the source and lockfile, actual runtime/model/tokenizer/template, harness binary/version, fixture and verifier. Record a content-free host/OS/resource configuration. Keep Codex and Claude reports separate.
+2. Compare the native Cloud baseline with the LAO hybrid path on identical tasks. Alternate arm order, run serially, begin with three equal repetitions, and declare wall-time/token limits and a maximum campaign budget. Cloud evaluation/spend needs its own explicit scope and consent; saved subscription login is not unattended-evaluation authorization.
+3. Separate cold and warm cohorts. Define cold as no loaded inference/prefix state; define warm by completed fixed warmup and observed readiness. Fresh worker state is required in both. Check available memory, pressure, power and thermal conditions before/after each arm. Refuse rather than publish unstable comparisons; bound every subprocess and clean up on interruption.
+4. Primary time starts at parent dispatch and ends after independent verification, including route time, local failure, review, repair and Cloud continuation if any. Record requested/actual route and backend, worker execution status, independent verifier/scope outcome, and resource observations. Keep generator prefill/decode and gateway microbenchmarks separate.
+5. Hash collection artifacts without copying credentials or raw output into reports. Atomically checkpoint planned/completed/refused state, include every trial, and retry infrastructure-invalid pairs symmetrically only inside the approved budget. Failed models and timeouts stay in the denominator.
+
+Acceptance: all planned pairs accounted for, untouched-baseline verifier behavior established, exact edit scope checked independently, cleanup passes, and a report clearly identifies successful/failed attempts and overhead. Worker `complete` alone cannot pass a task; an edited file after worker failure still requires review. If only synthetic/offline checks ran, report exactly that.
+
+Do not calculate p90/p95 or claim general savings from this tiny pilot. Require the product architecture's larger held-out task and uncertainty gates before quality/promotion claims. Actual token/quota/currency savings need measured provider usage and an explicit baseline; latency is not a proxy for spend.
+
+### R9 — Optimize only the observed bottleneck
+
+Status: conditional on R8 evidence.
+
+- If parent orchestration dominates, reduce a demonstrated handoff/review cost while retaining parent verification and one-call routing.
+- If local reliability dominates, fix that failure before increasing Local coverage. Extend evidence with an independent held-out task, not another memorized canary.
+- If prefill dominates, reuse `optimize`/`run`: exact token and model/tokenizer/template identity, bounded cache/scratch bytes, pressure eviction, fresh worker state. Test divergent prefixes and eviction only when that behavior changes.
+- If decode dominates on compatible hardware, compare a maintained engine through `api/run`; keep any experimental adapter opt-in. First prove auth rejection, required tools/streaming/native endpoints, model identity, effective context, cancellation, cleanup and fresh fit.
+
+Reject any runtime that fails hardware, protocol, or authentication admission. Sending a bearer to an unprotected server does not add protection. Do not adapt by silently deleting tool fields or faking streaming. Do not fork inference kernels, add a capability registry, or download a larger checkpoint without a measured need and suitable hardware.
+
+Exit: one small change improves the predeclared complete-task measure without critical correctness/resource/trust regression. Publish its matched before/after configuration and failures. Otherwise keep the current implementation and record the negative result.
+
+### R10 — Release the supported slice
+
+Status: planned after a useful R8/R9 result; retain research-preview status otherwise.
+
+Harden signed packaging, supported harness versions, artifact verification, rollback, installed health and resource behavior on the current Mac. Require fresh version-specific compatibility evidence where runtime/client code changes. Keep authentication, wrong-origin, exact-path, partial-failure, pressure and cleanup gates. Expand hardware and model catalogs one admitted combination at a time; personal capture/replay follows its own consent and isolation gate. No Windows/Linux or training prerequisite is added to the first supported Mac release.
 
 ## Implemented components
 
@@ -464,7 +528,7 @@ Evidence and limits:
 
 ## Deferred backlog
 
-After the exit gate, choose the next measured bottleneck. The long-term contracts and constraints remain in the product architecture.
+The R7–R10 order above replaces an unordered post-proof backlog. These remaining candidates have no implementation authorization from their presence here; select them only when the preceding evidence or a specific user task requires them. The long-term contracts and constraints remain in the product architecture.
 
 Deferred product work:
 
