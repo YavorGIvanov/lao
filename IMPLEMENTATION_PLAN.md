@@ -39,6 +39,8 @@ Replanned 6 September 2026 around complete task evidence. Keep llama.cpp/Qwen3, 
 
 ### R7 — Evidence before new performance claims
 
+Status: complete (2026-09-06), offline tooling and synthetic evidence only.
+
 Scope of this repository update: implement contributor tooling to validate an already collected, sanitized paired pilot report. Keep it out of the daemon and disabled evaluation services. Reuse the existing `xtask` dependencies; add no framework or model download.
 
 Acceptance:
@@ -46,11 +48,20 @@ Acceptance:
 - versioned strict input with declared fixture/verifier hashes, machine identity, cache condition, dispatch-through-verification timer boundary, source/runtime/model/harness configuration, and planned tasks/rounds;
 - actual configuration in every arm must equal its declaration; missing/duplicate arms, invalid timing, unknown fields and infrastructure-invalid trials make the comparison unusable;
 - synthetic and measured evidence remain visibly distinct; worker completion, verifier success and scope verdict remain independent;
-- preserve failed/timed-out worker rows and total elapsed time; display counts and medians only, with no automatic model promotion, tail statistics, or inferred money/quota savings;
+- preserve failed/timed-out worker rows and total elapsed time; display counts, a descriptive success delta and medians, with no automatic model promotion, tail statistics, or inferred money/quota savings;
 - bounded local read, sanitized errors and aggregate output; no raw task content, process arguments, credentials, or model traffic;
 - one main outcome test and one essential integrity-failure test, focused strict Clippy, formatting and diff hygiene.
 
 This is an internal consistency check, not proof of authentic measurements, correct verdicts, consent, or a secure replay environment. Collection and artifact hashing remain producer responsibilities. Full personal evaluation statistics remain governed by the product architecture.
+
+Current evidence:
+
+- `cargo xtask evidence docs/benchmarks/example.json` accepts the documented synthetic pairs and reports baseline 2/2, candidate 1/2 and a 1,500 ms candidate median. These are invented test values, not a performance result.
+- The main case proves that worker completion cannot replace independent verifier/scope success; the integrity case rejects missing pairs and observed-version drift. A real CLI failure check also rejects drift without echoing supplied content.
+- All 12 focused `xtask` tests and strict focused Clippy pass. Workspace verification passes 83 tests, with 11 opt-in tests skipped; strict workspace Clippy, the 33-package architecture guard, extraction/conformance, formatting and diff hygiene pass. Builds used at most two jobs.
+- Independent benchmark-contract review found no code blocker. The parent reviewed trust and architecture: the command has bounded input, sanitized errors, no subprocess/model execution, no service-state access and no new dependency; it cannot authenticate a report or promote a model. The simplification pass retained the existing service seams and removed no exercised protections.
+- README, architecture map, product vision and this plan now share the same boundary. Local links/anchors and HTML IDs were checked. A fresh browser render was unavailable because the computer-use environment exposed no browser; no new visual QA is claimed.
+- No new installed-client, inference-engine, private-capture or paid-cloud benchmark ran. Historical R1–R6 measurements remain tied to their original configurations. R8–R10 remain planned work, not completed evidence.
 
 ### R8 — Measure the whole bounded task
 
