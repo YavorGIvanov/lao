@@ -2,7 +2,7 @@
 
 Research snapshot: 23–26 August 2026
 
-Status: Apple Silicon research proof; implementation reviewed 5 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
+Status: Apple Silicon research proof; implementation reviewed 5 September 2026, roadmap reviewed 6 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
 
 Working title: Local Agent Optimizer
 
@@ -59,6 +59,8 @@ Several active projects already provide gateways or routing. The August 2026 com
 LAO is in the correct technical category, but it is not more capable today. Established gateways lead on protocol breadth, providers, retries, transformations, UI, and production use. Its intended differentiation is narrower: a small low-level control plane, capture-off privacy defaults, narrow credential ownership, hardware-aware local admission, and a personal reproducible evaluation loop. Most of that remains planned. Saved ChatGPT and claude.ai logins now have one clean version-specific install/cloud/local/restart/off E2E, and the persistent settings transaction is implemented; API-key E2Es, interactive surfaces, release packaging, and broader adapters remain unproven.
 
 The defensible layers are personal task evidence, reproducible evaluation, hardware-to-experience selection, trustworthy invisibility, and execution-grounded learning. Protocol translation and inference kernels are replaceable infrastructure.
+
+LAO already adds native harness preservation, authenticated routing, bounded packets, live resource admission, and transactional install/off. These capabilities do not establish superior inference speed or coding quality. The next advantage to earn is lower total time and cloud use per independently verified task, including failed local attempts and parent repair.
 
 ### 2.3 Product risks
 
@@ -345,6 +347,10 @@ This section is the canonical architecture decision. The implementation plan car
 [llmfit](https://github.com/AlexsJones/llmfit) can provide advisory hardware/model candidate ranking. The signed catalog, llama.cpp fit, and real-device benchmark remain authoritative.
 
 [llama-swap](https://github.com/mostlygeek/llama-swap) is the preferred v1 lifecycle sidecar if native supervision becomes insufficient for multi-model use. It remains behind a ManagedRuntime boundary.
+
+Any new engine must first prove the actual required surface: device and memory fit, immutable artifact and tokenizer/template identity, model naming, authenticated loopback access, context limits, tool calls and streaming, cancellation, and owned cleanup. Verify authentication by rejection of a missing/wrong bearer; merely sending a bearer proves nothing about server enforcement. Keep this admission behind `run` and application composition. Add no universal capability registry before a second supported engine needs it.
+
+Runtime prefix reuse must be tied to exact tokens and model/tokenizer/template identity. A cache key can prefer an eligible entry but cannot establish eligibility. Bound cache and scratch bytes within live fit, test divergence and eviction when changing the cache, and keep reusable inference state separate from fresh per-packet worker state. An entry-count limit is not a whole-machine budget.
 
 ## 6. System architecture
 
@@ -752,6 +758,10 @@ Verifier code has immutable provenance and a recorded hash. Tests authored by th
 
 ### 11.2 Statistics
 
+Before private replay or a cloud campaign, use a small public-fixture pilot with an explicit evidence contract. Contributor tooling may validate sanitized reports offline without activating the evaluation service. Declare source/runtime/model/harness identity, fixture and verifier hashes, actual arm configuration, measurement boundary, cache state, planned pairs, and all outcomes. Refuse missing pairs, configuration drift, invalid timing, and infrastructure-invalid comparisons. Label synthetic data; schema validation cannot authenticate measurements or certify a model.
+
+For this pilot, primary latency is parent dispatch through independent verification, including failed local work, repair, and Cloud continuation when present. Worker completion, verifier success, and allowed-scope checks are distinct. Report failures/timeouts with their full elapsed time; never select only successful trials. Engine prefill/decode throughput and gateway overhead are separate experiments. Small pilots report counts and medians, with no tail percentiles, cost-savings claim, or automatic promotion. Collection remains opt-in and content-free; no process command lines or raw harness output enter reports.
+
 - Pre-register the baseline model, primary endpoint, task weights, critical-task set, category claims, and analysis-plan version.
 - Pair tasks across models.
 - Randomize and interleave order.
@@ -879,12 +889,15 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 
 ### Phase 1: first supported release
 
-- macOS, Windows, Linux, CPU, Apple Silicon, NVIDIA, and AMD.
-- Signed model catalog and compatibility CI.
-- llama-swap and existing-endpoint adapters.
-- Full encrypted vault, retention, export, deletion, and task browser.
-- Isolated replay, repeated trials, statistics, and cloud campaign approval.
-- Personal routing statistics and evidence-backed promotion.
+Sequence work by evidence rather than launching every platform and data component together. Detailed owners and acceptance gates live in [the implementation plan](IMPLEMENTATION_PLAN.md#next-steps).
+
+1. Pin a public bounded-task pilot and validate complete paired reports offline. Reuse the installed one-file fixture and a broad/risky Cloud control; do not widen routing from those examples.
+2. With explicit execution/spend approval where needed, measure complete task latency and verified outcomes on the current M4 with both supported harnesses. Keep cold and warm cohorts separate, use equal limits and alternate order, and include repair. Remain a research preview when evidence is insufficient.
+3. Improve only the measured bottleneck: parent overhead, worker reliability, prefill, decode, or routing. Require held-out correctness and matched configuration evidence before promotion. Cache tuning and another engine are conditional experiments.
+4. Harden the proven Mac release: signed packaging, supported-version compatibility checks, rollback, resource and credential regressions. Add another hardware/backend combination only after its admission contract passes.
+5. Build consented capture, encrypted vault and isolated personal replay as one narrow slice; then add retention/export/deletion and task reports. Cloud campaigns retain their separate scoped consent and hard budget.
+
+Windows/Linux, NVIDIA/AMD, multi-model catalogs, llama-swap and broader adapters remain expansion candidates after the first supported release earns its quality and utility gates. They are not prerequisites for it. The personal evidence loop remains the long-term differentiator, not an excuse to activate every draft service now.
 
 ### Phase 2: owned intelligence
 
