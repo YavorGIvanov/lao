@@ -1,3 +1,5 @@
+mod sandbox;
+
 use std::{
     collections::{HashMap, HashSet, hash_map::DefaultHasher},
     ffi::OsStr,
@@ -5,7 +7,10 @@ use std::{
     hash::{Hash, Hasher},
     io::{self, Read, Write},
     net::{IpAddr, SocketAddr},
-    os::unix::{fs::DirBuilderExt, fs::OpenOptionsExt, fs::PermissionsExt, process::CommandExt},
+    os::unix::{
+        fs::DirBuilderExt, fs::MetadataExt, fs::OpenOptionsExt, fs::PermissionsExt,
+        process::CommandExt,
+    },
     path::{Component, Path, PathBuf},
     process::{Child, Command, ExitStatus, Stdio},
     sync::Mutex,
@@ -87,7 +92,13 @@ impl Agent for OpenCode {
         let valid = ValidTask::new(task)?;
         let state = Temp::new("opencode-turn")?;
         let before = fingerprints(&valid.root, &valid.allowed)?;
-        let config = config(&valid.allowed, self.addr, &self.bearer)?;
+        // With Git hidden, pinned OpenCode uses / as its worktree.
+        let files: Vec<_> = valid
+            .allowed
+            .iter()
+            .map(|path| valid.root.strip_prefix("/").unwrap().join(path))
+            .collect();
+        let config = config(&files, self.addr, &self.bearer)?;
         let auth = r#"{"lao":{"type":"api","key":"local"}}"#;
         let prompt = prompt(&task.instruction, &valid.allowed);
         let deadline = Instant::now()
@@ -110,6 +121,13 @@ impl Agent for OpenCode {
             .current_dir(&valid.root);
         command.arg(prompt);
         isolated(&mut command, &state, &self.config, &config, auth);
+        let mut command = sandbox::wrap(
+            &command,
+            &self.config,
+            state.path(),
+            &valid.allowed,
+            self.addr,
+        )?;
         let result = run(&mut command, deadline)?;
 
         if result.timed_out {
@@ -495,6 +513,12 @@ impl ValidTask {
         if !fs::metadata(&root)?.is_dir() {
             return Err(invalid("root"));
         }
+        if root
+            .to_str()
+            .is_none_or(|path| path.contains(['*', '?', '\\']))
+        {
+            return Err(invalid("root"));
+        }
         let mut seen = HashSet::new();
         let mut allowed = Vec::with_capacity(task.allowed.len());
         for path in &task.allowed {
@@ -540,7 +564,8 @@ fn contained(root: &Path, relative: &Path) -> io::Result<()> {
         current.push(part);
         match fs::symlink_metadata(&current) {
             Ok(meta)
-                if meta.file_type().is_symlink()
+                if !meta.is_file() && !meta.is_dir()
+                    || meta.is_file() && meta.nlink() != 1
                     || meta.is_dir() && current == root.join(relative) =>
             {
                 return Err(invalid("allowed path"));
@@ -639,7 +664,7 @@ fn isolated(command: &mut Command, temp: &Temp, config_root: &Path, config: &str
         .env("XDG_DATA_HOME", &data)
         .env("XDG_CACHE_HOME", &cache)
         .env("XDG_STATE_HOME", &state)
-        .env("XDG_CONFIG_HOME", config_root)
+        .env("XDG_CONFIG_HOME", temp.path().join("config"))
         .env("OPENCODE_CONFIG_DIR", &config_dir)
         .env("OPENCODE_CONFIG_CONTENT", config)
         .env("OPENCODE_AUTH_CONTENT", auth)
@@ -814,15 +839,26 @@ fn drain(mut reader: impl Read) -> io::Result<()> {
 }
 
 fn output(bytes: &[u8]) -> Option<()> {
-    let mut values = 0;
+    let mut finished = false;
     for line in std::str::from_utf8(bytes).ok()?.lines() {
         if line.trim().is_empty() {
             continue;
         }
-        serde_json::from_str::<Value>(line).ok()?;
-        values += 1;
+        let value = serde_json::from_str::<Value>(line).ok()?;
+        match value.get("type").and_then(Value::as_str)? {
+            "error" => return None,
+            "tool_use" => {
+                if value.pointer("/part/state/status")?.as_str()? != "completed" {
+                    return None;
+                }
+                finished = false;
+            }
+            "step_start" => finished = false,
+            "step_finish" => finished = value.pointer("/part/reason")?.as_str()? == "stop",
+            _ => {}
+        }
     }
-    (values > 0).then_some(())
+    finished.then_some(())
 }
 
 #[derive(Eq, PartialEq)]
@@ -897,6 +933,7 @@ mod tests {
         fn new(script: &str) -> Self {
             let temp = Temp::new("opencode-test").unwrap();
             fs::create_dir(temp.path().join("repo")).unwrap();
+            fs::create_dir(temp.path().join("config")).unwrap();
             fs::write(temp.path().join("repo/file.txt"), "unchanged\n").unwrap();
             fs::write(temp.path().join("opencode"), script).unwrap();
             fs::set_permissions(
@@ -938,7 +975,7 @@ case "$OPENCODE_CONFIG_CONTENT" in *'/wrk/v1'*'X-LAO-Key'*secret*) ;; *) exit 5;
 [ ! -e "$XDG_DATA_HOME/seen" ] || exit 6
 mkdir -p "$XDG_DATA_HOME" && : > "$XDG_DATA_HOME/seen"
 printf '%s\n' "$TMPDIR" > file.txt
-printf '{"type":"step_finish"}\n'
+printf '{"type":"step_finish","part":{"reason":"stop"}}\n'
 "#,
         );
         let agent = fixture.agent();
@@ -1007,6 +1044,41 @@ printf '{"type":"step_finish"}\n'
                 fixture.agent().turn(&task).unwrap_err().kind(),
                 io::ErrorKind::InvalidInput
             );
+        }
+        let _socket =
+            std::os::unix::net::UnixListener::bind(fixture.0.path().join("repo/socket")).unwrap();
+        task.allowed = vec!["socket".into()];
+        assert!(ValidTask::new(&task).is_err());
+        let mut patterned = fixture.task();
+        patterned.root = fixture.0.path().join("repo?");
+        fs::create_dir(&patterned.root).unwrap();
+        assert!(ValidTask::new(&patterned).is_err());
+        fs::hard_link(
+            fixture.0.path().join("repo/file.txt"),
+            fixture.0.path().join("outside"),
+        )
+        .unwrap();
+        task.allowed = vec!["file.txt".into()];
+        assert!(fixture.agent().turn(&task).is_err());
+    }
+
+    #[test]
+    fn complete_requires_a_terminal_stop_without_worker_errors() {
+        let stop = r#"{"type":"step_finish","part":{"reason":"stop"}}"#;
+        assert!(output(stop.as_bytes()).is_some());
+        for events in [
+            r#"{"type":"text","part":{"text":"done"}}"#.to_owned(),
+            r#"{"type":"step_finish","part":{"reason":"tool-calls"}}"#.to_owned(),
+            format!("{stop}\n{{\"type\":\"step_start\"}}"),
+            format!(
+                "{stop}\n{{\"type\":\"tool_use\",\"part\":{{\"state\":{{\"status\":\"completed\"}}}}}}"
+            ),
+            format!("{stop}\n{{\"type\":\"error\"}}"),
+            format!(
+                "{stop}\n{{\"type\":\"tool_use\",\"part\":{{\"state\":{{\"status\":\"error\"}}}}}}"
+            ),
+        ] {
+            assert!(output(events.as_bytes()).is_none());
         }
     }
 

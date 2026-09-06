@@ -39,7 +39,7 @@ LAO semantic router
    └─ Local → OpenCode → Qwen3 / llama.cpp
 ```
 
-The default is conservative: planning, broad changes, and uncertain work stay Cloud. Each Local packet starts with fresh disposable worker state and may read and edit only the paths named by the planner. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
+The default is conservative: planning, broad changes, and uncertain work stay Cloud. Each Local packet starts with fresh disposable worker state. OpenCode tools may read and edit only the paths named by the planner; a macOS sandbox separately restricts repository content and TCP access. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
 
 Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
 
@@ -184,9 +184,11 @@ The supported Apple Silicon proof has two working paths: native Responses/Messag
 
 The recorded natural handoff proof used Codex 0.151.0 and Claude Code 2.1.251. Each delegated a one-file correction without an approval prompt; broad planning controls stayed Cloud. The runs took about 35 seconds in Codex and 26 seconds in Claude, with about 4.70 GiB loaded runtime RSS at a 16K context. These are individual proof measurements, not benchmarks or evidence of net cost savings.
 
-Each Local packet now uses fresh disposable worker state. Session continuation is removed; absolute paths, Git metadata, symlinks, wildcard paths, and backslashes are rejected. Worker permissions depend on pinned OpenCode enforcement, not an OS filesystem sandbox. A worker may stop after editing, and `complete` is execution metadata, not independent proof of correctness. The parent harness must review the actual diff and verify the requested outcome.
+Each Local packet uses fresh disposable state and a macOS process sandbox. Absolute paths, Git metadata, symlinks, hardlinked or special files, wildcard paths, and backslashes are rejected. Repository contents are limited to named files; TCP access is limited to the local gate port. Startup still permits filesystem metadata, top-level repository names, standard macOS support, and the verified worker support tree. The sandbox uses deprecated `sandbox-exec` and Apple's system profile: this is evidence for the tested Mac, not portable release hardening. A sandbox failure never starts an unrestricted worker.
 
-Install/off transactions, runtime leases, bounded background warming, and pressure eviction remain in place. Capture, encrypted task storage, evaluation, training, signed packaging, API-key E2Es, and broader routing certification remain deferred. See the [proof ledger and current review](IMPLEMENTATION_PLAN.md#r6--independent-packets-and-adversarial-simplification) for acceptance evidence and its limits.
+`complete` now requires a terminal stop event, no reported tool/session error, successful process exit, and an observed allowed-file change. A worker may still fail after editing, and execution status is not proof of correctness. The parent harness must review the actual diff and verify the requested outcome.
+
+Install/off transactions, runtime leases, bounded background warming, and pressure eviction remain in place. Capture, encrypted task storage, evaluation, training, signed packaging, API-key E2Es, and broader routing certification remain deferred. See the [proof ledger and current review](IMPLEMENTATION_PLAN.md#r7--worker-os-boundary-and-terminal-completion) for acceptance evidence and its limits.
 
 The default `lao install` selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
 

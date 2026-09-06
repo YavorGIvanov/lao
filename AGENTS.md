@@ -31,7 +31,7 @@ Read only the relevant parts after the manifesto. The implementation plan separa
 ## Preserve the product
 
 - Keep Codex and Claude Code as the user's harnesses.
-- Keep cloud as the safe default until local quality and fit are proven. Each local packet gets fresh disposable state and exact file permissions; never resume an earlier packet or treat permission patterns as filenames.
+- Keep cloud as the safe default until local quality and fit are proven. Each local packet gets fresh disposable state and exact file permissions; never resume an earlier packet or treat permission patterns as filenames. Never bypass a failed worker sandbox; review partial edits before retrying.
 - Never consume the whole machine.
 - Do not read or copy harness-owned provider credentials.
 - Require explicit consent for capture, spend, cloud evaluation, or training.

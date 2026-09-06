@@ -37,7 +37,7 @@ Only these components are active in the current proof:
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
 | `svc/optimize` | single-flight background harness warming and non-secret readiness state |
-| `svc/opencode` | one pinned, permission-bounded local agent worker |
+| `svc/opencode` | one pinned local agent worker with exact tools and a macOS process sandbox |
 | `app/daemon` | compose the request path and adopt the launchd listener |
 | `app/cli` | install, preview, status, MCP worker, smoke, and `off` |
 
@@ -434,8 +434,33 @@ Evidence and limits:
 - the existing installed worker fixture passed in 18.89 seconds using the changed source: the broad control stayed Cloud, the Local packet changed only `word.txt`, and the independent verifier passed; historical Codex/Claude natural-handoff timings remain historical;
 - architecture link targets and section IDs passed validation; desktop and mobile renders were visually reviewed;
 - a delegated README edit in this review changed only its allowed file but returned `agent_failed`; independent diff review retained the correct edit. This is not a new successful worker benchmark;
-- OpenCode tool permissions are not an OS sandbox, and reported changed paths cover the allowlist only. Parent verification remains required;
+- at R6, OpenCode tool permissions were not an OS sandbox; R7 adds the supported-Mac boundary. Reported changed paths still cover the allowlist only, and parent verification remains required;
 - no net cloud-cost or quota reduction, broad task success rate, or Astra gateway compatibility is claimed.
+
+## R7 — Worker OS boundary and terminal completion
+
+Status: complete (2026-09-06).
+
+The next blockers were trust in tool-level permissions alone and treating any valid JSON output as completion. This slice adds an OS boundary and makes execution status reflect the pinned worker protocol. It preserves routing, model selection, resource limits, native harness settings, and the deferred product boundaries.
+
+Changes:
+
+- wrap OpenCode and its descendants in macOS `sandbox-exec`; permit exact packet file contents, disposable state, verified support files, standard system resources/IPC, and TCP to the gate port;
+- retain filesystem metadata and top-level repository listing for startup, while denying Git metadata and unlisted file contents; pass filesystem paths as sandbox parameters;
+- use fresh writable XDG configuration state and keep the verified support tree read-only; express OpenCode permissions relative to `/` because hidden Git metadata makes that its worktree;
+- reject preexisting hardlinks and special files as well as ambiguous repository-root permission patterns;
+- require terminal stop, successful exit, bounded valid events, no reported tool/session errors, and an observed allowed-file change before returning `complete`;
+- fix a parallel CLI fixture collision by adding a per-process sequence to temporary names.
+
+Evidence and limits:
+
+- direct subprocess probes exercise actual OS denial of unlisted/outside/Git contents, support-tree writes, symlink and hardlink escapes, and another loopback port; allowed-file writes, private state, quoted path parameters, and gate access succeed;
+- 83 workspace tests passed with 11 opt-in tests skipped; focused worker/CLI checks, strict workspace Clippy, formatting, all 33 package architecture checks, and extraction/conformance passed;
+- the final installed worker fixture passed in 18.71 seconds using the changed source and real local OpenCode/Qwen: broad work stayed Cloud, only `word.txt` changed, and the independent verifier passed. No cloud model request or new natural-harness benchmark was involved;
+- the manifesto is byte-for-byte unchanged; architecture links and section IDs passed validation;
+- no unsandboxed fallback exists. Apple's deprecated tool and private system profile limit this evidence to the tested Mac; portable release hardening remains deferred;
+- metadata and top-level filenames are visible; this is a content boundary, not concealment of all host information. Existing directories are required for new files. Another unsandboxed same-user process racing filesystem changes is outside this proof;
+- failed workers may leave partial edits. Parent review and verification remain mandatory; no automatic retry, cloud spend, new backend, capture, or training was added.
 
 ## Deferred backlog
 
