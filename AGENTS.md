@@ -9,7 +9,7 @@ This file applies to the whole repository. Read it before acting and reread it b
 3. [PRODUCT_VISION_AND_ARCHITECTURE.md](PRODUCT_VISION_AND_ARCHITECTURE.md) — product, trust, privacy, and architecture decisions.
 4. [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) — task order, contracts, acceptance criteria, and current evidence.
 
-Read only the relevant parts after the manifesto. The implementation plan separates current evidence from future intent; do not implement the backlog unless the task calls for it. Do not duplicate these documents here.
+Read only the relevant parts after the manifesto. Follow the ordered release gates in the implementation plan. Keep fixture/local-only evidence distinct from full-workflow comparisons; do not widen routing or claim user savings from a canary. Do not implement the backlog unless the task calls for it. Do not duplicate these documents here.
 
 ## Follow through
 

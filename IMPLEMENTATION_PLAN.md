@@ -27,16 +27,19 @@ Stage 1 targeted this 24 GiB Apple M4 Mac and is complete. The historical S1/R1�
 
 ## Next steps
 
-Replanned 6 September 2026 around complete task evidence. Keep llama.cpp/Qwen3, the native harnesses, and Cloud defaults. Measure independently verified outcomes and total task latency before changing engines or widening routing, then optimize the measured bottleneck.
+The next release is a limited Apple Silicon Mac beta with a measured useful task slice. Cloud remains the default; llama.cpp/Qwen3 and the user's native harness stay in place. The existing proof and R8 checker do not establish net benefit. Complete these gates in order; packaging preparation may overlap measurement, but cannot replace it.
 
 | Order | Slice | Owner / files | Exit gate |
 |---|---|---|---|
-| R8 | Offline paired evidence contract | `xtask`, `docs/benchmarks` | A small synthetic example is accepted; incomplete pairs and changed configuration are rejected; worker status cannot substitute for verification. No inference or capture. |
-| R9 | Public-fixture task pilot | Existing opt-in `app/cli` worker/harness fixtures; composition owns collection | Same public task, pinned verifier, both harnesses, equal trial limits and complete failure accounting; report counts and total task medians with explicit limits. |
-| R10 | One measured improvement | The component identified by R9 | Independent held-out outcomes preserved; measured task utility improves under the same hardware/budget; no broad routing promotion from a canary. |
-| R11 | Supported Mac release gate | CLI/client/gate/run owners | Signed artifacts, version-specific install/local/cloud/off checks, resource and trust regressions pass; no unearned cross-platform claim. |
-| After R11 | User-selectable engines | `api/run`, runtime and CLI owners | Integrate one compatible engine at a time after the llama.cpp release; users explicitly select it, with llama.cpp retained as the default. |
-| Later | Personal evidence loop | Separate capture/vault/eval APIs and workers | Scoped capture consent, encrypted storage and isolated replay form one exercised vertical slice before training or more platforms. |
+| R8 | Offline paired evidence contract — complete | `xtask`, `docs/benchmarks` | Strict complete pairs and independent verdicts; synthetic example only. |
+| R9 | Prove useful local work | `app/cli/tests`, public fixtures, `docs/benchmarks` | Realistic tasks, independent verification, matched native Cloud/hybrid trials; include planning, handoff, review, repair, failures and resource costs. |
+| R10 | Admit only task types that earn Local | `svc/route`, worker and parent handoff owners | Report false Local and unnecessary Cloud decisions; held-out task outcomes justify the eligible slice, with safe partial-change return. |
+| R11 | Remove installation barriers | CLI/client owners, release artifacts | Signed/notarized prebuilt binaries; Codex-only, Claude-only or both; clean install, upgrade, rollback and removal without source-build prerequisites. |
+| R12 | Certify the advertised Mac support range | Client/gate/run/worker owners | Published hardware/OS/client/auth matrix with fresh lifecycle, sandbox, resource and native-path evidence for every advertised combination. |
+| Beta / R13 | Small consent-based user pilot | Release owner, `docs/benchmarks` | 5–10 users; count activation, verified outcomes, repairs, resource use and observed cloud usage; retain failures and decide whether to widen release. |
+| After first release | Optional engines and platforms | Runtime/CLI and platform owners | One admitted combination at a time behind existing APIs; llama.cpp stays default. Linux/Windows and NVIDIA/AMD are expansion targets, not Mac beta prerequisites. |
+
+The immediate implementation is **R9a**, the fixture suite and a local-only diagnostic pass. R9b's cloud campaign needs a separately approved scope and budget. Do not mark R9 or user value proven when only R9a ran. Personal capture/vault/eval/training stay disabled; contributor fixtures do not activate those services.
 
 ### R8 — Evidence before new performance claims
 
@@ -66,9 +69,11 @@ Current evidence:
 
 ### R9 — Measure the whole bounded task
 
-Status: planned; no new installed-client/cloud campaign is claimed by R8.
+Status: planned. R9a is the next implementation; R9b requires campaign consent.
 
-Start with the existing public one-file spelling fixture and an essential broad/risky Cloud control. These expose overhead and routing boundaries, not general coding ability. Use independent fresh copies of the starting fixture and keep verifier expectations outside worker access. Do not use private captures or activate data workers.
+**R9a — Build the task suite.** Add six bounded structured-file edits across three small repository-owned fixture projects, beyond the existing typo canary, plus an essential broad/risky Cloud control. Declare task IDs, objectives, exact paths and independent expected behavior before running the worker. Fresh copies separate trials; verifier expectations stay outside worker access. Prove that every untouched task fails its verifier, its reference edit passes, and unrelated changes fail the scope check. Run the real MCP/local path serially with deadlines, bounded output and cleanup; record every route, worker status, content verdict, scope verdict and dispatch-through-verification time. A Cloud return is a deferral, never a local success. No cloud generation, private capture or router tuning occurs in this diagnostic. Hand-authored fixture packets are not evidence of natural harness behavior or broad coding quality.
+
+**R9b — Compare the full workflow.** Use these tasks and extend to representative real/public projects with an independent holdout. Both native Cloud and LAO hybrid arms must complete the same objective and verifier. Keep Codex and Claude reports separate. This is the first user-benefit gate; R9a timings alone exclude parent planning/review/repair and cannot satisfy it.
 
 Pre-register before execution:
 
@@ -82,24 +87,48 @@ Acceptance: all planned pairs accounted for, untouched-baseline verifier behavio
 
 Do not calculate p90/p95 or claim general savings from this tiny pilot. Require the product architecture's larger held-out task and uncertainty gates before quality/promotion claims. Actual token/quota/currency savings need measured provider usage and an explicit baseline; latency is not a proxy for spend.
 
-### R10 — Optimize only the observed bottleneck
+### R10 — Admit only useful task types
 
-Status: conditional on R9 evidence.
+Status: conditional on R9 paired evidence; no automatic promotion.
 
-- If parent orchestration dominates, reduce a demonstrated handoff/review cost while retaining parent verification and one-call routing.
-- If local reliability dominates, fix that failure before increasing Local coverage. Extend evidence with an independent held-out task, not another memorized canary.
-- If prefill dominates, reuse `optimize`/`run`: exact token and model/tokenizer/template identity, bounded cache/scratch bytes, pressure eviction, fresh worker state. Test divergent prefixes and eviction only when that behavior changes.
-- If decode dominates, measure and tune the supported llama.cpp configuration. Additional engine integrations and user selection follow the first llama.cpp release; they are not prerequisites for R11.
+Use R9 outcomes to define a narrow eligible task slice. Report false Local decisions (unsafe/unsupported work or independently unsuccessful local work) separately from unnecessary Cloud decisions on independently demonstrated eligible work. Do not label every Cloud deferral wrong. Use an untouched holdout and matched hardware, budgets and verifier definitions; include failed attempts, repair and parent overhead in the decision.
 
-Reject any runtime that fails hardware, protocol, or authentication admission. Sending a bearer to an unprotected server does not add protection. Do not adapt by silently deleting tool fields or faking streaming. Do not fork inference kernels, add a capability registry, or download a larger checkpoint without a measured need and suitable hardware.
+- Keep risky, broad, ambiguous and unsupported work Cloud. Preserve one-call packet routing, exact paths and parent verification.
+- Return sanitized partial-change metadata after failure or timeout; the parent reviews actual changes before continuing. Never automatically replay possible side effects or silently bypass the sandbox.
+- Improve the measured blocker only: handoff/review overhead, worker reliability, routing, prefill or decode. Retain resource bounds and fresh worker state. Add no router framework or engine switch without evidence.
+- Publish success by task type, Local coverage, route errors, whole-task time and observed cloud usage with denominators. Compare on held-out tasks before widening eligibility; latency is not a proxy for cost.
 
-Exit: one small change improves the predeclared complete-task measure without critical correctness/resource/trust regression. Publish its matched before/after configuration and failures. Otherwise keep the current implementation and record the negative result.
+Exit: the admitted slice offers measured user benefit without material correctness, resource or trust regression. Preserve or narrow the current policy when the result is negative; a canary or synthetic report cannot promote it.
 
-### R11 — Release the supported slice
+### R11 — Distribute without setup barriers
 
-Status: planned after a useful R9/R10 result; retain research-preview status otherwise.
+Status: planned after useful R9/R10 evidence; packaging preparation may proceed earlier.
 
-Harden signed packaging, supported harness versions, artifact verification, rollback, installed health and resource behavior on the current Mac. Require fresh version-specific compatibility evidence where runtime/client code changes. Keep authentication, wrong-origin, exact-path, partial-failure, pressure and cleanup gates. Expand hardware and model catalogs one admitted combination at a time; personal capture/replay follows its own consent and isolation gate. No Windows/Linux or training prerequisite is added to the first supported Mac release.
+Ship signed and notarized prebuilt Apple Silicon CLI/daemon artifacts with a stable identity, integrity verification and dependency/model license notices. Users must not need Rust, Cargo or a source checkout. Keep setup one command and measure download, activation and resource requirements honestly.
+
+Support Codex-only, Claude-only and both-client installations. Detect and change only the selected installed harnesses; an absent second client is not an error. Existing supported settings survive installation and upgrade. Conflicts in owned settings stop safely and explain a concrete recovery action without printing secrets.
+
+Acceptance: fresh-machine install, interrupted download/setup, repeat install, version upgrade, failed-upgrade rollback, `off` and full removal all work. Native harness use and unrelated settings survive failures; no orphan process/listener or repeated permission prompts remain. Document what off retains in cache and what full removal deletes. Keep status and troubleshooting content-free; add no telemetry or auto-updater framework merely to pass this milestone.
+
+### R12 — Certify the supported Mac release
+
+Status: planned. R9–R12 must pass before advertising the supported beta; retain research-preview status otherwise.
+
+Publish an explicit support matrix, using exact observed versions rather than an untested range. Start with a small set of Apple Silicon RAM/OS configurations, one or both harnesses, and the authentication modes actually validated. Expand one combination at a time.
+
+For every advertised combination, record source/artifact/client/OS identity and pass:
+
+- clean activation and ordinary native Cloud use, natural bounded delegation, streaming/tools/errors and cancellation;
+- existing user settings, single-client operation, update/rollback/off, login/logout and reboot readiness;
+- sleep/wake, offline startup and runtime/network failure; unavailable local execution must leave or restore the supported native workflow, without replaying partial edits;
+- cold/warm memory fit, pressure during active and idle work, bounded CPU/RAM, cleanup and absence of pressure crashes;
+- OS sandbox startup and actual file/link/network denial, credential/origin isolation and partial-failure reporting on each supported macOS version.
+
+Resolve failures before claiming support. Apple's deprecated sandbox interface remains a release risk to test explicitly. Unsupported configurations must leave the native harness usable and explain the support limit without consuming a model request. No cross-platform claim follows from the Mac matrix.
+
+### R13 — Learn from a small Mac beta
+
+After R9–R12, invite 5–10 consenting users without automatic private capture. Record minimal verified outcomes, manual repairs, full elapsed time, resource use and provider-reported cloud usage where available. Count handoff/review overhead against savings; label unavailable quota accounting unknown. Retain failed installs and tasks. The larger value targets in the product vision govern wider rollout, not an invented claim from six fixtures. User outreach and any cloud campaign require their own authorization.
 
 ### After release — User-selectable engines
 
@@ -546,11 +575,11 @@ Evidence and limits:
 
 ## Deferred backlog
 
-The R8–R11 order above replaces an unordered post-proof backlog. These remaining candidates have no implementation authorization from their presence here; select them only when the preceding evidence or a specific user task requires them. The long-term contracts and constraints remain in the product architecture.
+The R8–R13 release gates above replace an unordered post-proof backlog. These remaining candidates have no implementation authorization from their presence here; select them only when the preceding evidence or a specific user task requires them. The long-term contracts and constraints remain in the product architecture.
 
 Deferred product work:
 
-- certified independent difficulty routing, task stickiness, repair, escalation, and circuit breakers;
+- broad difficulty certification, cross-task stickiness and automatic repair/escalation beyond the R10 bounded slice;
 - model catalog signatures, multiple models, preferences, recommendations, and llama-swap;
 - broader cache policy for multiple models, machines, battery states, and thermal conditions;
 - Ollama, LM Studio, ShoeHorn, FreeToken, NVIDIA, Linux, and Windows;
@@ -558,7 +587,7 @@ Deferred product work:
 - consented capture, scrub, snapshots, encrypted vault, retention, export, and deletion;
 - personal replay evals, proprietary-model campaigns, reports, and promotion workflow;
 - explicit training consent, dataset lineage, adapters, tuning, and rollback;
-- background controls, observability, support bundles, updater, packaging, and release hardening;
-- product-scale metrics and design-partner rollout.
+- richer background controls, telemetry, support bundles and automatic updating beyond the required R11/R12 release work;
+- product-scale rollout beyond the R13 consent-based beta.
 
 These components stay independently drafted. They are not prerequisites for proving the core product loop.

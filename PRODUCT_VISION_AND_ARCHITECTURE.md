@@ -2,7 +2,7 @@
 
 Research snapshot: 23–26 August 2026
 
-Status: Apple Silicon research proof; implementation reviewed 5 September 2026, roadmap reviewed 6 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
+Status: Apple Silicon research proof; implementation reviewed 6 September 2026, roadmap reviewed 6 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
 
 Working title: Local Agent Optimizer
 
@@ -889,13 +889,14 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 
 ### Phase 1: first supported release
 
-Sequence work by evidence rather than launching every platform and data component together. Detailed owners and acceptance gates live in [the implementation plan](IMPLEMENTATION_PLAN.md#next-steps).
+The first release is a limited Apple Silicon Mac beta. Detailed owners, order and acceptance gates live in [the implementation plan](IMPLEMENTATION_PLAN.md#next-steps). Four requirements determine readiness:
 
-1. Pin a public bounded-task pilot and validate complete paired reports offline. Reuse the installed one-file fixture and a broad/risky Cloud control; do not widen routing from those examples.
-2. With explicit execution/spend approval where needed, measure complete task latency and verified outcomes on the current M4 with both supported harnesses. Keep cold and warm cohorts separate, use equal limits and alternate order, and include repair. Remain a research preview when evidence is insufficient.
-3. Improve only the measured bottleneck: parent overhead, worker reliability, prefill, decode, or routing. Require held-out correctness and matched configuration evidence before promotion. Cache tuning stays within the supported llama.cpp configuration; additional engines follow the first release.
-4. Harden the proven Mac release: signed packaging, supported-version compatibility checks, rollback, resource and credential regressions. Keep llama.cpp as the first release engine.
-5. Build consented capture, encrypted vault and isolated personal replay as one narrow slice; then add retention/export/deletion and task reports. Cloud campaigns retain their separate scoped consent and hard budget.
+1. **Prove useful tasks (R9).** Build a small public fixture suite with independent outcome/scope verification, then compare native Cloud with the complete LAO hybrid workflow. Include planning, handoff, review, repairs and failed attempts; measure resource costs and actual cloud usage where available. Keep local-only diagnostics separate from paired user-benefit evidence. R8's offline checker is already implemented; it does not collect or authenticate measurements.
+2. **Earn Local eligibility (R10).** Admit only task types supported by matched and held-out evidence. Count false Local decisions and unnecessary Cloud deferrals separately. Keep broad/risky/uncertain work Cloud. Return partial changes safely for parent review; improve the measured bottleneck before increasing coverage. Never infer savings from local completion or latency alone.
+3. **Make installation ordinary (R11).** Provide signed, notarized prebuilt artifacts with no Rust/source-build prerequisite. Support Codex-only, Claude-only and both. Prove clean installation, upgrades, interruption recovery, rollback, off and removal while preserving unrelated settings and native use.
+4. **Certify an honest support range (R12).** Publish the Apple Silicon hardware/RAM, macOS, harness-version and authentication combinations actually exercised. Validate existing settings, native Cloud/local work, streaming, cancellation, offline behavior, sleep/wake, login/reboot, pressure and cleanup. Test the worker sandbox on every advertised macOS version. Unsupported combinations leave native harnesses usable.
+
+Only after these gates, run a small consent-based beta with 5–10 users (R13). Report verified work, repair burden, activation, total latency, resources and measurable cloud usage. Keep unknown savings unknown. The larger success targets below govern widening the release; they are not satisfied by synthetic pairs or a small hand-authored fixture suite. Capture, encrypted personal storage, isolated replay and training remain later consented product work.
 
 After the llama.cpp proof and first supported release, add optional engines behind the runtime API and let the user explicitly choose a compatible engine. Keep llama.cpp as the default; each new choice must pass hardware, protocol, authentication, resource and verified-task admission. Windows/Linux, NVIDIA/AMD, multi-model catalogs, llama-swap and broader adapters remain expansion candidates after that release earns its quality and utility gates. They are not prerequisites for it. The personal evidence loop remains the long-term differentiator, not an excuse to activate every draft service now.
 
@@ -933,7 +934,7 @@ Hard gates:
 - protocol conformance across streaming, tools, cancellation, errors, and auth;
 - no supported-machine pressure crash.
 
-Proof-of-concept value gates across at least 300 tasks, 10 repositories, and 10 design partners:
+Wider-release value targets across at least 300 tasks, 10 repositories, and 10 design partners (not yet achieved; the initial beta first passes R9–R12):
 
 - at least 10 percent of eligible bounded sessions complete locally;
 - at least 5 percent overall cloud quota/API token reduction;

@@ -8,6 +8,8 @@ cargo xtask evidence docs/benchmarks/example.json
 
 The example is **synthetic**, including every identity and timing. It exercises the checker and is not a LAO benchmark. The command reads at most 1 MiB, prints aggregate JSON, and returns nonzero for unusable evidence. It runs no model, subprocess benchmark, verifier, capture, or network request. This is contributor tooling; `svc/eval` stays disabled.
 
+The release sequence and acceptance gates live in [Mac beta milestones](../../IMPLEMENTATION_PLAN.md#next-steps); this offline checker is preparation, not completed task-benefit evidence.
+
 The contract requires explicit measurement boundaries, pinned configurations, LAO's independent task verdict and content-free output.
 
 ## Schema 1
