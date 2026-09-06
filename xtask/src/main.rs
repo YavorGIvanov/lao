@@ -1,4 +1,5 @@
 use serde::Deserialize;
+mod evidence;
 use std::{
     collections::{BTreeMap, BTreeSet},
     env,
@@ -93,6 +94,15 @@ fn main() -> Result<()> {
         "check" => check(&root),
         "graph" => graph(&root),
         "extract" => extract(&root),
+        "evidence" => {
+            let path = env::args()
+                .nth(2)
+                .ok_or("usage: cargo xtask evidence FILE")?;
+            if env::args().len() != 3 {
+                return Err("usage: cargo xtask evidence FILE".into());
+            }
+            evidence::run(Path::new(&path))
+        }
         _ => Err(format!("unknown xtask command: {command}").into()),
     }
 }

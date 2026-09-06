@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "evidence": "synthetic",
+  "status": "complete",
+  "host": "synthetic-host",
+  "fixture_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "verifier_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "boundary": "dispatch_through_verification",
+  "cache": "warm",
+  "baseline": {
+    "source_revision": "0000000000000000000000000000000000000000",
+    "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runtime": "synthetic-cloud",
+    "model": "synthetic-baseline",
+    "harness": "synthetic-harness",
+    "context": 16384
+  },
+  "candidate": {
+    "source_revision": "0000000000000000000000000000000000000000",
+    "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "runtime": "synthetic-local",
+    "model": "synthetic-candidate",
+    "harness": "synthetic-harness",
+    "context": 16384
+  },
+  "tasks": [
+    "spelling"
+  ],
+  "rounds": 2,
+  "trials": [
+    {
+      "task": "spelling",
+      "round": 1,
+      "arm": "baseline",
+      "observed": {
+        "source_revision": "0000000000000000000000000000000000000000",
+        "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime": "synthetic-cloud",
+        "model": "synthetic-baseline",
+        "harness": "synthetic-harness",
+        "context": 16384
+      },
+      "route": "cloud",
+      "worker": "complete",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 2000
+    },
+    {
+      "task": "spelling",
+      "round": 1,
+      "arm": "candidate",
+      "observed": {
+        "source_revision": "0000000000000000000000000000000000000000",
+        "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime": "synthetic-local",
+        "model": "synthetic-candidate",
+        "harness": "synthetic-harness",
+        "context": 16384
+      },
+      "route": "local",
+      "worker": "complete",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 1000
+    },
+    {
+      "task": "spelling",
+      "round": 2,
+      "arm": "candidate",
+      "observed": {
+        "source_revision": "0000000000000000000000000000000000000000",
+        "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime": "synthetic-local",
+        "model": "synthetic-candidate",
+        "harness": "synthetic-harness",
+        "context": 16384
+      },
+      "route": "local",
+      "worker": "failed",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 2000
+    },
+    {
+      "task": "spelling",
+      "round": 2,
+      "arm": "baseline",
+      "observed": {
+        "source_revision": "0000000000000000000000000000000000000000",
+        "artifacts_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "runtime": "synthetic-cloud",
+        "model": "synthetic-baseline",
+        "harness": "synthetic-harness",
+        "context": 16384
+      },
+      "route": "cloud",
+      "worker": "complete",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 2000
+    }
+  ]
+}
