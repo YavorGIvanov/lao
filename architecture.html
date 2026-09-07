@@ -169,6 +169,7 @@
       <article class="process"><span class="label">Supervised child processes</span><h3>OpenCode + llama.cpp</h3><p>OpenCode 1.18.25 executes a packet. llama.cpp 10280 serves Qwen3 4B Q4_K_M.</p><ul><li>OpenCode and its children inherit a macOS sandbox and disposable HOME/config/data/cache/state.</li><li>The engine uses a 16K context, bounded threads, and a fresh fit check before cold load.</li><li>Model cache residency is separate from worker transcript state.</li></ul></article>
     </div>
     <p class="note">Install verifies and pins runtime/model artifacts and the OpenCode support tree. It checks launchd readiness before transactional client writes. <code>off</code> stops owned processes and restores LAO-owned settings while preserving unrelated client edits. External runtime endpoints remain user-owned.</p>
+    <p class="note"><a href="package.sh">package.sh</a> builds an unsigned Apple Silicon archive containing both LAO binaries and the shared <a href="install.sh">installer</a>. Receiving machines need no source tools; fixed checksums detect corruption before writes. <a href="test/install.sh">Archive installation checks</a> run in temporary directories. Signed/notarized publication and upgrade/rollback certification remain release gates.</p>
   </section>
 
   <section id="code" aria-labelledby="code-title">

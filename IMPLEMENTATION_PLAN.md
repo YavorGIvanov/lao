@@ -110,7 +110,9 @@ Exit: the admitted slice offers measured user benefit without material correctne
 
 ### R11 — Distribute without setup barriers
 
-Status: planned after useful R9/R10 evidence; packaging preparation may proceed earlier.
+Status: packaging preparation in progress; release remains gated on useful R9/R10 evidence.
+
+R11a (2026-09-07): `package.sh` builds a self-contained Apple Silicon archive with the CLI, daemon, shared installer, source identity, MIT license and fixed SHA-256 manifest. It checks architecture and rejects dependencies on non-system dynamic libraries. The installer validates the archive before writes and can reuse identical installed content without invoking source tools. `sh test/install.sh` exercises actual archive installation, repeat installation and CLI startup with only stock OS tools on PATH, plus corruption rejection without modifying installed binaries. No client/model activation occurs in this packaging test. This is unsigned contributor preparation; signing/notarization, full dependency notices, publication and upgrade/rollback certification remain open.
 
 Ship signed and notarized prebuilt Apple Silicon CLI/daemon artifacts with a stable identity, integrity verification and dependency/model license notices. Users must not need Rust, Cargo or a source checkout. Keep setup one command and measure download, activation and resource requirements honestly.
 

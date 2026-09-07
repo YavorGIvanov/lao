@@ -11,7 +11,7 @@ The product is intended to let people continue using Codex and Claude Code norma
 - evaluates new models against the user's own work; and
 - eventually supports explicitly authorized local-model personalization.
 
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, and a working Apple Silicon proof. Codex or Claude can delegate a bounded work packet to LAO; the real semantic router kept the tested broad packet in Cloud and sent the tested narrow packet to OpenCode running Qwen3 locally. It does not yet contain production routing certification or release packaging.
+This repository contains the research-backed product specification, implementation plan, architecture skeleton, and a working Apple Silicon proof. Codex or Claude can delegate a bounded work packet to LAO; the real semantic router kept the tested broad packet in Cloud and sent the tested narrow packet to OpenCode running Qwen3 locally. It does not yet contain production routing certification or signed release artifacts.
 
 ## Install
 
@@ -26,6 +26,8 @@ git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh && l
 That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
 
 Setup stops with a specific error when a prerequisite or existing configuration is unsupported. The verified Qwen3 model, MiniLM router, llama.cpp runtime, and OpenCode archive total 2,645,805,392 bytes, so allow about 2.7 GB on the first run. OpenCode's pinned support tree is capped at 80 MiB and accepted only when its lockfile and complete tree match the compiled SHA-256 digests.
+
+Prebuilt packaging is available for contributor testing: `sh package.sh` builds `target/release/lao-macos-arm64.tar.gz` on an Apple Silicon Mac. Extract that archive and run its `install.sh`, then the setup command it prints. The receiving machine needs no source checkout, Git, Rust, or Cargo. `sh test/install.sh` checks the actual archive in temporary install directories. These are unsigned research archives, not published releases: bundled checksums detect corruption, not publisher identity. Signing, notarization, dependency notices and upgrade/rollback certification remain release work.
 
 ## Normal use
 

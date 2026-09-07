@@ -14,16 +14,16 @@ case "$(uname -s):$(uname -m)" in
 esac
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
-home=${HOME:?HOME is required}
-prefix=${LAO_PREFIX:-"$home/.local/libexec/lao"}
-bin_dir=${LAO_BIN_DIR:-"$home/.local/bin"}
+user_home=${HOME:?HOME is required}
+prefix=${LAO_PREFIX:-"$user_home/.local/libexec/lao"}
+bin_dir=${LAO_BIN_DIR:-"$user_home/.local/bin"}
 
 for path in "$prefix" "$bin_dir"; do
     case "$path" in
         /*) ;;
         *) fail "install paths must be absolute" ;;
     esac
-    if [ "$path" = "/" ] || [ "$path" = "$home" ]; then
+    if [ "$path" = "/" ] || [ "$path" = "$user_home" ]; then
         fail "refusing broad install path"
     fi
     if [ -L "$path" ] || { [ -e "$path" ] && [ ! -d "$path" ]; }; then
@@ -58,7 +58,19 @@ check_link "$cli_link" "$cli"
 check_link "$daemon_link" "$daemon"
 
 revision=
-if command -v git >/dev/null 2>&1 &&
+binaries="$root/target/release"
+prebuilt=false
+if [ -e "$root/SHA256SUMS" ] || [ -e "$root/bin" ]; then
+    prebuilt=true
+    binaries="$root/bin"
+    for file in SHA256SUMS install.sh bin/lao bin/lao-daemon LICENSE source-revision; do
+        [ -f "$root/$file" ] && [ ! -L "$root/$file" ] || fail "incomplete prebuilt archive"
+    done
+    [ ! -L "$binaries" ] || fail "prebuilt binaries must be in a real directory"
+    expected=$(cd "$root" && /usr/bin/shasum -a 256 install.sh bin/lao bin/lao-daemon LICENSE source-revision)
+    [ "$(cat "$root/SHA256SUMS")" = "$expected" ] || fail "prebuilt archive checksum mismatch"
+    revision="prebuilt:$(/usr/bin/shasum -a 256 "$root/SHA256SUMS" | cut -d ' ' -f 1)"
+elif command -v git >/dev/null 2>&1 &&
     [ -z "$(git -C "$root" status --porcelain --untracked-files=normal 2>/dev/null)" ]; then
     revision=$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || :)
 fi
@@ -78,19 +90,21 @@ if [ -n "$revision" ] && [ -f "$revision_file" ] && [ ! -L "$revision_file" ] &&
     reuse=true
 fi
 
-if [ "$reuse" = false ]; then
+if [ "$reuse" = false ] && [ "$prebuilt" = false ]; then
     if cargo=$(command -v cargo 2>/dev/null); then
         :
-    elif [ -x "$home/.cargo/bin/cargo" ]; then
-        cargo="$home/.cargo/bin/cargo"
+    elif [ -x "$user_home/.cargo/bin/cargo" ]; then
+        cargo="$user_home/.cargo/bin/cargo"
     else
         fail "Rust with Cargo is required to build this source checkout"
     fi
 
     printf 'Building LAO release binaries...\n'
-    (cd "$root" && "$cargo" build --release --locked -p lao-cli -p lao-daemon)
+    (cd "$root" && "$cargo" build --release --locked --jobs 2 -p lao-cli -p lao-daemon)
+elif [ "$reuse" = false ]; then
+    printf 'Installing prebuilt LAO binaries...\n'
 else
-    printf 'Reusing LAO binaries for this source revision.\n'
+    printf 'Reusing verified LAO binaries.\n'
 fi
 
 mkdir -p "$prefix" "$bin_dir"
@@ -104,8 +118,8 @@ if [ "$reuse" = false ]; then
     trap cleanup EXIT
     trap 'exit 1' HUP INT TERM
 
-    /usr/bin/install -m 700 "$root/target/release/lao" "$cli_pending"
-    /usr/bin/install -m 700 "$root/target/release/lao-daemon" "$daemon_pending"
+    /usr/bin/install -m 700 "$binaries/lao" "$cli_pending"
+    /usr/bin/install -m 700 "$binaries/lao-daemon" "$daemon_pending"
     mv -f "$cli_pending" "$cli"
     mv -f "$daemon_pending" "$daemon"
     if [ -n "$revision" ]; then
@@ -120,4 +134,4 @@ fi
 ensure_link "$cli_link" "$cli"
 ensure_link "$daemon_link" "$daemon"
 
-printf '\nLAO is ready. Finish setup with: lao install\n'
+printf '\nLAO binaries are installed. Finish setup with: "%s" install\n' "$cli_link"
