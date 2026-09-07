@@ -1,0 +1,7 @@
+{
+  "service": "fixture-jobs",
+  "request_timeout_ms": 30,
+  "retry": { "max_attempts": 3, "initial_delay_ms": 250 },
+  "logging": { "level": "info", "format": "json" },
+  "queue": { "name": "jobs", "concurrency": 2 }
+}

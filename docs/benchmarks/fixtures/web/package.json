@@ -1,0 +1,11 @@
+{
+  "name": "fixture-web",
+  "private": true,
+  "scripts": {
+    "dev": "vite --port 3000",
+    "build": "vite build",
+    "test": "vitest run"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": { "vite": "6.0.0" }
+}

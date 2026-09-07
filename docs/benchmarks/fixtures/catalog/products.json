@@ -1,0 +1,8 @@
+{
+  "currency": "EUR",
+  "products": [
+    { "sku": "desk", "price": 120, "tags": ["office", "wood", "office"] },
+    { "sku": "lamp", "price": "39.50", "tags": ["office", "lighting"] }
+  ],
+  "page_size": 24
+}

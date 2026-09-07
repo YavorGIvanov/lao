@@ -1,0 +1,5 @@
+6534e0a85f4363263a9b1dc280f405622b8e1d1c467619c210ef6baf298af5ae  docs/benchmarks/tasks.json
+2df6cfc2a04cf30fbed8cd77f67d22e8d2d481f1249ed5507bec21c284c81986  docs/benchmarks/fixtures/web/package.json
+96562633bca49fa148557323eaf1f2e75633b5da126a8fc28f3b684a9219ebfa  docs/benchmarks/fixtures/service/settings.json
+13798b2dbc337693bccf162bd7cc88f501c7d34fd8b90f71861ec1a1da0bb153  docs/benchmarks/fixtures/catalog/products.json
+4cf43b8d087d7cacf8bc06788e47c6c8c4c576db62b422549ee475c65c745f45  app/cli/tests/worker.rs

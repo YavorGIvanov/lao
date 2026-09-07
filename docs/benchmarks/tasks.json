@@ -1,0 +1,50 @@
+[
+  {
+    "id": "web-dev-port",
+    "project": "web",
+    "file": "package.json",
+    "objective": "Make one small mechanical change in package.json: change only the dev script port from 3000 to 5173. Preserve all other settings.",
+    "pointer": "/scripts/dev",
+    "value": "vite --port 5173"
+  },
+  {
+    "id": "web-node-version",
+    "project": "web",
+    "file": "package.json",
+    "objective": "Make one small mechanical change in package.json: update engines.node to require Node 20 or newer instead of Node 18 or newer. Preserve all other settings.",
+    "pointer": "/engines/node",
+    "value": ">=20"
+  },
+  {
+    "id": "service-timeout-units",
+    "project": "service",
+    "file": "settings.json",
+    "objective": "Make one small mechanical change in settings.json: request_timeout_ms should represent 30 seconds in milliseconds, but currently contains 30. Correct only that value and preserve all other settings.",
+    "pointer": "/request_timeout_ms",
+    "value": 30000
+  },
+  {
+    "id": "service-retry-limit",
+    "project": "service",
+    "file": "settings.json",
+    "objective": "Make one small mechanical change in settings.json: increase retry.max_attempts from 3 to 5. Keep initial_delay_ms and every other setting unchanged.",
+    "pointer": "/retry/max_attempts",
+    "value": 5
+  },
+  {
+    "id": "catalog-numeric-price",
+    "project": "catalog",
+    "file": "products.json",
+    "objective": "Make one small mechanical change in products.json: the product with sku lamp must have a JSON number for its price, not a quoted string. Preserve its numeric amount and every other product field.",
+    "pointer": "/products/1/price",
+    "value": 39.5
+  },
+  {
+    "id": "catalog-unique-tags",
+    "project": "catalog",
+    "file": "products.json",
+    "objective": "Make one small mechanical change in products.json: remove the repeated office tag from the product with sku desk, preserving the first occurrence and tag order. Leave every other product field unchanged.",
+    "pointer": "/products/0/tags",
+    "value": ["office", "wood"]
+  }
+]

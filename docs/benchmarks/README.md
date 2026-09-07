@@ -12,6 +12,31 @@ The release sequence and acceptance gates live in [Mac beta milestones](../../IM
 
 The contract requires explicit measurement boundaries, pinned configurations, LAO's independent task verdict and content-free output.
 
+## Public task suite (R9a)
+
+[Tasks](tasks.json) declare six objectives across three small repository-owned JSON fixture projects: web manifest settings, service settings and catalog data. These are authored examples, not a sample of three real user repositories. The exact task corpus and [verifier/runner](../../app/cli/tests/worker.rs) are pinned by [tasks.sha256](tasks.sha256).
+
+Run the offline fixture acceptance checks from the repository root:
+
+```sh
+shasum -a 256 -c docs/benchmarks/tasks.sha256
+cargo test -p lao-cli --test worker -j 2
+```
+
+Every task starts in a fresh owner-only Git repository containing its input and an unchanged README guard. Git setup clears inherited environment and configuration. The independently declared JSON-pointer replacement defines the complete expected parsed document; all other values must remain identical. JSON whitespace and object-key order may change. Expectations remain in the parent test process, outside the worker workspace. No generated code or dependency is executed. Scope verification checks the whole fixture tree, including Git metadata, file modes, added/deleted paths and link/special-file rejection, with a 256-entry/1 MiB bound. Offline tests establish failing starting inputs, passing references and rejection of extra files or link replacements.
+
+With an active default semantic LAO installation and its local runtime, explicitly run the diagnostic:
+
+```sh
+cargo test -p lao-cli --test worker -j 2 -- --ignored --nocapture
+```
+
+It sends each of the six fixed packets once, serially, then the broad Cloud control. It never invokes a cloud harness or continues a Cloud return. Each MCP subprocess has a 605-second outer deadline around the worker's existing 600-second limit, a 64 KiB output bound, and cleanup on normal return/error. An outer timeout is infrastructure-invalid, not an inferred Local result. Fixture directories are disposable; the production worker retains its existing parent-death cleanup. Abrupt termination is not a secure-erasure guarantee.
+
+Output contains only public task IDs, route/status enums, independent verdicts, elapsed time and aggregate counts. A successful diagnostic exit requires usable infrastructure, intact file scope, at least one independently verified Local result and the unchanged Cloud control; it does **not** require or imply all tasks completed locally. Failed workers, timeouts and deferrals remain visible. Timing is `mcp_dispatch_through_verification` with uncontrolled cache state; it excludes parent model planning, review, repair and Cloud continuation. This is deliberately not schema-1 paired evidence and cannot support savings or promotion claims.
+
+The [first local run](local-2026-09-06.md) verified two Local tasks and retained four Cloud deferrals. R9b still needs representative projects/holdouts, consented matched cloud/hybrid arms, controlled cohorts, actual artifact/resource observations and complete failure accounting. Reuse the fixtures and independent verifier there; do not tune these prompts to obtain more Local routes. If the fixture or verifier changes, review it and regenerate the hash manifest before a new run, retaining the prior results and their identities.
+
 ## Schema 1
 
 Use [example.json](example.json) as the complete input shape. Unknown fields and enum values are rejected. Field names are case-sensitive. All fields are required.
@@ -56,4 +81,4 @@ The synthetic example deliberately has a completed but incorrect candidate row a
 
 No report emits p90/p95, statistical significance, a routing recommendation, or a cost/quota-saving estimate. Validation cannot establish source authenticity, actual health/cache state, consent, honest timing, verifier provenance, correct scope, safe replay, or absence of cherry-picking. A trusted producer must enforce these before declaring measured evidence complete. See [R9](../../IMPLEMENTATION_PLAN.md#r9--measure-the-whole-bounded-task) for the planned collection gate and [personal evaluation statistics](../../PRODUCT_VISION_AND_ARCHITECTURE.md#112-statistics) for later promotion criteria.
 
-Collection stays opt-in. This task authorized offline tooling and synthetic data, not private capture or paid/unattended model campaigns. Do not put raw harness output, prompts, patches, process command lines, local paths, credentials, or user identifiers into reports. Parse errors and summaries deliberately omit supplied strings.
+Collection stays opt-in. R9a adds an explicitly invoked local diagnostic on public fixtures; it does not authorize private capture or cloud model campaigns. Do not put raw harness output, prompts, patches, process command lines, local paths, credentials, or user identifiers into reports. Parse errors and summaries deliberately omit supplied strings.

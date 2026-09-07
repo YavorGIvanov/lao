@@ -39,7 +39,7 @@ The next release is a limited Apple Silicon Mac beta with a measured useful task
 | Beta / R13 | Small consent-based user pilot | Release owner, `docs/benchmarks` | 5–10 users; count activation, verified outcomes, repairs, resource use and observed cloud usage; retain failures and decide whether to widen release. |
 | After first release | Optional engines and platforms | Runtime/CLI and platform owners | One admitted combination at a time behind existing APIs; llama.cpp stays default. Linux/Windows and NVIDIA/AMD are expansion targets, not Mac beta prerequisites. |
 
-The immediate implementation is **R9a**, the fixture suite and a local-only diagnostic pass. R9b's cloud campaign needs a separately approved scope and budget. Do not mark R9 or user value proven when only R9a ran. Personal capture/vault/eval/training stay disabled; contributor fixtures do not activate those services.
+**R9a is complete**: the fixture suite and one local-only diagnostic pass. The next evidence step is R9b: pre-register representative tasks/holdouts, matched full-workflow arms and a campaign budget. R9b's cloud campaign needs a separately approved scope and budget. Do not mark R9 or user value proven when only R9a ran. Personal capture/vault/eval/training stay disabled; contributor fixtures do not activate those services.
 
 ### R8 — Evidence before new performance claims
 
@@ -69,9 +69,17 @@ Current evidence:
 
 ### R9 — Measure the whole bounded task
 
-Status: planned. R9a is the next implementation; R9b requires campaign consent.
+Status: R9a complete (2026-09-06); R9b planned and requires campaign consent. R9 user-benefit acceptance is still open.
 
 **R9a — Build the task suite.** Add six bounded structured-file edits across three small repository-owned fixture projects, beyond the existing typo canary, plus an essential broad/risky Cloud control. Declare task IDs, objectives, exact paths and independent expected behavior before running the worker. Fresh copies separate trials; verifier expectations stay outside worker access. Prove that every untouched task fails its verifier, its reference edit passes, and unrelated changes fail the scope check. Run the real MCP/local path serially with deadlines, bounded output and cleanup; record every route, worker status, content verdict, scope verdict and dispatch-through-verification time. A Cloud return is a deferral, never a local success. No cloud generation, private capture or router tuning occurs in this diagnostic. Hand-authored fixture packets are not evidence of natural harness behavior or broad coding quality.
+
+R9a evidence:
+
+- [Six task definitions and three input projects](docs/benchmarks/tasks.json) replace the typo-only worker integration fixture. The SHA-256 manifest pins the corpus and independent verifier before execution; no new service, framework, dependency or production behavior was added.
+- Offline tests prove every starting fixture fails and its reference passes; a correct allowed edit cannot hide an added file or symlink replacement. Verification never executes model-written code and checks the entire fixture tree with bounded reads.
+- The [6 September local diagnostic](docs/benchmarks/local-2026-09-06.md) ran all six packets once: two routed Local and independently passed (49,997 ms and 41,652 ms), four deferred to Cloud, and the separate broad control stayed Cloud unchanged. All scope checks passed. No prompt/router tuning, retries or cloud generation occurred.
+- Final verification on 7 September: 87 workspace tests passed (11 opt-in tests skipped), strict workspace Clippy passed, and the final fixture changes passed focused tests/Clippy. Formatting, file hashes, document links and the 33-package architecture guard passed. The manifesto is unchanged.
+- The recorded timer is MCP dispatch through independent verification, with uncontrolled cache state. It excludes parent planning/review/repair and is not schema-1 paired evidence. Neither savings nor unnecessary-Cloud error rates can be inferred.
 
 **R9b — Compare the full workflow.** Use these tasks and extend to representative real/public projects with an independent holdout. Both native Cloud and LAO hybrid arms must complete the same objective and verifier. Keep Codex and Claude reports separate. This is the first user-benefit gate; R9a timings alone exclude parent planning/review/repair and cannot satisfy it.
 
