@@ -116,6 +116,23 @@ R11a (2026-09-07): `package.sh` builds a self-contained Apple Silicon archive wi
 
 Ship signed and notarized prebuilt Apple Silicon CLI/daemon artifacts with a stable identity, integrity verification and dependency/model license notices. Users must not need Rust, Cargo or a source checkout. Keep setup one command and measure download, activation and resource requirements honestly.
 
+R11b implementation (2026-09-07): automatic discovery admits Codex-only, Claude-only or both; `--client codex|claude|both` selects explicitly. Transactions snapshot, validate and restore only selected files; legacy two-client records retain their JSON representation. Missing snapshots stop before writes, and failed recovery retains the record. The daemon emits no caller capability or warming probe for an unselected client; status and smoke follow the persisted selection. Selection changes require `off` first; upgrades retain the current selection.
+
+Admission uses minimum versions (Codex 0.151.0, Claude Code 2.1.251) plus read-only checks for required CLI flags. Newer versions do not need allowlist edits. Old or unrecognized version formats and missing capabilities fail before downloads/settings changes. Help checks are a compatibility signal, not proof of native auth, config semantics or every future version. Keep local smoke evidence separate from the R12 compatibility matrix.
+
+R11b verification:
+
+| Installed client | Isolated selected-client lifecycle | Warm local smoke |
+|---|---|---|
+| Codex 0.153.4 | Preflight, generated launchd job, warming, disabled-client denial, settings restoration and listener cleanup passed | 4,064 ms |
+| Claude Code 2.1.251 | Same path passed with Codex unselected | 2,120 ms |
+
+The E2E uses the daemon extracted from the unsigned archive, real installed harness binaries and one bounded cached Qwen/llama.cpp runtime through the existing external-runtime seam. It runs production transaction/probe code against temporary settings and unique launchd labels; it does not replace the user's active installation. These are local canaries, not user-benefit benchmarks or complete fresh-Mac/upgrade acceptance. One startup was refused by the memory-fit guard; the later serial run passed without changing the guard. Both current clients also passed the existing loopback protocol/credential-separation E2Es with synthetic credentials; no native cloud generation or R9b campaign ran.
+
+Offline evidence includes single-client restore/rollback with unreadable unselected files, legacy two-client record loading, missing-snapshot refusal before writes, invalid-record rejection, explicit selection, CLI capability parsing and minimum-version classification. Workspace tests, strict workspace Clippy, all 33 architecture checks and extraction/conformance passed. The archive installer passes repeat installation, missing-other-client discovery and corruption rejection. Builds use at most two jobs.
+
+Reproduce the local lifecycle after building `lao-daemon`: `cargo test -p lao-cli --lib each_harness_warms_smokes_and_restores_independently --jobs 2 -- --ignored --nocapture`. Set `LAO_TEST_DAEMON` to an extracted archive's daemon to test that artifact. Cached model/runtime, supported CLI capabilities and the public Codex model catalog are prerequisites. The test consumes local resources; it does not read harness credential stores or alter the active service.
+
 Support Codex-only, Claude-only and both-client installations. Detect and change only the selected installed harnesses; an absent second client is not an error. Existing supported settings survive installation and upgrade. Conflicts in owned settings stop safely and explain a concrete recovery action without printing secrets.
 
 Acceptance: fresh-machine install, interrupted download/setup, repeat install, version upgrade, failed-upgrade rollback, `off` and full removal all work. Native harness use and unrelated settings survive failures; no orphan process/listener or repeated permission prompts remain. Document what off retains in cache and what full removal deletes. Keep status and troubleshooting content-free; add no telemetry or auto-updater framework merely to pass this milestone.
@@ -124,7 +141,7 @@ Acceptance: fresh-machine install, interrupted download/setup, repeat install, v
 
 Status: planned. R9–R12 must pass before advertising the supported beta; retain research-preview status otherwise.
 
-Publish an explicit support matrix, using exact observed versions rather than an untested range. Start with a small set of Apple Silicon RAM/OS configurations, one or both harnesses, and the authentication modes actually validated. Expand one combination at a time.
+Publish the minimum-version/capability admission policy alongside an evidence matrix of exact exercised versions. Newer client releases may pass preflight without a repository update; do not label that as full compatibility certification. Start with a small set of Apple Silicon RAM/OS configurations, one or both harnesses, and the authentication modes actually validated. Expand one combination at a time.
 
 For every advertised combination, record source/artifact/client/OS identity and pass:
 

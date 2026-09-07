@@ -55,7 +55,7 @@ Read only the relevant parts after the manifesto. Follow the ordered release gat
 ## Finish
 
 - Review the actual diff for scope, secrets, debug residue, and needless code.
-- For security or architecture changes, perform a focused adversarial review.
+- Perform a focused adversarial review of changed behavior, especially failure recovery and trust boundaries.
 - Always perform a final simplification pass.
 - Keep README status, the architecture page, product vision, and implementation plan consistent when their claims change.
 - Run `cargo fmt --all -- --check` and `git diff --check`. For Rust changes run focused tests and strict Clippy; for API or dependency changes also run workspace tests, `cargo xtask check`, and `cargo xtask extract`. Limit builds to two jobs on the test Mac.

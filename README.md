@@ -15,7 +15,7 @@ This repository contains the research-backed product specification, implementati
 
 ## Install
 
-This is a research proof for supported Apple Silicon Macs. It transactionally changes the user settings for both Codex and Claude Code. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed; from Claude's mutable global state, it removes only LAO's entry.
+This is a research proof for supported Apple Silicon Macs. It detects Codex, Claude Code, or both on PATH and transactionally changes only those clients’ settings. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed; from Claude's mutable global state, it removes only LAO's entry.
 
 Clone the project, install the command, and let LAO finish setup:
 
@@ -23,7 +23,11 @@ Clone the project, install the command, and let LAO finish setup:
 git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh && lao install
 ```
 
-That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings, and a partial install rolls back automatically.
+That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings. Partial installation rolls back; if recovery encounters a conflict, snapshots remain available for `lao off`.
+
+To manage only one client when both are installed, use `lao install --client codex` or `lao install --client claude`; `--client both` requires both. An existing installation keeps its client selection across upgrades. To change that selection, run `lao off` first. Preview the selected settings with `lao preview --client codex` or `--client claude`.
+
+Codex 0.151.0 and Claude Code 2.1.251 are the minimum versions. Newer releases are admitted when their CLI preflight checks pass, including the flags LAO uses; they do not need a new version allowlist entry. Background local warming and `lao smoke` exercise the selected clients. A passed preflight is not certification of every future version or native-cloud behavior. Isolated local lifecycle and synthetic protocol checks passed on Codex 0.153.4 and Claude Code 2.1.251; see the [release evidence](IMPLEMENTATION_PLAN.md#r11--distribute-without-setup-barriers).
 
 Setup stops with a specific error when a prerequisite or existing configuration is unsupported. The verified Qwen3 model, MiniLM router, llama.cpp runtime, and OpenCode archive total 2,645,805,392 bytes, so allow about 2.7 GB on the first run. OpenCode's pinned support tree is capped at 80 MiB and accepted only when its lockfile and complete tree match the compiled SHA-256 digests.
 
@@ -51,7 +55,7 @@ At any time, check the whole installed path without consuming a model request:
 lao status
 ```
 
-`LAO: ready` means the service is running and both clients are routed through LAO. `local cache: warming` becomes `local cache: ready` after the background canaries finish. Ordinary work is available immediately on the cloud-safe path while warming continues. No credential or configuration value is printed.
+`LAO: ready` means the service is running and all selected clients are routed through LAO. `local cache: warming` becomes `local cache: ready` after the background canaries finish. Ordinary work is available immediately on the cloud-safe path while warming continues. No credential or configuration value is printed.
 
 ## Test the experience
 
@@ -65,7 +69,7 @@ codex
 
 Use either harness normally. In both tested clients, a broad planning request stayed Cloud and an ordinary one-file correction routed through OpenCode and Qwen3. Uncertainty, unsupported work, and classifier failures stay Cloud; routing quality beyond these conservative cases is not yet certified.
 
-To check both installed harnesses and the local model with sanitized pass/fail output:
+To check the selected harnesses and the local model with sanitized pass/fail output:
 
 ```sh
 lao smoke
@@ -73,7 +77,7 @@ lao smoke
 
 It prints only pass/fail and elapsed time. A warmed local canary completes in roughly two to four seconds on the tested Mac. Run `lao status` first if you want to see whether background warming has finished; it does not consume a model request.
 
-When finished—or immediately if a later check fails—restore both clients and stop LAO from any directory:
+When finished—or immediately if a later check fails—restore the selected clients and stop LAO from any directory:
 
 ```sh
 lao off
@@ -190,7 +194,7 @@ Install/off transactions, runtime leases, bounded background warming, and pressu
 
 Contributor tooling validates [paired pilot evidence](docs/benchmarks/README.md), rejecting incomplete comparisons and configuration drift while keeping worker status separate from correctness. Run `cargo xtask evidence docs/benchmarks/example.json` for the **synthetic** checker example. R9a also supplies six public structured-file tasks with independent verification; its [first local diagnostic](docs/benchmarks/local-2026-09-06.md) verified two Local edits, retained four Cloud deferrals and passed the broad Cloud control. Full-workflow cloud/hybrid comparisons remain the next evidence step; no speed, quality or savings advantage is established.
 
-The path to the first Mac beta has four explicit [release gates](IMPLEMENTATION_PLAN.md#next-steps): prove task benefit, admit only useful Local task types, ship signed/notarized binaries for either harness independently, and certify an advertised Mac/client support matrix. The current source installer still requires Rust and both harnesses; those are release blockers, not the intended user experience. A small consent-based user beta follows those gates. Linux/Windows and NVIDIA/AMD support remain later platform implementations behind the existing APIs.
+The path to the first Mac beta has four explicit [release gates](IMPLEMENTATION_PLAN.md#next-steps): prove task benefit, admit only useful Local task types, ship signed/notarized binaries for either harness independently, and certify an advertised Mac/client support matrix. Unsigned prebuilt archives remove the source-tool prerequisite, and either harness can be installed independently. Signed distribution and release lifecycle certification remain open. A small consent-based user beta follows those gates. Linux/Windows and NVIDIA/AMD support remain later platform implementations behind the existing APIs.
 
 Additional engine integrations and user selection are planned after the llama.cpp proof and first supported release. llama.cpp remains the default.
 

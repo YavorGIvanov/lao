@@ -88,6 +88,26 @@ impl Runtime {
 struct Choice {
     router: Router,
     runtime: Runtime,
+    client: ClientChoice,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ClientChoice {
+    Auto,
+    Codex,
+    Claude,
+    Both,
+}
+
+impl ClientChoice {
+    fn matches(self, codex: bool, claude: bool) -> bool {
+        match self {
+            Self::Auto => codex || claude,
+            Self::Codex => codex && !claude,
+            Self::Claude => claude && !codex,
+            Self::Both => codex && claude,
+        }
+    }
 }
 
 impl Default for Choice {
@@ -95,6 +115,7 @@ impl Default for Choice {
         Self {
             router: Router::Semantic,
             runtime: Runtime::LlamaCpp,
+            client: ClientChoice::Auto,
         }
     }
 }
@@ -158,8 +179,8 @@ enum Action {
 }
 
 struct Clients {
-    codex: PathBuf,
-    claude: PathBuf,
+    codex: Option<PathBuf>,
+    claude: Option<PathBuf>,
     cloud: &'static str,
 }
 
@@ -183,9 +204,9 @@ enum Phase {
 struct Record {
     phase: Phase,
     port: u16,
-    codex: Entry,
-    claude: Entry,
-    claude_mcp: Entry,
+    codex: Option<Entry>,
+    claude: Option<Entry>,
+    claude_mcp: Option<Entry>,
     router: Router,
     router_addr: Option<SocketAddrV4>,
     router_key: Option<PathBuf>,
@@ -252,28 +273,41 @@ impl Transaction {
     fn prepare(
         paths: &Paths,
         port: u16,
-        codex_after: &[u8],
-        claude_after: &[u8],
-        claude_mcp_after: &[u8],
+        codex_after: Option<&[u8]>,
+        claude_after: Option<&[u8]>,
+        claude_mcp_after: Option<&[u8]>,
         router: Router,
         adapter: Option<&Adapter>,
     ) -> io::Result<Self> {
         if paths.state.join(RECORD).exists() {
             return Err(conflict("lao is already installed or needs recovery"));
         }
-        let (codex, codex_before) = inspect(&paths.codex)?;
-        let (claude, claude_before) = inspect(&paths.claude)?;
-        let (claude_mcp, claude_mcp_before) = inspect(&paths.claude_mcp)?;
-        write_atomic(&paths.state.join(CODEX_BEFORE), &codex_before, 0o600)?;
-        write_atomic(&paths.state.join(CODEX_AFTER), codex_after, 0o600)?;
-        write_atomic(&paths.state.join(CLAUDE_BEFORE), &claude_before, 0o600)?;
-        write_atomic(&paths.state.join(CLAUDE_AFTER), claude_after, 0o600)?;
-        write_atomic(
-            &paths.state.join(CLAUDE_MCP_BEFORE),
-            &claude_mcp_before,
-            0o600,
+        if (codex_after.is_none() && claude_after.is_none())
+            || claude_after.is_some() != claude_mcp_after.is_some()
+        {
+            return Err(invalid("client selection"));
+        }
+        let prepare = |path: &Path, bytes: Option<&[u8]>, before, after| {
+            bytes
+                .map(|bytes| {
+                    if !path.is_absolute() {
+                        return Err(invalid("client configuration path"));
+                    }
+                    let (entry, original) = inspect(path)?;
+                    write_atomic(&paths.state.join(before), &original, 0o600)?;
+                    write_atomic(&paths.state.join(after), bytes, 0o600)?;
+                    Ok(entry)
+                })
+                .transpose()
+        };
+        let codex = prepare(&paths.codex, codex_after, CODEX_BEFORE, CODEX_AFTER)?;
+        let claude = prepare(&paths.claude, claude_after, CLAUDE_BEFORE, CLAUDE_AFTER)?;
+        let claude_mcp = prepare(
+            &paths.claude_mcp,
+            claude_mcp_after,
+            CLAUDE_MCP_BEFORE,
+            CLAUDE_MCP_AFTER,
         )?;
-        write_atomic(&paths.state.join(CLAUDE_MCP_AFTER), claude_mcp_after, 0o600)?;
         let record = Record {
             phase: Phase::Installing,
             port,
@@ -293,7 +327,13 @@ impl Transaction {
 
     fn load(state: &Path) -> io::Result<Self> {
         let bytes = fs::read(state.join(RECORD))?;
-        let record = serde_json::from_slice(&bytes).map_err(|_| invalid("install record"))?;
+        let record: Record =
+            serde_json::from_slice(&bytes).map_err(|_| invalid("install record"))?;
+        if (record.codex.is_none() && record.claude.is_none())
+            || record.claude.is_some() != record.claude_mcp.is_some()
+        {
+            return Err(invalid("install record client selection"));
+        }
         Ok(Self {
             state: state.to_path_buf(),
             record,
@@ -314,20 +354,25 @@ impl Transaction {
         mut write: impl FnMut(usize, &Entry, &[u8]) -> io::Result<()>,
     ) -> io::Result<()> {
         self.validate_originals()?;
-        let codex = fs::read(self.state.join(CODEX_AFTER))?;
-        let claude = fs::read(self.state.join(CLAUDE_AFTER))?;
-        let claude_mcp = fs::read(self.state.join(CLAUDE_MCP_AFTER))?;
-        if let Err(error) = write(0, &self.record.codex, &codex)
-            .and_then(|_| write(1, &self.record.claude, &claude))
-            .and_then(|_| write(2, &self.record.claude_mcp, &claude_mcp))
-        {
-            let rollback = self.restore_changed();
-            return match rollback {
-                Ok(()) => Err(error),
-                Err(rollback) => Err(io::Error::other(format!(
-                    "client write failed and rollback failed: {rollback}"
-                ))),
-            };
+        let mut updates = Vec::new();
+        for (index, entry, after) in [
+            (0, &self.record.codex, CODEX_AFTER),
+            (1, &self.record.claude, CLAUDE_AFTER),
+            (2, &self.record.claude_mcp, CLAUDE_MCP_AFTER),
+        ] {
+            if let Some(entry) = entry {
+                updates.push((index, entry, fs::read(self.state.join(after))?));
+            }
+        }
+        for (index, entry, bytes) in updates {
+            if let Err(error) = write(index, entry, &bytes) {
+                return match self.restore_changed() {
+                    Ok(()) => Err(error),
+                    Err(rollback) => Err(io::Error::other(format!(
+                        "client write failed and rollback failed: {rollback}"
+                    ))),
+                };
+            }
         }
         self.phase(Phase::Installed)
     }
@@ -339,51 +384,68 @@ impl Transaction {
     }
 
     fn validate_originals(&self) -> io::Result<()> {
-        validate_original(&self.record.codex, &self.state.join(CODEX_BEFORE))?;
-        validate_original(&self.record.claude, &self.state.join(CLAUDE_BEFORE))?;
-        validate_original(&self.record.claude_mcp, &self.state.join(CLAUDE_MCP_BEFORE))
+        for (entry, before) in [
+            (&self.record.codex, CODEX_BEFORE),
+            (&self.record.claude, CLAUDE_BEFORE),
+            (&self.record.claude_mcp, CLAUDE_MCP_BEFORE),
+        ] {
+            if let Some(entry) = entry {
+                validate_original(entry, &self.state.join(before))?;
+            }
+        }
+        Ok(())
     }
 
     fn restore(&mut self) -> io::Result<()> {
-        let (codex_current, claude_current) = self.installed_clients()?;
-        let claude_mcp = self.claude_mcp_restore()?;
-        let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
-        let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
-        let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
-        let claude_before = fs::read(self.state.join(CLAUDE_BEFORE))?;
-        let codex_restored = lao_codex::restore(
-            &codex_current,
-            &codex_after,
-            self.record.codex.existed.then_some(codex_before.as_slice()),
-        )
-        .map_err(|_| conflict("managed Codex settings changed"))?;
-        let claude_restored = lao_claude::restore(
-            &claude_current,
-            &claude_after,
-            self.record
-                .claude
-                .existed
-                .then_some(claude_before.as_slice()),
-        )
-        .map_err(|_| conflict("managed Claude settings changed"))?;
-        for (name, bytes) in [
-            (CODEX_RESTORE_FROM, codex_current.as_slice()),
-            (CODEX_RESTORE_TO, codex_restored.as_slice()),
-            (CLAUDE_RESTORE_FROM, claude_current.as_slice()),
-            (CLAUDE_RESTORE_TO, claude_restored.as_slice()),
+        self.validate_installed()?;
+        for (entry, before, after, from, to, codex) in [
             (
-                CLAUDE_MCP_RESTORE_FROM,
-                claude_mcp
+                &self.record.codex,
+                CODEX_BEFORE,
+                CODEX_AFTER,
+                CODEX_RESTORE_FROM,
+                CODEX_RESTORE_TO,
+                true,
+            ),
+            (
+                &self.record.claude,
+                CLAUDE_BEFORE,
+                CLAUDE_AFTER,
+                CLAUDE_RESTORE_FROM,
+                CLAUDE_RESTORE_TO,
+                false,
+            ),
+        ] {
+            if let Some(entry) = entry {
+                let current = read_managed(entry)?;
+                let before = fs::read(self.state.join(before))?;
+                let after = fs::read(self.state.join(after))?;
+                let original = entry.existed.then_some(before.as_slice());
+                let restored = if codex {
+                    lao_codex::restore(&current, &after, original)
+                        .map_err(|_| conflict("managed Codex settings changed"))?
+                } else {
+                    lao_claude::restore(&current, &after, original)
+                        .map_err(|_| conflict("managed Claude settings changed"))?
+                };
+                write_atomic(&self.state.join(from), &current, 0o600)?;
+                write_atomic(&self.state.join(to), &restored, 0o600)?;
+            }
+        }
+        if let Some(restore) = self.claude_mcp_restore()? {
+            write_atomic(
+                &self.state.join(CLAUDE_MCP_RESTORE_FROM),
+                restore
                     .current
                     .as_deref()
                     .ok_or_else(|| conflict("managed Claude MCP file is missing"))?,
-            ),
-            (
-                CLAUDE_MCP_RESTORE_TO,
-                claude_mcp.restored.as_deref().unwrap_or_default(),
-            ),
-        ] {
-            write_atomic(&self.state.join(name), bytes, 0o600)?;
+                0o600,
+            )?;
+            write_atomic(
+                &self.state.join(CLAUDE_MCP_RESTORE_TO),
+                restore.restored.as_deref().unwrap_or_default(),
+                0o600,
+            )?;
         }
         self.phase(Phase::Restoring)?;
         self.finish_restore()?;
@@ -391,74 +453,77 @@ impl Transaction {
     }
 
     fn finish_restore(&self) -> io::Result<()> {
-        finish_restore(
-            &self.record.codex,
-            &self.state.join(CODEX_RESTORE_FROM),
-            &self.state.join(CODEX_RESTORE_TO),
-        )?;
-        finish_restore(
-            &self.record.claude,
-            &self.state.join(CLAUDE_RESTORE_FROM),
-            &self.state.join(CLAUDE_RESTORE_TO),
-        )?;
-        finish_restore(
-            &self.record.claude_mcp,
-            &self.state.join(CLAUDE_MCP_RESTORE_FROM),
-            &self.state.join(CLAUDE_MCP_RESTORE_TO),
-        )
+        for (entry, from, to) in [
+            (&self.record.codex, CODEX_RESTORE_FROM, CODEX_RESTORE_TO),
+            (&self.record.claude, CLAUDE_RESTORE_FROM, CLAUDE_RESTORE_TO),
+            (
+                &self.record.claude_mcp,
+                CLAUDE_MCP_RESTORE_FROM,
+                CLAUDE_MCP_RESTORE_TO,
+            ),
+        ] {
+            if let Some(entry) = entry {
+                finish_restore(entry, &self.state.join(from), &self.state.join(to))?;
+            }
+        }
+        Ok(())
     }
 
-    fn installed_clients(&self) -> io::Result<(Vec<u8>, Vec<u8>)> {
-        Ok((self.validate_codex()?, self.validate_claude()?))
+    fn validate_codex(&self) -> io::Result<Option<Vec<u8>>> {
+        let Some(entry) = &self.record.codex else {
+            return Ok(None);
+        };
+        let codex = read_managed(entry)?;
+        let after = fs::read(self.state.join(CODEX_AFTER))?;
+        let before = fs::read(self.state.join(CODEX_BEFORE))?;
+        lao_codex::verify(&codex, &after, entry.existed.then_some(before.as_slice()))
+            .map_err(|_| conflict("managed Codex settings changed"))?;
+        Ok(Some(codex))
     }
 
-    fn validate_codex(&self) -> io::Result<Vec<u8>> {
-        let codex = read_managed(&self.record.codex)?;
-        let codex_after = fs::read(self.state.join(CODEX_AFTER))?;
-        let codex_before = fs::read(self.state.join(CODEX_BEFORE))?;
-        lao_codex::verify(
-            &codex,
-            &codex_after,
-            self.record.codex.existed.then_some(codex_before.as_slice()),
-        )
-        .map_err(|_| conflict("managed Codex settings changed"))?;
-        Ok(codex)
-    }
-
-    fn validate_claude(&self) -> io::Result<Vec<u8>> {
-        let claude = read_managed(&self.record.claude)?;
-        let claude_after = fs::read(self.state.join(CLAUDE_AFTER))?;
-        lao_claude::verify(&claude, &claude_after)
+    fn validate_claude(&self) -> io::Result<Option<Vec<u8>>> {
+        let Some(entry) = &self.record.claude else {
+            return Ok(None);
+        };
+        let claude = read_managed(entry)?;
+        let after = fs::read(self.state.join(CLAUDE_AFTER))?;
+        lao_claude::verify(&claude, &after)
             .map_err(|_| conflict("managed Claude settings changed"))?;
-        Ok(claude)
+        Ok(Some(claude))
     }
 
     fn restore_changed(&self) -> io::Result<()> {
-        restore_if_managed(
-            &self.record.codex,
-            &self.state.join(CODEX_BEFORE),
-            &self.state.join(CODEX_AFTER),
-        )?;
-        restore_if_managed(
-            &self.record.claude,
-            &self.state.join(CLAUDE_BEFORE),
-            &self.state.join(CLAUDE_AFTER),
-        )?;
-        let restore = self.claude_mcp_restore()?;
-        write_optional(&self.record.claude_mcp, restore.restored.as_deref())
+        for (entry, before, after) in [
+            (&self.record.codex, CODEX_BEFORE, CODEX_AFTER),
+            (&self.record.claude, CLAUDE_BEFORE, CLAUDE_AFTER),
+        ] {
+            if let Some(entry) = entry {
+                restore_if_managed(entry, &self.state.join(before), &self.state.join(after))?;
+            }
+        }
+        if let Some(entry) = &self.record.claude_mcp {
+            let restore = self
+                .claude_mcp_restore()?
+                .ok_or_else(|| invalid("Claude MCP record"))?;
+            write_optional(entry, restore.restored.as_deref())?;
+        }
+        Ok(())
     }
 
-    fn claude_mcp_restore(&self) -> io::Result<McpRestore> {
-        let current = read_managed_optional(&self.record.claude_mcp)?;
+    fn claude_mcp_restore(&self) -> io::Result<Option<McpRestore>> {
+        let Some(entry) = &self.record.claude_mcp else {
+            return Ok(None);
+        };
+        let current = read_managed_optional(entry)?;
         let before = fs::read(self.state.join(CLAUDE_MCP_BEFORE))?;
-        let original = self.record.claude_mcp.existed.then_some(before.as_slice());
+        let original = entry.existed.then_some(before.as_slice());
         let after = fs::read(self.state.join(CLAUDE_MCP_AFTER))?;
         let restore = lao_claude::restore_worker(current.as_deref(), original, &after)
             .map_err(|_| conflict("managed Claude MCP entry changed"))?;
-        Ok(McpRestore {
+        Ok(Some(McpRestore {
             current,
             restored: restore,
-        })
+        }))
     }
 
     fn discard(&self) -> io::Result<()> {
@@ -496,7 +561,7 @@ pub fn run() -> Result<()> {
         None => {
             println!(
                 "usage: lao <preview|install> [--router semantic|safe|vllm-semantic] \
-                 [--runtime llama-cpp|external]\n       lao <status|smoke|off|mcp>"
+                 [--runtime llama-cpp|external] [--client codex|claude|both]\n       lao <status|smoke|off|mcp>"
             );
             Ok(())
         }
@@ -536,6 +601,7 @@ fn parse(mut args: impl Iterator<Item = OsString>) -> io::Result<Option<Action>>
 fn choice(args: &mut impl Iterator<Item = OsString>) -> io::Result<Choice> {
     let mut router = None;
     let mut runtime = None;
+    let mut client = None;
     while let Some(option) = args.next() {
         let option = option.into_string().map_err(|_| invalid("option"))?;
         let value = args
@@ -559,7 +625,15 @@ fn choice(args: &mut impl Iterator<Item = OsString>) -> io::Result<Choice> {
                     _ => return Err(invalid("runtime")),
                 });
             }
-            "--router" | "--runtime" => return Err(invalid("duplicate option")),
+            "--client" if client.is_none() => {
+                client = Some(match value.as_str() {
+                    "codex" => ClientChoice::Codex,
+                    "claude" => ClientChoice::Claude,
+                    "both" => ClientChoice::Both,
+                    _ => return Err(invalid("client")),
+                });
+            }
+            "--router" | "--runtime" | "--client" => return Err(invalid("duplicate option")),
             _ => return Err(invalid("option")),
         }
     }
@@ -567,6 +641,7 @@ fn choice(args: &mut impl Iterator<Item = OsString>) -> io::Result<Choice> {
     Ok(Choice {
         router: router.unwrap_or(defaults.router),
         runtime: runtime.unwrap_or(defaults.runtime),
+        client: client.unwrap_or(defaults.client),
     })
 }
 
@@ -584,7 +659,7 @@ fn status() -> Result<()> {
         return Err(invalid("run lao off, then lao install").into());
     }
     let codex = transaction.validate_codex().is_ok();
-    let claude = transaction.validate_claude().is_ok();
+    let claude = transaction.validate_claude().is_ok() && transaction.claude_mcp_restore().is_ok();
     let plist = validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600).is_ok();
     let service =
         plist && service_loaded().unwrap_or(false) && hello(transaction.record.port).is_ok();
@@ -603,7 +678,9 @@ fn status() -> Result<()> {
     );
     println!(
         "Codex: {}",
-        if codex {
+        if transaction.record.codex.is_none() {
+            "not managed"
+        } else if codex {
             "routed through LAO"
         } else {
             "not routed through LAO"
@@ -611,7 +688,9 @@ fn status() -> Result<()> {
     );
     println!(
         "Claude: {}",
-        if claude {
+        if transaction.record.claude.is_none() {
+            "not managed"
+        } else if claude {
             "routed through LAO"
         } else {
             "not routed through LAO"
@@ -694,8 +773,14 @@ fn preview(selected: &Selected) -> Result<()> {
                 .display()
         );
     }
-    println!("Codex settings: {}", paths.codex.display());
-    println!("Claude settings: {}", paths.claude.display());
+    let clients = discover_clients(selected.choice.client)?;
+    validate_client_paths(&paths, &clients)?;
+    if clients.codex.is_some() {
+        println!("Codex settings: {}", paths.codex.display());
+    }
+    if clients.claude.is_some() {
+        println!("Claude settings: {}", paths.claude.display());
+    }
     println!("worker: OpenCode v1.18.25 (local delegated turns)");
     println!("listener: launchd-owned IPv4 loopback port selected at install");
     println!("caller headers: X-LAO-Key: <redacted> (one per client)");
@@ -705,10 +790,17 @@ fn preview(selected: &Selected) -> Result<()> {
 #[cfg(target_os = "macos")]
 fn install(selected: &Selected) -> Result<()> {
     let paths = paths()?;
+    let mut clients = None;
     let _lock = Lock::acquire(&paths.state)?;
     if paths.state.join(RECORD).exists() {
         let mut transaction = Transaction::load(&paths.state)?;
         if transaction.record.phase == Phase::Installed {
+            if !selected.choice.client.matches(
+                transaction.record.codex.is_some(),
+                transaction.record.claude.is_some(),
+            ) {
+                return Err(conflict("client selection differs; run lao off, then lao install with the desired --client").into());
+            }
             transaction.validate_installed()?;
             validate_path(&paths.plist, &paths.state.join(PLIST_AFTER), 0o600)?;
             if !service_loaded()? {
@@ -719,6 +811,18 @@ fn install(selected: &Selected) -> Result<()> {
                 println!("installed: existing LAO setup is healthy and unchanged");
                 return Ok(());
             }
+            let client_choice = match (
+                transaction.record.codex.is_some(),
+                transaction.record.claude.is_some(),
+            ) {
+                (true, true) => ClientChoice::Both,
+                (true, false) => ClientChoice::Codex,
+                (false, true) => ClientChoice::Claude,
+                (false, false) => return Err(invalid("installed clients").into()),
+            };
+            let checked = preflight_clients(client_choice)?;
+            validate_client_paths(&paths, &checked)?;
+            clients = Some(checked);
             transaction.restore()?;
             deactivate(&paths)?;
             remove_optional(&paths.daemon)?;
@@ -733,7 +837,11 @@ fn install(selected: &Selected) -> Result<()> {
         return Err(conflict("conflicting launchd service").into());
     }
 
-    let clients = preflight_clients()?;
+    let clients = match clients {
+        Some(clients) => clients,
+        None => preflight_clients(selected.choice.client)?,
+    };
+    validate_client_paths(&paths, &clients)?;
     if selected.choice.router == Router::Semantic {
         println!("preparing semantic router...");
         lao_route::prepare(&paths.router)?;
@@ -752,43 +860,59 @@ fn install(selected: &Selected) -> Result<()> {
     }
     let daemon = fs::read(&paths.daemon_source)?;
 
-    let codex_original = read_optional(&paths.codex)?;
-    let claude_original = read_optional(&paths.claude)?;
-    let claude_mcp_original = read_optional(&paths.claude_mcp)?;
-    let codex_catalog = paths
-        .codex
-        .parent()
-        .ok_or_else(|| invalid("Codex model catalog"))?
-        .join("models_cache.json");
-    if !codex_catalog.is_file() {
-        probe(&clients.codex, &["debug", "models"])?;
-    }
-    if !codex_catalog.is_file() {
-        return Err(invalid("Codex model catalog").into());
-    }
-    let codex_catalog = codex_catalog
-        .to_str()
-        .ok_or_else(|| invalid("Codex model catalog"))?;
     let port = free_port()?;
     let codex_caller = caller()?;
     let claude_caller = caller()?;
-    let codex_after = lao_codex::configure(
-        codex_original.as_deref(),
-        port,
-        &codex_caller,
-        codex_catalog,
-    )?;
     let command = env::current_exe()?;
-    let codex_after = lao_codex::configure_worker(&codex_after, &command)?;
-    let claude_after = lao_claude::configure(claude_original.as_deref(), port, &claude_caller)?;
-    let claude_mcp_after = lao_claude::configure_worker(claude_mcp_original.as_deref(), &command)?;
+    let codex_after = if let Some(bin) = &clients.codex {
+        let original = read_optional(&paths.codex)?;
+        let catalog = paths
+            .codex
+            .parent()
+            .ok_or_else(|| invalid("Codex model catalog"))?
+            .join("models_cache.json");
+        if !catalog.is_file() {
+            probe(bin, &["debug", "models"])?;
+        }
+        if !catalog.is_file() {
+            return Err(invalid("Codex model catalog").into());
+        }
+        let after = lao_codex::configure(
+            original.as_deref(),
+            port,
+            &codex_caller,
+            catalog
+                .to_str()
+                .ok_or_else(|| invalid("Codex model catalog"))?,
+        )?;
+        Some(lao_codex::configure_worker(&after, &command)?)
+    } else {
+        None
+    };
+    let (claude_after, claude_mcp_after) = if clients.claude.is_some() {
+        let original = read_optional(&paths.claude)?;
+        let mcp_original = read_optional(&paths.claude_mcp)?;
+        (
+            Some(lao_claude::configure(
+                original.as_deref(),
+                port,
+                &claude_caller,
+            )?),
+            Some(lao_claude::configure_worker(
+                mcp_original.as_deref(),
+                &command,
+            )?),
+        )
+    } else {
+        (None, None)
+    };
 
     let mut transaction = Transaction::prepare(
         &paths,
         port,
-        &codex_after,
-        &claude_after,
-        &claude_mcp_after,
+        codex_after.as_deref(),
+        claude_after.as_deref(),
+        claude_mcp_after.as_deref(),
         selected.choice.router,
         selected.vllm.as_ref(),
     )?;
@@ -815,16 +939,21 @@ fn install(selected: &Selected) -> Result<()> {
         Ok(())
     })();
     if let Err(error) = result {
-        let _ = transaction.restore_changed();
-        let _ = deactivate(&paths);
-        let _ = remove_optional(&paths.daemon);
-        let _ = remove_optional(&paths.adopted);
-        let _ = remove_optional(&paths.state.join(DAEMON_ERROR));
-        let _ = remove_optional(&paths.worker_key);
-        let _ = transaction.discard();
+        let restore = transaction.restore_changed();
+        let shutdown = deactivate(&paths);
+        if restore.is_err() || shutdown.is_err() {
+            return Err(
+                conflict("install recovery incomplete; snapshots retained, run lao off").into(),
+            );
+        }
+        remove_optional(&paths.daemon)?;
+        remove_optional(&paths.adopted)?;
+        remove_optional(&paths.state.join(DAEMON_ERROR))?;
+        remove_optional(&paths.worker_key)?;
+        transaction.discard()?;
         return Err(error);
     }
-    println!("installed: Codex and Claude now use the launchd-owned LAO gate");
+    println!("installed: selected clients now use the launchd-owned LAO gate");
     Ok(())
 }
 
@@ -1114,25 +1243,38 @@ fn smoke() -> Result<()> {
     if !service_loaded()? {
         return Err(invalid("launchd service").into());
     }
-    let codex = fs::read(&paths.codex)?;
-    let claude = fs::read(&paths.claude)?;
-    let (codex_caller, claude_caller) = managed_callers(&codex, &claude, transaction.record.port)?;
+    smoke_clients(&transaction)
+}
 
-    let codex_catalog = paths
-        .codex
-        .parent()
-        .ok_or_else(|| invalid("Codex model catalog"))?
-        .join("models_cache.json");
-    let codex_elapsed = lao_optimize::codex(
-        "codex",
-        codex_catalog,
-        transaction.record.port,
-        &codex_caller,
-        lao_codex::DELEGATION_INSTRUCTIONS,
-    )?;
-    println!("Codex local: ok ({} ms)", codex_elapsed.as_millis());
-    let claude_elapsed = lao_optimize::claude("claude", transaction.record.port, &claude_caller)?;
-    println!("Claude local: ok ({} ms)", claude_elapsed.as_millis());
+#[cfg(target_os = "macos")]
+fn smoke_clients(transaction: &Transaction) -> Result<()> {
+    let codex = transaction.validate_codex()?;
+    let claude = transaction.validate_claude()?;
+    let port = transaction.record.port;
+    let (codex_caller, claude_caller) = managed_callers(codex.as_deref(), claude.as_deref(), port)?;
+    if let Some(caller) = codex_caller {
+        let catalog = transaction
+            .record
+            .codex
+            .as_ref()
+            .ok_or_else(|| invalid("Codex record"))?
+            .path
+            .parent()
+            .ok_or_else(|| invalid("Codex model catalog"))?
+            .join("models_cache.json");
+        let elapsed = lao_optimize::codex(
+            "codex",
+            catalog,
+            port,
+            &caller,
+            lao_codex::DELEGATION_INSTRUCTIONS,
+        )?;
+        println!("Codex local: ok ({} ms)", elapsed.as_millis());
+    }
+    if let Some(caller) = claude_caller {
+        let elapsed = lao_optimize::claude("claude", port, &caller)?;
+        println!("Claude local: ok ({} ms)", elapsed.as_millis());
+    }
     Ok(())
 }
 
@@ -1141,13 +1283,31 @@ fn smoke() -> Result<()> {
     Err(io::Error::new(io::ErrorKind::Unsupported, "macOS only").into())
 }
 
-fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String, String)> {
-    let codex = std::str::from_utf8(codex)
+fn managed_callers(
+    codex: Option<&[u8]>,
+    claude: Option<&[u8]>,
+    port: u16,
+) -> io::Result<(Option<String>, Option<String>)> {
+    let codex = codex.map(|bytes| codex_caller(bytes, port)).transpose()?;
+    let claude = claude.map(|bytes| claude_caller(bytes, port)).transpose()?;
+    if codex == claude
+        || codex
+            .iter()
+            .chain(claude.iter())
+            .any(|key| !managed_caller(key))
+    {
+        return Err(invalid("managed client settings"));
+    }
+    Ok((codex, claude))
+}
+
+fn codex_caller(bytes: &[u8], port: u16) -> io::Result<String> {
+    let codex = std::str::from_utf8(bytes)
         .map_err(|_| invalid("managed Codex settings"))?
         .parse::<toml_edit::DocumentMut>()
         .map_err(|_| invalid("managed Codex settings"))?;
     let provider = &codex["model_providers"]["lao"];
-    let codex_caller = provider["http_headers"]["X-LAO-Key"]
+    let caller = provider["http_headers"]["X-LAO-Key"]
         .as_str()
         .ok_or_else(|| invalid("managed Codex settings"))?;
     if codex["model_provider"].as_str() != Some("lao")
@@ -1156,13 +1316,16 @@ fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String
     {
         return Err(invalid("managed Codex settings"));
     }
+    Ok(caller.to_owned())
+}
 
+fn claude_caller(bytes: &[u8], port: u16) -> io::Result<String> {
     let claude: serde_json::Value =
-        serde_json::from_slice(claude).map_err(|_| invalid("managed Claude settings"))?;
+        serde_json::from_slice(bytes).map_err(|_| invalid("managed Claude settings"))?;
     let env = claude["env"]
         .as_object()
         .ok_or_else(|| invalid("managed Claude settings"))?;
-    let claude_caller = env
+    let caller = env
         .get("ANTHROPIC_CUSTOM_HEADERS")
         .and_then(serde_json::Value::as_str)
         .and_then(|value| value.strip_prefix("X-LAO-Key: "))
@@ -1171,13 +1334,10 @@ fn managed_callers(codex: &[u8], claude: &[u8], port: u16) -> io::Result<(String
         .get("ANTHROPIC_BASE_URL")
         .and_then(serde_json::Value::as_str)
         != Some(&format!("http://127.0.0.1:{port}/ant"))
-        || !managed_caller(codex_caller)
-        || !managed_caller(claude_caller)
-        || codex_caller == claude_caller
     {
-        return Err(invalid("managed client settings"));
+        return Err(invalid("managed Claude settings"));
     }
-    Ok((codex_caller.to_owned(), claude_caller.to_owned()))
+    Ok(caller.to_owned())
 }
 
 fn managed_caller(value: &str) -> bool {
@@ -1197,51 +1357,128 @@ fn installed_daemon_matches(paths: &Paths) -> io::Result<bool> {
     Ok(fs::read(&paths.daemon_source)? == fs::read(&paths.daemon)?)
 }
 
-fn preflight_clients() -> Result<Clients> {
-    let keys: Vec<_> = env::vars_os()
-        .filter_map(|(key, _)| key.into_string().ok())
-        .collect();
-    if !lao_codex::conflicts(keys.iter().map(String::as_str), false).is_empty() {
-        return Err(conflict("conflicting Codex environment configuration").into());
-    }
-    if !lao_claude::conflicts(keys.iter().map(String::as_str), false, false).is_empty() {
-        return Err(conflict("conflicting Claude environment configuration").into());
-    }
-
-    let codex_bin = executable("codex")?;
-    let claude_bin = executable("claude")?;
-    let codex = command(&codex_bin, &["--version"])?;
-    if lao_codex::support(&codex) != lao_codex::Support::Observed {
-        return Err(conflict("unsupported Codex version").into());
-    }
-    let auth = command(&codex_bin, &["login", "status"])?;
-    let cloud = match lao_codex::auth(&auth) {
-        lao_codex::Auth::ChatGpt => "chatgpt",
-        lao_codex::Auth::ApiKey => "openai",
-        _ => return Err(conflict("unsupported Codex authentication").into()),
+fn discover_clients(choice: ClientChoice) -> io::Result<Clients> {
+    let codex = if choice != ClientChoice::Claude {
+        executable("codex")?
+    } else {
+        None
     };
-    let claude = command(&claude_bin, &["--version"])?;
-    if lao_claude::support(&claude) != lao_claude::Support::Observed {
-        return Err(conflict("unsupported Claude Code version").into());
+    let claude = if choice != ClientChoice::Codex {
+        executable("claude")?
+    } else {
+        None
+    };
+    if !choice.matches(codex.is_some(), claude.is_some()) {
+        return Err(conflict(
+            "install a supported selected client and make it available on PATH",
+        ));
     }
     Ok(Clients {
-        codex: codex_bin,
-        claude: claude_bin,
-        cloud,
+        codex,
+        claude,
+        cloud: "openai",
     })
 }
 
-fn executable(name: &str) -> io::Result<PathBuf> {
-    let path = env::var_os("PATH").ok_or_else(|| invalid("client executable"))?;
-    for directory in env::split_paths(&path).filter(|path| path.is_absolute()) {
-        let candidate = directory.join(name);
-        if fs::metadata(&candidate)
-            .is_ok_and(|metadata| metadata.is_file() && metadata.mode() & 0o111 != 0)
-        {
-            return Ok(candidate);
-        }
+fn validate_client_paths(paths: &Paths, clients: &Clients) -> io::Result<()> {
+    if (clients.codex.is_some() && !paths.codex.is_absolute())
+        || (clients.claude.is_some() && !paths.claude.is_absolute())
+    {
+        return Err(invalid("client configuration path"));
     }
-    Err(invalid("client executable"))
+    Ok(())
+}
+
+fn preflight_clients(choice: ClientChoice) -> Result<Clients> {
+    let mut clients = discover_clients(choice)?;
+    let keys: Vec<_> = env::vars_os()
+        .filter_map(|(key, _)| key.into_string().ok())
+        .collect();
+    if let Some(bin) = &clients.codex {
+        if !lao_codex::conflicts(keys.iter().map(String::as_str), false).is_empty() {
+            return Err(conflict("conflicting Codex environment configuration").into());
+        }
+        if !matches!(
+            lao_codex::support(&command(bin, &["--version"])?),
+            lao_codex::Support::Observed | lao_codex::Support::Untested
+        ) {
+            return Err(conflict("Codex version is older than the minimum or unrecognized").into());
+        }
+        require_flags(
+            &command(bin, &["exec", "--help"])?,
+            &[
+                "--config",
+                "--strict-config",
+                "--ephemeral",
+                "--skip-git-repo-check",
+                "--color",
+                "--sandbox",
+                "--model",
+            ],
+        )
+        .map_err(|_| conflict("Codex is missing a required CLI capability"))?;
+        clients.cloud = match lao_codex::auth(&command(bin, &["login", "status"])?) {
+            lao_codex::Auth::ChatGpt => "chatgpt",
+            lao_codex::Auth::ApiKey => "openai",
+            _ => return Err(conflict("unsupported Codex authentication").into()),
+        };
+    }
+    if let Some(bin) = &clients.claude {
+        if !lao_claude::conflicts(keys.iter().map(String::as_str), false, false).is_empty() {
+            return Err(conflict("conflicting Claude environment configuration").into());
+        }
+        if !matches!(
+            lao_claude::support(&command(bin, &["--version"])?),
+            lao_claude::Support::Observed | lao_claude::Support::Untested
+        ) {
+            return Err(
+                conflict("Claude Code version is older than the minimum or unrecognized").into(),
+            );
+        }
+        require_flags(
+            &command(bin, &["--help"])?,
+            &[
+                "--safe-mode",
+                "--settings",
+                "--setting-sources",
+                "--no-session-persistence",
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+                "--tools",
+                "--effort",
+                "--model",
+            ],
+        )
+        .map_err(|_| conflict("Claude Code is missing a required CLI capability"))?;
+    }
+    Ok(clients)
+}
+
+fn require_flags(help: &str, required: &[&str]) -> io::Result<()> {
+    if required.iter().all(|flag| {
+        help.lines()
+            .filter(|line| line.trim_start().starts_with('-'))
+            .flat_map(|line| {
+                line.split_whitespace()
+                    .take_while(|word| word.starts_with('-'))
+            })
+            .any(|word| word.trim_end_matches(',') == *flag)
+    }) {
+        Ok(())
+    } else {
+        Err(invalid("client CLI capabilities"))
+    }
+}
+
+fn executable(name: &str) -> io::Result<Option<PathBuf>> {
+    let path = env::var_os("PATH").ok_or_else(|| invalid("client executable"))?;
+    Ok(env::split_paths(&path)
+        .filter(|path| path.is_absolute())
+        .map(|directory| directory.join(name))
+        .find(|candidate| {
+            fs::metadata(candidate)
+                .is_ok_and(|metadata| metadata.is_file() && metadata.mode() & 0o111 != 0)
+        }))
 }
 
 fn command(bin: &Path, args: &[&str]) -> io::Result<String> {
@@ -1275,7 +1512,7 @@ fn paths() -> io::Result<Paths> {
     let claude_root = env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".claude"));
-    if !home.is_absolute() || !codex_root.is_absolute() || !claude_root.is_absolute() {
+    if !home.is_absolute() {
         return Err(invalid("client configuration path"));
     }
     let daemon_source = env::current_exe()?
@@ -1612,53 +1849,53 @@ fn plist(
     worker_key: &Path,
 ) -> io::Result<String> {
     let error_path = paths.state.join(DAEMON_ERROR);
-    let codex_catalog = paths
-        .codex
-        .parent()
-        .ok_or_else(|| invalid("non-UTF-8 install path"))?
-        .join("models_cache.json");
     let values = [
         paths.daemon.to_str(),
         paths.adopted.to_str(),
         error_path.to_str(),
-        clients.codex.to_str(),
-        clients.claude.to_str(),
         paths.optimize.to_str(),
         worker_key.to_str(),
     ];
-    if values.iter().any(Option::is_none) || codex_catalog.to_str().is_none() {
+    if values.iter().any(Option::is_none) {
         return Err(invalid("non-UTF-8 install path"));
     }
     let mut adapters = adapter_env(paths, selected)?;
-    env_entry(
-        &mut adapters,
-        "LAO_CODEX_BIN",
-        values[3].ok_or_else(|| invalid("non-UTF-8 install path"))?,
-    );
-    env_entry(
-        &mut adapters,
-        "LAO_CLAUDE_BIN",
-        values[4].ok_or_else(|| invalid("non-UTF-8 install path"))?,
-    );
-    env_entry(
-        &mut adapters,
-        "LAO_OPTIMIZE_STATE",
-        values[5].ok_or_else(|| invalid("non-UTF-8 install path"))?,
-    );
-    env_entry(
-        &mut adapters,
-        "LAO_CODEX_CATALOG",
-        codex_catalog
-            .to_str()
-            .ok_or_else(|| invalid("non-UTF-8 install path"))?,
-    );
+    if let Some(bin) = &clients.codex {
+        let catalog = paths
+            .codex
+            .parent()
+            .ok_or_else(|| invalid("Codex model catalog"))?
+            .join("models_cache.json");
+        env_entry(
+            &mut adapters,
+            "LAO_CODEX_BIN",
+            bin.to_str().ok_or_else(|| invalid("Codex binary path"))?,
+        );
+        env_entry(
+            &mut adapters,
+            "LAO_CODEX_CATALOG",
+            catalog
+                .to_str()
+                .ok_or_else(|| invalid("Codex model catalog"))?,
+        );
+        env_entry(&mut adapters, "LAO_CODEX_CALLER", codex);
+        env_entry(&mut adapters, "LAO_CODEX_CLOUD", clients.cloud);
+    }
+    if let Some(bin) = &clients.claude {
+        env_entry(
+            &mut adapters,
+            "LAO_CLAUDE_BIN",
+            bin.to_str().ok_or_else(|| invalid("Claude binary path"))?,
+        );
+        env_entry(&mut adapters, "LAO_CLAUDE_CALLER", claude);
+    }
+    env_entry(&mut adapters, "LAO_OPTIMIZE_STATE", values[3].unwrap());
     Ok(format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_CODEX_CALLER</key><string>{codex}</string>\n<key>LAO_CLAUDE_CALLER</key><string>{claude}</string>\n<key>LAO_WORKER_KEY_FILE</key><string>{worker}</string>\n<key>LAO_CODEX_CLOUD</key><string>{codex_cloud}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict>\n<key>Label</key><string>{LABEL}</string>\n<key>ProgramArguments</key><array><string>{daemon}</string></array>\n<key>EnvironmentVariables</key><dict>\n<key>LAO_ADOPTED_FILE</key><string>{adopted}</string>\n<key>LAO_LOCAL_CANARY</key><string>1</string>\n<key>LAO_WORKER_KEY_FILE</key><string>{worker}</string>\n{adapters}</dict>\n<key>RunAtLoad</key><true/>\n<key>ThrottleInterval</key><integer>1</integer>\n<key>Sockets</key><dict><key>gate</key><dict><key>SockNodeName</key><string>127.0.0.1</string><key>SockServiceName</key><integer>{port}</integer><key>SockFamily</key><string>IPv4</string><key>SockType</key><string>stream</string><key>SockProtocol</key><string>TCP</string><key>SockPassive</key><true/></dict></dict>\n<key>StandardErrorPath</key><string>{error}</string>\n</dict></plist>\n",
         daemon = xml(values[0].unwrap()),
         adopted = xml(values[1].unwrap()),
         error = xml(values[2].unwrap()),
-        codex_cloud = clients.cloud,
-        worker = xml(values[6].unwrap()),
+        worker = xml(values[4].unwrap()),
     ))
 }
 
@@ -1898,6 +2135,9 @@ fn invalid(message: &'static str) -> io::Error {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "macos")]
+    mod lifecycle;
+
     use super::*;
     use std::os::unix::ffi::OsStringExt;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1964,7 +2204,11 @@ mod tests {
         }
     }
 
-    fn prepared(temp: &Temp) -> (Paths, Transaction, Vec<u8>, Vec<u8>, Vec<u8>) {
+    fn prepared(
+        temp: &Temp,
+        client: ClientChoice,
+        port: u16,
+    ) -> (Paths, Transaction, Vec<u8>, Vec<u8>, Vec<u8>) {
         let paths = temp.paths();
         fs::create_dir_all(paths.codex.parent().unwrap()).unwrap();
         fs::create_dir_all(paths.claude.parent().unwrap()).unwrap();
@@ -1980,26 +2224,40 @@ mod tests {
         private_dir(&paths.state).unwrap();
         let codex_after = lao_codex::configure(
             Some(&codex),
-            8765,
+            port,
             "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-            "/tmp/models.json",
+            paths
+                .codex
+                .parent()
+                .unwrap()
+                .join("models_cache.json")
+                .to_str()
+                .unwrap(),
         )
         .unwrap();
         let claude_after = lao_claude::configure(
             Some(&claude),
-            8765,
+            port,
             "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
         )
         .unwrap();
         let codex_after = lao_codex::configure_worker(&codex_after, Path::new("/tmp/lao")).unwrap();
         let claude_mcp_after =
             lao_claude::configure_worker(Some(&claude_mcp), Path::new("/tmp/lao")).unwrap();
+        for path in [&paths.codex, &paths.claude, &paths.claude_mcp] {
+            if (client == ClientChoice::Claude && *path == paths.codex)
+                || (client == ClientChoice::Codex && *path != paths.codex)
+            {
+                fs::remove_file(path).unwrap();
+                std::os::unix::fs::symlink(temp.0.join("unselected"), path).unwrap();
+            }
+        }
         let transaction = Transaction::prepare(
             &paths,
-            8765,
-            &codex_after,
-            &claude_after,
-            &claude_mcp_after,
+            port,
+            (client != ClientChoice::Claude).then_some(codex_after.as_slice()),
+            (client != ClientChoice::Codex).then_some(claude_after.as_slice()),
+            (client != ClientChoice::Codex).then_some(claude_mcp_after.as_slice()),
             Router::Semantic,
             None,
         )
@@ -2008,9 +2266,114 @@ mod tests {
     }
 
     #[test]
+    fn single_client_install_and_off_leave_unselected_files_untouched() {
+        for client in [ClientChoice::Codex, ClientChoice::Claude] {
+            let temp = Temp::new();
+            let (paths, mut transaction, codex, claude, _) = prepared(&temp, client, 8765);
+            transaction.apply().unwrap();
+            let mut transaction = Transaction::load(&paths.state).unwrap();
+            transaction.validate_installed().unwrap();
+            let current_codex = transaction.validate_codex().unwrap();
+            let current_claude = transaction.validate_claude().unwrap();
+            let keys =
+                managed_callers(current_codex.as_deref(), current_claude.as_deref(), 8765).unwrap();
+            assert_eq!(keys.0.is_some(), client == ClientChoice::Codex);
+            assert_eq!(keys.1.is_some(), client == ClientChoice::Claude);
+            assert!(client.matches(
+                transaction.record.codex.is_some(),
+                transaction.record.claude.is_some()
+            ));
+            assert!(!ClientChoice::Both.matches(
+                transaction.record.codex.is_some(),
+                transaction.record.claude.is_some()
+            ));
+            transaction.restore().unwrap();
+            transaction.finish_restore().unwrap();
+            for (path, original, selected, snapshot) in [
+                (
+                    &paths.codex,
+                    &codex,
+                    client == ClientChoice::Codex,
+                    CODEX_BEFORE,
+                ),
+                (
+                    &paths.claude,
+                    &claude,
+                    client == ClientChoice::Claude,
+                    CLAUDE_BEFORE,
+                ),
+            ] {
+                if selected {
+                    assert_eq!(fs::read(path).unwrap(), *original);
+                } else {
+                    assert_eq!(fs::read_link(path).unwrap(), temp.0.join("unselected"));
+                    assert!(!paths.state.join(snapshot).exists());
+                }
+            }
+            if client == ClientChoice::Codex {
+                assert_eq!(
+                    fs::read_link(&paths.claude_mcp).unwrap(),
+                    temp.0.join("unselected")
+                );
+                assert!(!paths.state.join(CLAUDE_MCP_BEFORE).exists());
+            }
+            transaction.discard().unwrap();
+        }
+    }
+
+    #[test]
+    fn single_client_failure_rolls_back_and_invalid_records_fail_closed() {
+        for client in [ClientChoice::Codex, ClientChoice::Claude] {
+            let temp = Temp::new();
+            let (paths, mut transaction, codex, claude, _) = prepared(&temp, client, 8765);
+            assert!(
+                transaction
+                    .apply_with(|index, entry, bytes| {
+                        if index == 0 || index == 2 {
+                            Err(io::Error::other("induced failure"))
+                        } else {
+                            write_entry(entry, bytes)
+                        }
+                    })
+                    .is_err()
+            );
+            let (path, original) = if client == ClientChoice::Codex {
+                (&paths.codex, codex)
+            } else {
+                (&paths.claude, claude)
+            };
+            assert_eq!(fs::read(path).unwrap(), original);
+            let missing = if client == ClientChoice::Codex {
+                CODEX_AFTER
+            } else {
+                CLAUDE_MCP_AFTER
+            };
+            fs::remove_file(paths.state.join(missing)).unwrap();
+            assert!(
+                transaction
+                    .apply_with(|_, _, _| panic!("must read all snapshots before writes"))
+                    .is_err()
+            );
+            assert!(paths.state.join(RECORD).is_file());
+            transaction.record.codex = None;
+            transaction.record.claude = None;
+            write_record(&paths.state, &transaction.record).unwrap();
+            assert!(Transaction::load(&paths.state).is_err());
+        }
+    }
+
+    #[test]
     fn settings_install_and_off_are_exact_and_conflict_aware() {
         let temp = Temp::new();
-        let (paths, mut transaction, codex, claude, _claude_mcp) = prepared(&temp);
+        let (paths, _, codex, claude, _claude_mcp) = prepared(&temp, ClientChoice::Both, 8765);
+        let persisted: serde_json::Value =
+            serde_json::from_slice(&fs::read(paths.state.join(RECORD)).unwrap()).unwrap();
+        assert!(
+            persisted["codex"].is_object()
+                && persisted["claude"].is_object()
+                && persisted["claude_mcp"].is_object()
+        );
+        let mut transaction = Transaction::load(&paths.state).unwrap();
         let _lock = Lock::acquire(&paths.state).unwrap();
         assert!(Lock::acquire(&paths.state).is_err());
         transaction.apply().unwrap();
@@ -2023,7 +2386,7 @@ mod tests {
         fs::write(&paths.claude, b"user edit").unwrap();
         assert!(transaction.restore().is_err());
         write_entry(
-            &transaction.record.claude,
+            transaction.record.claude.as_ref().unwrap(),
             &fs::read(paths.state.join(CLAUDE_AFTER)).unwrap(),
         )
         .unwrap();
@@ -2044,7 +2407,8 @@ mod tests {
     fn failure_at_either_client_write_restores_both_originals() {
         for boundary in 0..=2 {
             let temp = Temp::new();
-            let (paths, mut transaction, codex, claude, claude_mcp) = prepared(&temp);
+            let (paths, mut transaction, codex, claude, claude_mcp) =
+                prepared(&temp, ClientChoice::Both, 8765);
             let result = transaction.apply_with(|index, entry, bytes| {
                 if index == boundary {
                     Err(io::Error::other("induced write failure"))
@@ -2062,7 +2426,7 @@ mod tests {
     #[test]
     fn off_preserves_unrelated_client_edits() {
         let temp = Temp::new();
-        let (paths, mut transaction, _, _, _) = prepared(&temp);
+        let (paths, mut transaction, _, _, _) = prepared(&temp, ClientChoice::Both, 8765);
         transaction.apply().unwrap();
 
         let mut codex = fs::read_to_string(&paths.codex).unwrap();
@@ -2094,7 +2458,7 @@ mod tests {
         ] {
             write_atomic(&paths.state.join(name), bytes, 0o600).unwrap();
         }
-        let claude_mcp = transaction.claude_mcp_restore().unwrap();
+        let claude_mcp = transaction.claude_mcp_restore().unwrap().unwrap();
         write_atomic(
             &paths.state.join(CLAUDE_MCP_RESTORE_FROM),
             claude_mcp.current.as_deref().unwrap(),
@@ -2108,7 +2472,7 @@ mod tests {
         )
         .unwrap();
         transaction.phase(Phase::Restoring).unwrap();
-        write_entry(&transaction.record.codex, &codex_restored).unwrap();
+        write_entry(transaction.record.codex.as_ref().unwrap(), &codex_restored).unwrap();
         transaction.finish_restore().unwrap();
         transaction.phase(Phase::Restored).unwrap();
         let codex = fs::read_to_string(&paths.codex).unwrap();
@@ -2147,14 +2511,14 @@ mod tests {
         let codex = lao_codex::configure(None, 8765, codex_caller, "/tmp/models.json").unwrap();
         let claude = lao_claude::configure(None, 8765, claude_caller).unwrap();
         assert_eq!(
-            managed_callers(&codex, &claude, 8765).unwrap(),
-            (codex_caller.into(), claude_caller.into())
+            managed_callers(Some(&codex), Some(&claude), 8765).unwrap(),
+            (Some(codex_caller.into()), Some(claude_caller.into()))
         );
 
         let changed = String::from_utf8(codex)
             .unwrap()
             .replace("LAO_LOCAL_SELECTOR", "UNMANAGED_SELECTOR");
-        assert!(managed_callers(changed.as_bytes(), &claude, 8765).is_err());
+        assert!(managed_callers(Some(changed.as_bytes()), Some(&claude), 8765).is_err());
     }
 
     #[test]
@@ -2166,6 +2530,7 @@ mod tests {
         let choice = Choice {
             router: Router::VllmSemantic,
             runtime: Runtime::External,
+            client: ClientChoice::Claude,
         };
         assert_eq!(
             parse(
@@ -2175,6 +2540,8 @@ mod tests {
                     "vllm-semantic",
                     "--runtime",
                     "external",
+                    "--client",
+                    "claude",
                 ]
                 .map(OsString::from)
                 .into_iter()
@@ -2201,8 +2568,8 @@ mod tests {
                 }),
             };
             let clients = Clients {
-                codex: temp.0.join("codex"),
-                claude: temp.0.join("claude"),
+                codex: None,
+                claude: Some(temp.0.join("claude")),
                 cloud: "chatgpt",
             };
             let bytes = plist(
@@ -2216,7 +2583,7 @@ mod tests {
             )
             .unwrap();
             for expected in [
-                "<key>LAO_CODEX_CATALOG</key>",
+                "<key>LAO_CLAUDE_BIN</key>",
                 "<key>LAO_ROUTER</key><string>vllm-semantic</string>",
                 "<key>LAO_RUNTIME</key><string>external</string>",
                 "<key>LAO_VLLM_ROUTER_ADDR</key><string>127.0.0.1:8080</string>",
@@ -2232,6 +2599,7 @@ mod tests {
             ] {
                 assert!(bytes.contains(expected));
             }
+            assert!(!bytes.contains("LAO_CODEX_"));
             assert!(!bytes.contains("LAO_MODEL_DIR"));
             assert!(!bytes.contains("LAO_LLAMA_SERVER"));
         }
@@ -2243,6 +2611,8 @@ mod tests {
             vec!["preview", "--router"],
             vec!["install", "--router", "unknown"],
             vec!["install", "--runtime", "unknown"],
+            vec!["install", "--client", "unknown"],
+            vec!["install", "--client", "codex", "--client", "claude"],
             vec!["preview", "--router", "safe", "--router", "safe"],
             vec!["off", "--runtime", "llama-cpp"],
         ] {
@@ -2256,6 +2626,20 @@ mod tests {
                     OsString::from_vec(vec![0xff]),
                 ]
                 .into_iter()
+            )
+            .is_err()
+        );
+        assert!(
+            require_flags(
+                "  -c, --config <value>\n --ephemeral\n",
+                &["--config", "--ephemeral"]
+            )
+            .is_ok()
+        );
+        assert!(
+            require_flags(
+                "--ephemeral-disabled\n description mentions --ephemeral",
+                &["--ephemeral"]
             )
             .is_err()
         );

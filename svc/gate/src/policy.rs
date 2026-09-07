@@ -193,9 +193,11 @@ pub(super) fn admit<B>(mut request: Request<B>, gate: &Gate) -> Result<Option<Ta
         Client::Claude => &gate.claude,
         Client::Worker => &gate.worker,
     };
-    if !one(request.headers(), "x-lao-key", |value| {
-        constant_time(value, key)
-    }) {
+    if *key == [0; 64]
+        || !one(request.headers(), "x-lao-key", |value| {
+            constant_time(value, key)
+        })
+    {
         return Err(deny("caller"));
     }
     request.headers_mut().remove("x-lao-key");
@@ -500,6 +502,15 @@ mod tests {
         ] {
             assert!(admit(request(Method::POST, "/oai/responses", &headers), &gate()).is_err());
         }
+        let mut disabled = gate();
+        disabled.codex = [0; 64];
+        assert!(
+            admit(
+                request(Method::POST, "/oai/responses", &[("X-LAO-Key", OAI_KEY)]),
+                &disabled
+            )
+            .is_err()
+        );
         let mut bad_host = request(Method::POST, "/oai/responses", &[("X-LAO-Key", OAI_KEY)]);
         bad_host
             .headers_mut()

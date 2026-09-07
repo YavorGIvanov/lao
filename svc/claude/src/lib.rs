@@ -5,13 +5,14 @@ use std::{error::Error, fmt, path::Path};
 pub const OBSERVED: Version = Version(2, 1, 251);
 const WORKER_PERMISSION: &str = "mcp__lao__execute";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Version(pub u16, pub u16, pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Support {
     Observed,
     Untested,
+    Outdated,
     Invalid,
 }
 
@@ -61,7 +62,8 @@ pub fn support(output: &str) -> Support {
         .unwrap_or_default();
     match parse(raw) {
         Some(version) if version == OBSERVED => Support::Observed,
-        Some(_) => Support::Untested,
+        Some(version) if version > OBSERVED => Support::Untested,
+        Some(_) => Support::Outdated,
         None => Support::Invalid,
     }
 }
@@ -369,6 +371,7 @@ mod tests {
     fn owns_support_window() {
         assert_eq!(support("2.1.251 (Claude Code)"), Support::Observed);
         assert_eq!(support("2.1.252 (Claude Code)"), Support::Untested);
+        assert_eq!(support("2.1.250 (Claude Code)"), Support::Outdated);
         assert_eq!(support("dev"), Support::Invalid);
     }
 

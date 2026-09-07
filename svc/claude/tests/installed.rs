@@ -59,10 +59,10 @@ fn installed_claude_contract_opt_in() {
     let temp = Temp::new();
     let version = run(isolated(&binary, &temp).arg("--version"));
     assert!(version.status.success());
-    assert_eq!(
+    assert!(matches!(
         support(&String::from_utf8(version.stdout).unwrap()),
-        Support::Observed
-    );
+        Support::Observed | Support::Untested
+    ));
 
     let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -83,11 +83,7 @@ fn installed_claude_contract_opt_in() {
     ]));
     let (head, post) = server.join().unwrap();
 
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert!(output.status.success(), "isolated client request failed");
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
     assert_eq!(stdout.trim(), "ok");
@@ -150,11 +146,8 @@ fn run(command: &mut Command) -> Output {
         thread::sleep(Duration::from_millis(20));
     }
     child.kill().unwrap();
-    let output = child.wait_with_output().unwrap();
-    panic!(
-        "Claude timed out: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let _ = child.wait_with_output().unwrap();
+    panic!("isolated client timed out");
 }
 
 fn serve(listener: TcpListener) -> (Request, Request) {

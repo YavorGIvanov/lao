@@ -4,13 +4,14 @@ use std::{error::Error, fmt, path::Path};
 pub const OBSERVED: Version = Version(0, 151, 0);
 pub const DELEGATION_INSTRUCTIONS: &str = "Delegate one small mechanical implementation to lao.execute before editing when you can name every writable path. Call it once with a bounded objective and exact repository-relative paths. If it returns Cloud, continue yourself. If Local completes, review changed paths and verify without repeating the edit. Keep planning, broad, ambiguous, security-sensitive, or multi-area work in this cloud harness.";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Version(pub u16, pub u16, pub u16);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Support {
     Observed,
     Untested,
+    Outdated,
     Invalid,
 }
 
@@ -67,7 +68,8 @@ pub fn status() -> Status {
 pub fn support(output: &str) -> Support {
     match output.trim().strip_prefix("codex-cli ").and_then(parse) {
         Some(version) if version == OBSERVED => Support::Observed,
-        Some(_) => Support::Untested,
+        Some(version) if version > OBSERVED => Support::Untested,
+        Some(_) => Support::Outdated,
         None => Support::Invalid,
     }
 }
@@ -364,7 +366,8 @@ mod tests {
     #[test]
     fn owns_support_window() {
         assert_eq!(support("codex-cli 0.151.0\n"), Support::Observed);
-        assert_eq!(support("codex-cli 0.152.0"), Support::Untested);
+        assert_eq!(support("codex-cli 0.153.4"), Support::Untested);
+        assert_eq!(support("codex-cli 0.150.0"), Support::Outdated);
         assert_eq!(support("codex 0.151.0"), Support::Invalid);
     }
 

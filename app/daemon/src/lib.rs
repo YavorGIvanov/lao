@@ -44,10 +44,15 @@ pub fn run() -> Result<(), Box<dyn Error + Send + Sync>> {
             let port = listener.local_addr()?.port();
             let codex = caller("LAO_CODEX_CALLER")?;
             let claude = caller("LAO_CLAUDE_CALLER")?;
+            if codex == [0; 64] && claude == [0; 64] {
+                return Err("no installed clients".into());
+            }
             let worker = caller_file("LAO_WORKER_KEY_FILE")?;
-            let codex_cloud = match env::var("LAO_CODEX_CLOUD").as_deref() {
-                Ok("openai") => lao_gate::CodexCloud::Api,
-                Ok("chatgpt") => lao_gate::CodexCloud::ChatGpt,
+            let codex_cloud = match (codex == [0; 64], env::var("LAO_CODEX_CLOUD").as_deref()) {
+                (true, Err(env::VarError::NotPresent)) | (false, Ok("openai")) => {
+                    lao_gate::CodexCloud::Api
+                }
+                (false, Ok("chatgpt")) => lao_gate::CodexCloud::ChatGpt,
                 _ => return Err("LAO_CODEX_CLOUD".into()),
             };
             let local = runtime()?;
@@ -129,22 +134,38 @@ fn warm(
     claude: [u8; 64],
     optimizer: lao_optimize::Optimizer,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let codex_bin = env::var_os("LAO_CODEX_BIN").ok_or("LAO_CODEX_BIN")?;
-    let codex_catalog = env::var_os("LAO_CODEX_CATALOG").ok_or("LAO_CODEX_CATALOG")?;
-    let claude_bin = env::var_os("LAO_CLAUDE_BIN").ok_or("LAO_CLAUDE_BIN")?;
-    let codex = String::from_utf8(codex.to_vec())?;
-    let claude = String::from_utf8(claude.to_vec())?;
+    let codex = if codex == [0; 64] {
+        None
+    } else {
+        Some((
+            env::var_os("LAO_CODEX_BIN").ok_or("LAO_CODEX_BIN")?,
+            env::var_os("LAO_CODEX_CATALOG").ok_or("LAO_CODEX_CATALOG")?,
+            String::from_utf8(codex.to_vec())?,
+        ))
+    };
+    let claude = if claude == [0; 64] {
+        None
+    } else {
+        Some((
+            env::var_os("LAO_CLAUDE_BIN").ok_or("LAO_CLAUDE_BIN")?,
+            String::from_utf8(claude.to_vec())?,
+        ))
+    };
     let plan = Plan::new(
-        move || lao_optimize::claude(claude_bin, port, &claude).map(|_| ()),
-        move || {
-            lao_optimize::codex(
-                codex_bin,
-                codex_catalog,
+        move || match claude {
+            Some((bin, caller)) => lao_optimize::claude(bin, port, &caller).map(|_| ()),
+            None => Ok(()),
+        },
+        move || match codex {
+            Some((bin, catalog, caller)) => lao_optimize::codex(
+                bin,
+                catalog,
                 port,
-                &codex,
+                &caller,
                 lao_codex::DELEGATION_INSTRUCTIONS,
             )
-            .map(|_| ())
+            .map(|_| ()),
+            None => Ok(()),
         },
     );
     optimizer.start(plan)?;
@@ -250,7 +271,13 @@ fn evict(endpoint: &Arc<Endpoint>, pressure: bool) -> bool {
 }
 
 fn caller(name: &str) -> Result<[u8; 64], Box<dyn Error + Send + Sync>> {
-    let value = env::var(name)?;
+    let value = match env::var(name) {
+        Ok(value) if value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()) => {
+            value
+        }
+        Err(env::VarError::NotPresent) => return Ok([0; 64]),
+        _ => return Err(name.into()),
+    };
     value
         .as_bytes()
         .try_into()

@@ -27,6 +27,18 @@ sh "$bundle/install.sh" >"$stage/repeat.log"
 grep -q 'usage: lao' "$stage/cli.log"
 printf 'PASS: prebuilt install and repeat install without source tooling; CLI starts\n'
 
+printf 'local-test-key' >"$stage/runtime.key"
+for client in codex claude; do
+    mkdir "$stage/$client"
+    ln -s /usr/bin/false "$stage/$client/$client"
+    PATH="$stage/$client:$PATH" LAO_EXTERNAL_ADDR=127.0.0.1:9999 LAO_EXTERNAL_KEY_FILE="$stage/runtime.key" \
+        "$LAO_BIN_DIR/lao" preview --router safe --runtime external >"$stage/preview.log"
+    if [ "$client" = codex ]; then selected=Codex; unselected=Claude; else selected=Claude; unselected=Codex; fi
+    grep -q "$selected settings:" "$stage/preview.log"
+    if grep -q "$unselected settings:" "$stage/preview.log"; then exit 1; fi
+done
+printf 'PASS: CLI auto-detects either harness with the other absent from PATH\n'
+
 printf '\ncorrupt\n' >>"$bundle/bin/lao-daemon"
 if sh "$bundle/install.sh" >"$stage/corrupt.log" 2>&1; then
     exit 1

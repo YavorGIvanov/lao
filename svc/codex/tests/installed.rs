@@ -15,16 +15,16 @@ const CALLER: &str = "codex-caller-sentinel";
 const SSE: &str = concat!(include_str!("fixtures/response.sse"), "\n");
 
 #[test]
-#[ignore = "opt-in probe for installed Codex 0.151.0"]
+#[ignore = "opt-in installed Codex contract; synthetic credential and loopback gateway only"]
 fn installed_codex_custom_provider_keeps_native_and_caller_auth_separate() {
     let home = Temp::new();
     let bin = std::env::var_os("LAO_CODEX_BIN").unwrap_or_else(|| "codex".into());
     let version = run(isolated(&bin, &home.0).arg("--version"), None);
     assert!(version.status.success());
-    assert_eq!(
+    assert!(matches!(
         support(&String::from_utf8_lossy(&version.stdout)),
-        Support::Observed
-    );
+        Support::Observed | Support::Untested
+    ));
     assert_clean(&version);
 
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -41,11 +41,7 @@ fn installed_codex_custom_provider_keeps_native_and_caller_auth_separate() {
         isolated(&bin, &home.0).args(["login", "--with-api-key"]),
         Some(KEY),
     );
-    assert!(
-        login.status.success(),
-        "{}",
-        String::from_utf8_lossy(&login.stderr)
-    );
+    assert!(login.status.success(), "isolated synthetic login failed");
     assert_clean(&login);
     let status = run(isolated(&bin, &home.0).args(["login", "status"]), None);
     assert!(status.status.success());
@@ -54,7 +50,7 @@ fn installed_codex_custom_provider_keeps_native_and_caller_auth_separate() {
         String::from_utf8_lossy(&status.stdout),
         String::from_utf8_lossy(&status.stderr)
     );
-    assert_eq!(auth(&status_text), Auth::ApiKey, "{status_text}");
+    assert_eq!(auth(&status_text), Auth::ApiKey);
     assert_clean(&status);
 
     let (sent, received) = mpsc::channel();
@@ -76,11 +72,7 @@ fn installed_codex_custom_provider_keeps_native_and_caller_auth_separate() {
         ]),
         None,
     );
-    assert!(
-        output.status.success(),
-        "{}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    assert!(output.status.success(), "isolated client request failed");
     assert!(String::from_utf8_lossy(&output.stdout).contains("LAO_P0_02_OK"));
     assert_clean(&output);
 
@@ -249,11 +241,8 @@ fn run(command: &mut Command, input: Option<&str>) -> Output {
         thread::sleep(Duration::from_millis(20));
     }
     child.kill().unwrap();
-    let output = child.wait_with_output().unwrap();
-    panic!(
-        "command timed out: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    let _ = child.wait_with_output().unwrap();
+    panic!("isolated client timed out");
 }
 
 struct Temp(PathBuf);
