@@ -5,7 +5,7 @@
 Retain the working proof and earn the next claim: useful local work with independently verified outcomes and a measured total cost in time and resources.
 
 ```text
-Codex + Claude Code → LAO gate → conservative router → llama.cpp or native cloud
+Codex / Claude Code → LAO gate → conservative router → llama.cpp or native cloud
 
 Codex / Claude planner → one MCP work packet → semantic router → Cloud or OpenCode → local runtime
 ```
@@ -13,17 +13,6 @@ Codex / Claude planner → one MCP work packet → semantic router → Cloud or 
 The user keeps each coding harness and its existing login. Cloud remains the default. Stage 1 proved one explicit canary; R2 permits one narrow text request to route automatically; R4 lets the cloud harness delegate one bounded implementation packet to a real local agent. Each packet is routed independently. Unsupported, risky, or ambiguous work stays Cloud. `lao off` restores the original client configuration even if the daemon is unavailable.
 
 Stage 1 targeted this 24 GiB Apple M4 Mac and is complete. The historical S1/R1–R7 ledger below records that proof, not the final router, catalog, evaluator, or cross-platform release. The next steps are ordered below; a deferred contract is not current functionality.
-
-## Rules
-
-- Follow [AGENTS.md](AGENTS.md) and the [README manifesto](README.md).
-- Build one vertical slice. Add nothing that it does not exercise.
-- Use real Codex, Claude Code, llama.cpp, and saved-login paths when the check is safe and cheap.
-- Never read or copy a harness credential.
-- Keep cloud as the default until local fit and protocol behavior are proven.
-- Keep every noncritical component as a disabled draft.
-- Finish every task with focused adversarial review and simplification.
-- Keep [architecture.html](architecture.html), this plan, the README, and the [product architecture](PRODUCT_VISION_AND_ARCHITECTURE.md) consistent.
 
 ## Next steps
 
@@ -45,7 +34,7 @@ The next release is a limited Apple Silicon Mac beta with a measured useful task
 
 Status: complete (2026-09-06), offline tooling and synthetic evidence only.
 
-Scope of this repository update: implement contributor tooling to validate an already collected, sanitized paired pilot report. Keep it out of the daemon and disabled evaluation services. Reuse the existing `xtask` dependencies; add no framework or model download.
+The contributor-only `xtask evidence` command validates sanitized paired reports offline; it does not activate the daemon or evaluation services.
 
 Acceptance:
 
@@ -62,10 +51,7 @@ Current evidence:
 
 - `cargo xtask evidence docs/benchmarks/example.json` accepts the documented synthetic pairs and reports baseline 2/2, candidate 1/2 and a 1,500 ms candidate median. These are invented test values, not a performance result.
 - The main case proves that worker completion cannot replace independent verifier/scope success; the integrity case rejects missing pairs and observed-version drift. A real CLI failure check also rejects drift without echoing supplied content.
-- The original evidence run passed all 12 focused `xtask` tests and strict focused Clippy, plus 83 workspace tests with 11 opt-in tests skipped. Strict workspace Clippy, the 33-package architecture guard, extraction/conformance, formatting and diff hygiene also passed. These counts precede integration with the R7 sandbox branch; builds used at most two jobs.
-- Independent benchmark-contract review found no code blocker. The parent reviewed trust and architecture: the command has bounded input, sanitized errors, no subprocess/model execution, no service-state access and no new dependency; it cannot authenticate a report or promote a model. The simplification pass retained the existing service seams and removed no exercised protections.
-- README, architecture map, product vision and this plan now share the same boundary. Local links/anchors and HTML IDs were checked. A fresh browser render was unavailable because the computer-use environment exposed no browser; no new visual QA is claimed.
-- No new installed-client, inference-engine, private-capture or paid-cloud benchmark ran. Historical R1–R7 measurements remain tied to their original configurations. R9–R11 remain planned work, not completed evidence.
+- Focused integrity tests, strict workspace Clippy, architecture checks and extraction/conformance passed. No installed-client, inference, capture or cloud campaign ran for R8. Historical R1–R7 measurements retain their original configurations.
 
 ### R9 — Measure the whole bounded task
 
@@ -133,7 +119,7 @@ Offline evidence includes single-client restore/rollback with unreadable unselec
 
 Reproduce the local lifecycle after building `lao-daemon`: `cargo test -p lao-cli --lib each_harness_warms_smokes_and_restores_independently --jobs 2 -- --ignored --nocapture`. Set `LAO_TEST_DAEMON` to an extracted archive's daemon to test that artifact. Cached model/runtime, supported CLI capabilities and the public Codex model catalog are prerequisites. The test consumes local resources; it does not read harness credential stores or alter the active service.
 
-Support Codex-only, Claude-only and both-client installations. Detect and change only the selected installed harnesses; an absent second client is not an error. Existing supported settings survive installation and upgrade. Conflicts in owned settings stop safely and explain a concrete recovery action without printing secrets.
+Existing supported settings must survive installation and upgrade. Conflicts in owned settings must stop safely and explain recovery without printing secrets.
 
 Acceptance: fresh-machine install, interrupted download/setup, repeat install, version upgrade, failed-upgrade rollback, `off` and full removal all work. Native harness use and unrelated settings survive failures; no orphan process/listener or repeated permission prompts remain. Document what off retains in cache and what full removal deletes. Keep status and troubleshooting content-free; add no telemetry or auto-updater framework merely to pass this milestone.
 
@@ -171,7 +157,7 @@ Only these components are active in the current proof:
 |---|---|
 | `svc/codex`, `svc/claude` | supported client detection and exact settings transaction |
 | `svc/gate` | local caller check, credential isolation, protocol ingress and exact egress |
-| `svc/route` | cloud-safe decision; one explicit local canary |
+| `svc/route` | conservative semantic routing for narrow text and bounded packets; explicit canary |
 | `svc/run` | Apple fit guard and one owned llama.cpp child |
 | `svc/model` | one immutable artifact record and verified local file |
 | `svc/optimize` | single-flight background harness warming and non-secret readiness state |
@@ -181,11 +167,11 @@ Only these components are active in the current proof:
 
 The matching `api/*` packages remain the semantic boundaries. Services never import sibling implementations; applications wire them.
 
-`capture`, `vault`, `eval`, `train`, their workers, generic local RPC, and future backends remain untouched disabled drafts. Do not finalize or expand them in Stage 1.
+`capture`, `vault`, `eval`, `train`, their workers, and generic local RPC remain disabled drafts. Additional backends and personal evidence services follow the release gates above.
 
 ## Proof ledger
 
-Already proven and retained:
+Historical Stage 1 baseline (2026-08-30); later routing and installation changes are recorded separately:
 
 - the package-boundary skeleton and architecture checker;
 - streaming/keep-alive transport prototype;
@@ -197,7 +183,7 @@ Already proven and retained:
 - pinned llama.cpp supervision with a private loopback bearer, real Qwen output, stop, and port reuse;
 - one immutable Qwen artifact record, exact cached-file verification, and a read-only `lao preview`.
 
-Stage 1 exit evidence now also includes the clean installed local/cloud/restart/off acceptance run on the supported Mac.
+The clean installed local/cloud/restart/off acceptance run completed this baseline on the test Mac.
 
 ## Stage 1 tasks
 
@@ -380,29 +366,17 @@ Current evidence:
 
 Status: complete (2026-08-30).
 
-- Read the manifesto again.
-- Remove unused types, options, tests, dependencies, prose, and indirection.
-- Keep only evidence that protects a Stage 1 requirement.
-- Run formatting, focused and workspace tests, Clippy with warnings denied, `cargo xtask check`, `cargo xtask extract`, and `git diff --check`.
-- Update all four living documents together.
-- Commit as `YavorGIvanov <yavorgenadiev@gmail.com>` with no other author or coauthor.
-
-Current evidence:
-
-- the final pass removed the unimplemented `doctor` claim and retained only exercised CLI operations;
-- `lao status` reports service and per-client readiness without exposing configuration values, caller capabilities, or credentials;
-- formatting, all workspace tests, workspace Clippy with warnings denied, the architecture check, extraction/conformance, and diff hygiene pass;
-- README status, the visual architecture map, the product architecture, and this plan describe the same Stage 1 boundary and evidence.
+The final pass removed the unimplemented `doctor` claim. `lao status` exposed service and per-client readiness without configuration values, capabilities or credentials. Workspace tests, strict Clippy, architecture checks, extraction/conformance and formatting passed.
 
 ## Stage 1 exit gate
 
-Stage 1 is complete only when a new user on the supported Mac can:
+The completed Stage 1 acceptance path on the test Mac was:
 
 ```text
 install once → keep using Codex or Claude → use cloud normally → request one local canary → turn LAO off cleanly
 ```
 
-The result must use saved harness authentication without LAO reading the real token, keep local inference within Light mode, and restore both clients exactly.
+It used saved harness authentication without LAO reading the real token, kept local inference within Light mode, and restored both clients exactly. Fresh-Mac release certification remains R12 work.
 
 ## R1 — Safe runtime residency
 
@@ -560,9 +534,7 @@ Changes:
 - remove the session input/output fields, resume flag, session-ID validation, and recursive output search;
 - create owner-only temporary worker state per call, cleaned on normal success, failure, or timeout; retain binary/config verification and the serial turn guard;
 - reject wildcard paths and backslashes: filenames must not expand into OpenCode permission patterns or be silently rewritten;
-- replace continuation evidence with two independent turns through one worker object, state cleanup on success and failure, stale MCP session rejection, and exact-path rejection;
-- rebuild the human architecture map around the two current flows, process/state ownership, failure behavior, and evidence limits;
-- clarify task completion, approval boundaries, bounded delegation and verification while retaining the manifesto, consent rules, API boundaries, cloud default, and proportional testing.
+- replace continuation evidence with two independent turns through one worker object, state cleanup on success and failure, stale MCP session rejection, and exact-path rejection.
 
 Retained deliberately: disabled strategic stubs are already tiny; runtime leases, pressure checks, install rollback, credential isolation, and pinned support-tree checks protect exercised requirements. Removing them would reduce safety or erase useful architectural seams. No new framework, dependency, backend, or automation was added.
 
@@ -570,7 +542,6 @@ Evidence and limits:
 
 - focused tests passed before and after editing; 81 workspace tests passed with 11 opt-in tests skipped, strict workspace Clippy passed, all 33 packages passed the architecture guard, and extraction/conformance, formatting, and diff hygiene passed;
 - the existing installed worker fixture passed in 18.89 seconds using the changed source: the broad control stayed Cloud, the Local packet changed only `word.txt`, and the independent verifier passed; historical Codex/Claude natural-handoff timings remain historical;
-- architecture link targets and section IDs passed validation; desktop and mobile renders were visually reviewed;
 - a delegated README edit in this review changed only its allowed file but returned `agent_failed`; independent diff review retained the correct edit. This is not a new successful worker benchmark;
 - at R6, OpenCode tool permissions were not an OS sandbox; R7 adds the supported-Mac boundary. Reported changed paths still cover the allowlist only, and parent verification remains required;
 - no net cloud-cost or quota reduction, broad task success rate, or untested model/harness compatibility is claimed.
@@ -595,7 +566,6 @@ Evidence and limits:
 - direct subprocess probes exercise actual OS denial of unlisted/outside/Git contents, support-tree writes, symlink and hardlink escapes, and another loopback port; allowed-file writes, private state, quoted path parameters, and gate access succeed;
 - 83 workspace tests passed with 11 opt-in tests skipped; focused worker/CLI checks, strict workspace Clippy, formatting, all 33 package architecture checks, and extraction/conformance passed;
 - the final installed worker fixture passed in 18.71 seconds using the changed source and real local OpenCode/Qwen: broad work stayed Cloud, only `word.txt` changed, and the independent verifier passed. No cloud model request or new natural-harness benchmark was involved;
-- the manifesto is byte-for-byte unchanged; architecture links and section IDs passed validation;
 - no unsandboxed fallback exists. Apple's deprecated tool and private system profile limit this evidence to the tested Mac; portable release hardening remains deferred;
 - metadata and top-level filenames are visible; this is a content boundary, not concealment of all host information. Existing directories are required for new files. Another unsandboxed same-user process racing filesystem changes is outside this proof;
 - failed workers may leave partial edits. Parent review and verification remain mandatory; no automatic retry, cloud spend, new backend, capture, or training was added.

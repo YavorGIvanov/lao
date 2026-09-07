@@ -1,41 +1,30 @@
 # Local Agent Optimizer
 
-Local Agent Optimizer is a working title for an open-source, nearly invisible layer between coding-agent clients and local or cloud models.
+Local Agent Optimizer (LAO) is an open-source layer that lets users keep Codex or Claude Code while a conservative router delegates bounded work to a local model. The cloud harness remains the planner and verifier; uncertain work stays Cloud.
 
-The product is intended to let people continue using Codex and Claude Code normally while it:
-
-- discovers what local model can run comfortably on their hardware;
-- routes a conservative subset of bounded tasks to that model;
-- preserves the native cloud path for difficult or risky work;
-- captures valuable, reproducible task evidence locally with consent;
-- evaluates new models against the user's own work; and
-- eventually supports explicitly authorized local-model personalization.
-
-This repository contains the research-backed product specification, implementation plan, architecture skeleton, and a working Apple Silicon proof. Codex or Claude can delegate a bounded work packet to LAO; the real semantic router kept the tested broad packet in Cloud and sent the tested narrow packet to OpenCode running Qwen3 locally. It does not yet contain production routing certification or signed release artifacts.
+This is a working Apple Silicon research proof. Local execution works, but faster tasks, better quality, and net savings have not been established. Signed distribution and release certification remain open; see the [release plan](IMPLEMENTATION_PLAN.md#next-steps).
 
 ## Install
 
-This is a research proof for supported Apple Silicon Macs. It detects Codex, Claude Code, or both on PATH and transactionally changes only those clients’ settings. It does not read or copy either harness's credential store. `lao off` restores unchanged settings exactly and preserves unrelated settings the clients add while LAO is installed; from Claude's mutable global state, it removes only LAO's entry.
+LAO detects Codex, Claude Code, or both on PATH and manages only the selected clients. It never reads or copies their credential stores.
 
-Clone the project, install the command, and let LAO finish setup:
+For a source installation, install Git and Rust with Cargo, then run:
 
 ```sh
 git clone https://github.com/YavorGIvanov/lao.git && cd lao && ./install.sh && lao install
 ```
 
-That is the whole setup. `lao install` detects the clients and machine, downloads and verifies the supported runtime and models, applies the client settings transactionally, starts the service, and warms the local path in the background. There are no separate runtime packages, model servers, versions, or prerequisite checks to manage. Unsupported configurations stop safely without overwriting existing settings. Partial installation rolls back; if recovery encounters a conflict, snapshots remain available for `lao off`.
+`lao install` checks machine fit, downloads verified runtime/model artifacts (about 2.7 GB initially), starts the service, applies settings transactionally, and warms the local path in the background. Unsupported configurations stop safely. Partial installation rolls back; recovery conflicts retain snapshots for `lao off`. Reinstallation verifies and reuses a healthy setup.
 
-To manage only one client when both are installed, use `lao install --client codex` or `lao install --client claude`; `--client both` requires both. An existing installation keeps its client selection across upgrades. To change that selection, run `lao off` first. Preview the selected settings with `lao preview --client codex` or `--client claude`.
+To manage one client when both are present, use `lao install --client codex` or `lao install --client claude`; `--client both` requires both. Upgrades retain the selection; run `lao off` before changing it. Inspect proposed settings with `lao preview --client codex` or `--client claude`.
 
-Codex 0.151.0 and Claude Code 2.1.251 are the minimum versions. Newer releases are admitted when their CLI preflight checks pass, including the flags LAO uses; they do not need a new version allowlist entry. Background local warming and `lao smoke` exercise the selected clients. A passed preflight is not certification of every future version or native-cloud behavior. Isolated local lifecycle and synthetic protocol checks passed on Codex 0.153.4 and Claude Code 2.1.251; see the [release evidence](IMPLEMENTATION_PLAN.md#r11--distribute-without-setup-barriers).
+Minimum versions are Codex 0.151.0 and Claude Code 2.1.251. Newer releases are admitted when CLI capability checks pass, without an allowlist update. Preflight does not certify future versions or native-cloud behavior. Local lifecycle and synthetic protocol checks passed on Codex 0.153.4 and Claude Code 2.1.251; see [compatibility evidence](IMPLEMENTATION_PLAN.md#r11--distribute-without-setup-barriers).
 
-Setup stops with a specific error when a prerequisite or existing configuration is unsupported. The verified Qwen3 model, MiniLM router, llama.cpp runtime, and OpenCode archive total 2,645,805,392 bytes, so allow about 2.7 GB on the first run. OpenCode's pinned support tree is capped at 80 MiB and accepted only when its lockfile and complete tree match the compiled SHA-256 digests.
-
-Prebuilt packaging is available for contributor testing: `sh package.sh` builds `target/release/lao-macos-arm64.tar.gz` on an Apple Silicon Mac. Extract that archive and run its `install.sh`, then the setup command it prints. The receiving machine needs no source checkout, Git, Rust, or Cargo. `sh test/install.sh` checks the actual archive in temporary install directories. These are unsigned research archives, not published releases: bundled checksums detect corruption, not publisher identity. Signing, notarization, dependency notices and upgrade/rollback certification remain release work.
+For contributor testing, `sh package.sh` builds `target/release/lao-macos-arm64.tar.gz` on Apple Silicon. Extract the archive, run its `install.sh`, and follow the printed setup command. The receiving Mac needs no source checkout, Git, Rust, or Cargo. These archives are unsigned and not published releases; checksums detect corruption, not publisher identity. Signing, notarization, dependency notices, and upgrade/rollback certification remain open.
 
 ## Normal use
 
-Keep using `codex` or `claude`. The cloud harness remains the planner and can call LAO's `execute` tool for a bounded implementation packet. On the tested Codex and Claude Code versions, an ordinary eligible edit is delegated without mentioning LAO. LAO routes each packet independently:
+Keep using `codex` or `claude` in your project. The harness can call LAO's `execute` tool for a bounded implementation packet:
 
 ```text
 Codex / Claude planner
@@ -45,45 +34,22 @@ LAO semantic router
    └─ Local → OpenCode → Qwen3 / llama.cpp
 ```
 
-The default is conservative: planning, broad changes, and uncertain work stay Cloud. Each Local packet starts with fresh disposable worker state. OpenCode tools may read and edit only the paths named by the planner; a macOS sandbox separately restricts repository content and TCP access. OpenCode keeps the local tool loop coherent; the cloud harness reviews the result and runs verification. The installed settings auto-approve only `lao.execute`, so this path does not ask for repeated MCP confirmations or grant general command access.
-
-Running the clone command and `lao install` again is safe. A healthy existing setup is verified and reused without downloading again, replacing its keys, or rewriting client settings.
-
-At any time, check the whole installed path without consuming a model request:
-
-```sh
-lao status
-```
-
-`LAO: ready` means the service is running and all selected clients are routed through LAO. `local cache: warming` becomes `local cache: ready` after the background canaries finish. Ordinary work is available immediately on the cloud-safe path while warming continues. No credential or configuration value is printed.
+Planning, broad changes, and uncertain work stay Cloud. Each Local packet gets fresh disposable state and exact file permissions, enforced by worker tools and a macOS sandbox. The harness must review the actual diff and verify the outcome, even if the worker reports completion. Installed settings auto-approve only `lao.execute`.
 
 ## Test the experience
 
-Open a new terminal in the repository where you already work and start Codex or Claude Code:
-
 ```sh
-cd /absolute/path/to/your/existing-project
-codex
-# or: claude
+lao status  # Service, selected clients, and local cache readiness; no model request
+lao smoke   # Selected harnesses and local model; sanitized pass/fail and elapsed time
 ```
 
-Use either harness normally. In both tested clients, a broad planning request stayed Cloud and an ordinary one-file correction routed through OpenCode and Qwen3. Uncertainty, unsupported work, and classifier failures stay Cloud; routing quality beyond these conservative cases is not yet certified.
-
-To check the selected harnesses and the local model with sanitized pass/fail output:
-
-```sh
-lao smoke
-```
-
-It prints only pass/fail and elapsed time. A warmed local canary completes in roughly two to four seconds on the tested Mac. Run `lao status` first if you want to see whether background warming has finished; it does not consume a model request.
-
-When finished—or immediately if a later check fails—restore the selected clients and stop LAO from any directory:
+Cloud work remains available while the local cache warms. To disable LAO and restore managed settings:
 
 ```sh
 lao off
 ```
 
-Codex and Claude may update their own unrelated settings while LAO is installed; `lao smoke` accepts those updates and `lao off` preserves them. LAO still refuses changes to the routing entries it owns. A successful `off` removes LAO's client changes and leaves no daemon, runtime process, listener, plist, optimizer state, runtime key, or log.
+This stops owned services, restores unchanged settings exactly, preserves unrelated client edits, and refuses conflicts in LAO-owned entries. Failed workers may leave edits: inspect them before retrying. See the [architecture map](architecture.html#failure-title) for trust boundaries and recovery limits.
 
 ## Manifesto
 
@@ -153,57 +119,28 @@ Codex and Claude may update their own unrelated settings while LAO is installed;
 
 ## Contributor workflow
 
-Start with [AGENTS.md](AGENTS.md) and the manifesto above. Use the [visual architecture map](architecture.html) to locate the running path and its owner, then read the relevant acceptance criteria in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The [product vision](PRODUCT_VISION_AND_ARCHITECTURE.md) describes the longer-term decisions; its deferred features are not an instruction to build them now.
+Read [AGENTS.md](AGENTS.md) for shared instructions and required checks, the [visual architecture map](architecture.html) to find code owners, and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for acceptance criteria. Any coding agent or harness can use the guide; supply it as repository context if it is not loaded automatically.
 
-Any coding agent or harness can use the shared instructions in [AGENTS.md](AGENTS.md). If your harness does not load that file automatically, supply it as repository context. Keep model-specific settings outside the shared guide.
-
-For Rust changes, run the closest tests first. API or dependency changes also require the workspace boundary checks:
-
-```sh
-cargo test --workspace -j 2
-cargo clippy --workspace --all-targets -j 2 -- -D warnings
-cargo xtask check
-CARGO_BUILD_JOBS=2 cargo xtask extract
-cargo fmt --all -- --check
-git diff --check
-```
-
-Installed-client and model tests are opt-in. `cargo test --workspace` does not establish new saved-login or installed-runtime evidence. Keep capture, eval, training, and extra backends disabled until their own acceptance work is authorized.
-
-## Current architectural decision
-
-The target trusted core is a small Rust daemon and CLI. llama.cpp remains the default C/C++ inference engine. Python is restricted to optional, isolated evaluation and training adapters.
-
-The project starts as a contract-first modular monorepo, not a monolith. Every strategic component is an independently buildable package with a versioned interface and private state; concrete components cannot import one another and are wired only by application composition roots. Hot-path packages may share the daemon process, while data-sensitive and lifecycle-heavy workers remain lazy and out of process. Components can move to separate repositories later without redesign when their release or ownership needs justify it.
-
-Implementation follows the manifesto above.
-
-The proof of concept is Apple Silicon-first, preserves the original Codex and Claude Code harnesses, defaults to cloud, and attempts only a small number of strongly bounded local tasks while it gathers verified evidence.
+The [product vision](PRODUCT_VISION_AND_ARCHITECTURE.md) explains longer-term decisions. Deferred features are not instructions to build them now. Installed-client and model tests remain opt-in; archive installation checks run with `sh test/install.sh`.
 
 ## Status
 
-The supported Apple Silicon proof has two working paths: native Responses/Messages requests through the private gate, and bounded MCP implementation packets through OpenCode. The gate authenticates callers before inspecting bodies, retains native credentials, and passes Cloud bodies unchanged. Automatic Local text requests receive a tool-free body containing only final user text and `lao-local`; delegated OpenCode calls use a separate authenticated local-only Chat Completions path.
+The proof supports native Responses/Messages traffic through a private credential gate and bounded MCP packets through OpenCode. The macOS worker sandbox has no unrestricted fallback, but uses deprecated `sandbox-exec` and is not portable release hardening.
 
-The recorded natural handoff proof used Codex 0.151.0 and Claude Code 2.1.251. Each delegated a one-file correction without an approval prompt; broad planning controls stayed Cloud. The runs took about 35 seconds in Codex and 26 seconds in Claude, with about 4.70 GiB loaded runtime RSS at a 16K context. These are individual proof measurements, not benchmarks or evidence of net cost savings.
+The [paired-evidence checker and public fixtures](docs/benchmarks/README.md) are implemented. R9b, the matched native-cloud versus LAO-hybrid full-workflow comparison, is the next evidence gate and needs an approved campaign scope and budget. Local canaries do not establish user benefit.
 
-Each Local packet uses fresh disposable state and a macOS process sandbox. Absolute paths, Git metadata, symlinks, hardlinked or special files, wildcard paths, and backslashes are rejected. Repository contents are limited to named files; TCP access is limited to the local gate port. Startup still permits filesystem metadata, top-level repository names, standard macOS support, and the verified worker support tree. The sandbox uses deprecated `sandbox-exec` and Apple's system profile: this is evidence for the tested Mac, not portable release hardening. A sandbox failure never starts an unrestricted worker.
+Capture, encrypted task storage, personal evaluation, and training remain disabled. Linux/Windows, NVIDIA/AMD, and additional certified engines follow the first Mac release. Current implementation and dated evidence belong in the [implementation plan](IMPLEMENTATION_PLAN.md).
 
-`complete` now requires a terminal stop event, no reported tool/session error, successful process exit, and an observed allowed-file change. A worker may still fail after editing, and execution status is not proof of correctness. The parent harness must review the actual diff and verify the requested outcome.
+## Advanced configuration
 
-Install/off transactions, runtime leases, bounded background warming, and pressure eviction remain in place. Capture, encrypted task storage, evaluation, training, signed packaging, API-key E2Es, and broader routing certification remain deferred. See the [proof ledger and current review](IMPLEMENTATION_PLAN.md#r7--worker-os-boundary-and-terminal-completion) for acceptance evidence and its limits.
+The default is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud; `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint.
 
-Contributor tooling validates [paired pilot evidence](docs/benchmarks/README.md), rejecting incomplete comparisons and configuration drift while keeping worker status separate from correctness. Run `cargo xtask evidence docs/benchmarks/example.json` for the **synthetic** checker example. R9a also supplies six public structured-file tasks with independent verification; its [first local diagnostic](docs/benchmarks/local-2026-09-06.md) verified two Local edits, retained four Cloud deferrals and passed the broad Cloud control. Full-workflow cloud/hybrid comparisons remain the next evidence step; no speed, quality or savings advantage is established.
-
-The path to the first Mac beta has four explicit [release gates](IMPLEMENTATION_PLAN.md#next-steps): prove task benefit, admit only useful Local task types, ship signed/notarized binaries for either harness independently, and certify an advertised Mac/client support matrix. Unsigned prebuilt archives remove the source-tool prerequisite, and either harness can be installed independently. Signed distribution and release lifecycle certification remain open. A small consent-based user beta follows those gates. Linux/Windows and NVIDIA/AMD support remain later platform implementations behind the existing APIs.
-
-Additional engine integrations and user selection are planned after the llama.cpp proof and first supported release. llama.cpp remains the default.
-
-The default `lao install` selection is `--router semantic --runtime llama-cpp`. `--router safe` keeps automatic work in Cloud, while `--router vllm-semantic` uses a user-managed vLLM Semantic Router decision endpoint. `--runtime external` only connects to a pre-existing protected IPv4-loopback endpoint. vLLM and SGLang are candidate implementations behind that API, not certified integrations: LAO does not install, probe, start, stop, or E2E-certify them yet.
-
-To select a running vLLM or SGLang server without giving LAO ownership of it:
+`--runtime external` connects to an existing protected IPv4-loopback endpoint:
 
 ```sh
 LAO_EXTERNAL_ADDR=127.0.0.1:8000 \
 LAO_EXTERNAL_KEY_FILE=/absolute/path/to/owner-only/runtime.key \
 lao install --runtime external
 ```
+
+LAO does not install or manage that server. vLLM and SGLang are candidate implementations behind this API, not certified integrations.

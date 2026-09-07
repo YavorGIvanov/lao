@@ -1,31 +1,14 @@
 # Local Agent Optimizer: Product Vision and System Architecture
 
-Research snapshot: 23–26 August 2026
-
-Status: Apple Silicon research proof; implementation reviewed 6 September 2026, roadmap reviewed 6 September 2026. This document preserves the product blueprint and labels future contracts. Use [architecture.html](architecture.html) for the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for dated evidence.
-
-Working title: Local Agent Optimizer
+Status: Apple Silicon research preview. This document owns the product blueprint and future contracts; [architecture.html](architecture.html) maps the current system and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) owns release gates and dated evidence.
 
 ## 1. Executive summary
 
-Local Agent Optimizer is an open-source, private performance-and-learning layer for coding agents. A user installs it once, continues launching Codex or Claude Code exactly as before, and receives a modest immediate benefit: a small, conservative subset of suitable work is served by a local model while difficult, risky, or unsupported work continues through the user's existing native cloud path.
+Local Agent Optimizer is an open-source, private performance-and-learning layer for coding agents. The intended benefit is to serve a small subset of suitable work locally while preserving Codex or Claude Code and the user's native cloud path for difficult, risky or unsupported work. Net user benefit remains unproven.
 
 The product then becomes more useful with evidence. With consent, it saves a small number of valuable and reproducible coding tasks, including their repository starting state and deterministic outcomes. Those tasks become a personal evaluation suite. When a new local or proprietary model appears, the product can replay an approved subset, compare verified results, and report whether the new model is actually better for this user, on this hardware, with this coding harness.
 
 Longer term, the same user-owned evidence can improve routing and, under explicit consent and strict provenance rules, support local LoRA or QLoRA adapters. The user should not need to follow model releases, quantization formats, inference flags, or benchmark methodology.
-
-The product should not be marketed as another model router. That category is crowded. Its durable value is the closed evidence loop:
-
-1. Measure the hardware and workload.
-2. Select and benchmark a safe local configuration.
-3. Divert only work that is likely to succeed.
-4. Observe verified outcomes without changing the user's harness.
-5. Preserve reproducible personal tasks.
-6. Evaluate model changes using those tasks.
-7. Improve recommendations and routing from evidence.
-8. Optionally personalize a local model using eligible user-owned data.
-
-The initial promise is intentionally modest: preserve the native experience, reduce cloud or quota consumption by at least a single-digit percentage, do not materially reduce task success, and learn enough to make later model decisions evidence-based.
 
 ## 2. Product thesis and candid assessment
 
@@ -45,22 +28,9 @@ The strongest user is a developer who already likes Codex or Claude Code, has us
 
 ### 2.2 Why a generic router is not enough
 
-Several active projects already provide gateways or routing. The August 2026 comparison uses them as conformance references, not runtime dependencies:
+Established gateways such as [Claude Code Router](https://github.com/musistudio/claude-code-router) and [LiteLLM](https://github.com/BerriAI/litellm) provide protocol and routing references. LAO's intended differentiation is native harness preservation, narrow credential ownership, hardware-aware local admission and a personal reproducible evaluation loop. Protocol translation and inference kernels remain replaceable infrastructure.
 
-| Project | Strength | Gap relative to this product |
-|---|---|---|
-| [Claude Code Router](https://github.com/musistudio/claude-code-router) | Broad Claude/Codex/provider routing, translation, profiles, UI | Large Node/Electron surface; broad credential reach and optional body logging are outside LAO's privacy target |
-| [LiteLLM](https://github.com/BerriAI/litellm) | Widest endpoint/provider coverage, tools, local providers, mature routing | Broad gateway, Python SDK, Rust core, and UI surface; its agent wrappers and virtual keys differ from LAO's native-account target |
-| [Codex Router](https://github.com/duolahypercho/codex-router) | Closest Codex precedent; native harness, HTTP/SSE, compact, local providers, rollback | Codex-specific JavaScript/Python stack; no personal evaluation loop or automatic difficulty routing |
-| [Bifrost](https://github.com/maximhq/bifrost) | Fast Go gateway, Responses/Messages/tools, Ollama, four-tier routing | Large enterprise surface; Codex requires a virtual key and content logging needs careful independent disabling |
-| [Portkey Gateway](https://github.com/Portkey-AI/gateway) | Mature provider gateway, governance, Responses/Messages streaming | API-key and hosted-observability model; no hardware orchestration or comparable Codex compatibility proof |
-| [llama-swap](https://github.com/mostlygeek/llama-swap) | Cross-platform inference process lifecycle and model swapping | Useful runtime adapter; does not own client integration, consent, routing evidence, or evaluation |
-
-LAO is in the correct technical category, but it is not more capable today. Established gateways lead on protocol breadth, providers, retries, transformations, UI, and production use. Its intended differentiation is narrower: a small low-level control plane, capture-off privacy defaults, narrow credential ownership, hardware-aware local admission, and a personal reproducible evaluation loop. Most of that remains planned. Saved ChatGPT and claude.ai logins now have one clean version-specific install/cloud/local/restart/off E2E, and the persistent settings transaction is implemented; API-key E2Es, interactive surfaces, release packaging, and broader adapters remain unproven.
-
-The defensible layers are personal task evidence, reproducible evaluation, hardware-to-experience selection, trustworthy invisibility, and execution-grounded learning. Protocol translation and inference kernels are replaceable infrastructure.
-
-LAO already adds native harness preservation, authenticated routing, bounded packets, live resource admission, and transactional install/off. These capabilities do not establish superior inference speed or coding quality. The next advantage to earn is lower total time and cloud use per independently verified task, including failed local attempts and parent repair.
+The current proof has authenticated routing, bounded packets, live resource admission and transactional install/off. These capabilities do not establish superior speed or coding quality. The next claim to earn is lower total time and cloud use per independently verified task, including failed local attempts and parent repair. Signed distribution, broader client certification and personal evaluation remain open.
 
 ### 2.3 Product risks
 
@@ -128,7 +98,7 @@ The overlay remains silent during normal success. The current proof exposes conc
 
 ### 3.3 Initial routing posture
 
-Cloud remains the conservative default. In the proof of concept, local routing is limited to approximately the easiest 5–15 percent of bounded, low-risk work:
+Cloud remains the conservative default. Candidate task types for measured Local eligibility include:
 
 - documentation and comment edits;
 - simple repository questions;
@@ -139,7 +109,7 @@ Cloud remains the conservative default. In the proof of concept, local routing i
 
 Security, authentication, cryptography, destructive migrations, production infrastructure, broad architecture, ambiguous multi-file work, unsupported media, and irreversible external effects route to cloud.
 
-The product should prefer a small reliable improvement to a large speculative diversion rate.
+The current narrow text and packet routes have no measured population-wide coverage rate. R9/R10 evidence must justify an eligible slice before widening it.
 
 ### 3.4 User controls
 
@@ -261,19 +231,7 @@ Recommendations may change only after a report explains the measured benefit and
 
 ### 5.1 Engineering economy
 
-The north star for every contributor and agent is the simplest elegant solution that works. Simplicity and fast iteration are product requirements, not style preferences; they never excuse weakening correctness, security, privacy, or the explicit component boundaries.
-
-- Use the least code that delivers a working vertical slice and preserves the explicit component boundaries.
-- Future-proof with small contracts, owned state, conformance fixtures, and replaceable adapters—not speculative frameworks, generic plugin systems, or layers without a current use.
-- Prefer a maintained existing component for the proof of concept when it satisfies the security, license, resource, and compatibility gates. Pin it and hide it behind an interface so an owned implementation can replace it later.
-- Do not expose upstream types, paths, configuration, or lifecycle assumptions across our contracts. Reuse must remain replaceable.
-- Keep package, type, command, field, and task names short, stable, and unambiguous in their namespace. Avoid repeated suffixes such as Manager, Service, Controller, Implementation, or Component.
-- Comments explain security invariants, non-obvious constraints, and upstream quirks. They do not narrate clear code. Diagrams are preferred when they express component relationships more compactly than prose.
-- Delete or consolidate code before introducing another abstraction. A component boundary is valid; parallel internal frameworks for hypothetical futures are not.
-
-Contributor instructions in [AGENTS.md](AGENTS.md) apply across coding agents and harnesses, with no required model or vendor-specific workflow. Product integration support remains separately bound to tested client adapters and versions.
-
-The goal is minimum total system complexity, not minimum files. Small independent packages and a few explicit adapters are acceptable when they prevent hidden coupling; duplicated wrappers and premature extensibility are not.
+Follow the [README manifesto](README.md#manifesto) and [agent guide](AGENTS.md). Reuse maintained components behind owned contracts, without exposing upstream types, paths or lifecycle assumptions. Small independent packages preserve boundaries; abstractions require a current use.
 
 ### 5.2 Language boundary
 
@@ -303,15 +261,7 @@ All optional processes communicate through versioned JSON or JSONL contracts. Th
 
 ### 5.3 Why an independent Rust control plane
 
-The initial investigation favored forking Claude Code Router. Deeper review and the user's low-level-language and low-resource preferences change the target decision:
-
-- Build a thin independent Rust control plane.
-- Use official protocol documentation and observed supported-client behavior as authoritative. Treat Claude Code Router only as a differential reference, and use synthetic or provenance-reviewed fixtures rather than captured production logs.
-- Port only narrowly reviewed ideas or code with attribution.
-- Allow a time-boxed CCR compatibility sidecar behind an interface if protocol work threatens the proof-of-concept schedule.
-- Do not ship that sidecar as the intended default architecture.
-
-This avoids inheriting an Electron UI, generic provider marketplace, credential-import surface, broad logging behavior, and a large Node runtime. Idle RSS and cold readiness must be measured with the selected router linked and loaded.
+A thin Rust control plane owns routing, credential isolation and resource admission. Official protocol documentation and observed supported-client behavior are authoritative; gateway projects are differential references. Use synthetic or provenance-reviewed fixtures rather than production logs, and attribute any reused code. Measure idle RSS and cold readiness with the selected router loaded.
 
 The repository remains MIT licensed, matching the user's selected open-source posture. Apache-2.0 dependencies and references must retain their notices; no Apache-licensed code is copied without compliance.
 
@@ -342,15 +292,7 @@ This section is the canonical architecture decision. The implementation plan car
 
 ### 5.5 Reference projects
 
-[shoehorn](https://github.com/notactuallytreyanastasio/shoehorn) demonstrates exact-fit, importance-matrix-guided GGUF quantization in Rust. Its budget calculation and visual explanation are valuable. It is not part of default onboarding because downloading full-precision weights and quantizing them can consume tens of gigabytes and substantial time. Add it later as an Advanced or Maximum-mode optimizer.
-
-[Magnitude](https://github.com/magnitudedev/magnitude) validates a Rust supervisor around llama.cpp, pre-download fit previews, live load admission, and pressure eviction. It is a complete alternative agent, so it should inform boundaries rather than replace Codex or Claude Code.
-
-[FreeToken](https://github.com/FlashML-org/FreeToken) demonstrates large-MoE serving through CPU/GPU co-execution and elastic expert caching. It currently targets modern NVIDIA Windows/Linux environments and a Python/CUDA stack. Treat it as a post-v1 Maximum-mode backend, not a default dependency.
-
-[llmfit](https://github.com/AlexsJones/llmfit) can provide advisory hardware/model candidate ranking. The signed catalog, llama.cpp fit, and real-device benchmark remain authoritative.
-
-[llama-swap](https://github.com/mostlygeek/llama-swap) is the preferred v1 lifecycle sidecar if native supervision becomes insufficient for multi-model use. It remains behind a ManagedRuntime boundary.
+[Magnitude](https://github.com/magnitudedev/magnitude) informs resource-aware supervision; [llmfit](https://github.com/AlexsJones/llmfit) offers advisory model ranking. Neither replaces LAO's real-device fit and benchmark gates. Exact-fit quantization, multi-model lifecycle sidecars and additional inference backends remain candidates after the first supported release, not selected dependencies.
 
 Any new engine must first prove the actual required surface: device and memory fit, immutable artifact and tokenizer/template identity, model naming, authenticated loopback access, context limits, tool calls and streaming, cancellation, and owned cleanup. Verify authentication by rejection of a missing/wrong bearer; merely sending a bearer proves nothing about server enforcement. Keep this admission behind `run` and application composition. Add no universal capability registry before a second supported engine needs it.
 
@@ -358,7 +300,7 @@ Runtime prefix reuse must be tied to exact tokens and model/tokenizer/template i
 
 ## 6. System architecture
 
-The diagram below is the target. The Stage 1 slice beneath it states what exists now.
+The diagram below is the long-term target. The [architecture page](architecture.html) owns the current flows, process boundaries and package map; capture, vault, evaluation and training remain disabled.
 
 ```mermaid
 flowchart LR
@@ -371,7 +313,7 @@ flowchart LR
     R --> EF["Egress credential firewall"]
     EF --> L["Local runtime supervisor"]
     L --> LL["Pinned llama.cpp"]
-    L -. optional .-> LS["llama-swap / Ollama / LM Studio / FreeToken"]
+    L -. optional .-> LS["Admitted runtime adapters"]
     EF --> OC["Native OpenAI origin"]
     EF --> AC["Native Anthropic origin"]
     H --> CP["Capture and privacy pipeline"]
@@ -386,35 +328,10 @@ Deployment is deliberately different from package ownership:
 - `lao-daemon` is the lightweight always-on composition root for gateway, authentication, routing, and control packages.
 - Product-owned llama.cpp is always supervised as a separate process; an optional external runtime remains user-managed.
 - OpenCode is a pinned, short-lived local worker for explicitly delegated packets; it never replaces the user's harness.
-- four tiny least-authority workers run capture, vault, evaluation, or training only when their explicitly enabled workflow needs them.
+- future least-authority workers isolate capture, vault, evaluation and training when an explicitly enabled workflow needs them.
 - the CLI is a separate client of the authenticated local control contract.
 
 This preserves a small idle footprint without collapsing independently owned components into one codebase or one failure domain.
-
-Historical Stage 1 canary baseline:
-
-```text
-Codex / Claude
-      |
-      v
-gate owns request + secrets
-      |
-      +-- Context(client, operation, canary) --> route
-      |                                         |
-      +<-------------- Local or Cloud ---------+
-      |
-      +-- Local: clean native protocol --> pinned dynamic llama endpoint
-      |
-      `-- Cloud: proven native pass-through --> official provider origin
-```
-
-Normal contexts resolve to Cloud. Local is possible only when the gate consumed the exact explicit canary selector. Pinned llama.cpp 10280 implements the required Responses and Messages HTTP/SSE shapes, so the Stage 1 local path has no translator. Installed Codex 0.151.0 and Claude Code 2.1.251 each completed the same real local canary through one gate, router, and model load.
-
-The first automatic slice extends that proven path without replacing it. After caller authentication, the gate buffers only a non-empty, length-bounded JSON Responses or Messages body and extracts the bounded current user text. The default router uses vLLM Semantic Router's pinned Candle engine with a separate MiniLM embedding model and conservative easy/hard prototype banks. Classifier errors and unsupported bodies remain Cloud. A final Local decision builds a tool-free body from only the final user text and model name `lao-local`; Cloud preserves the original body. The credential firewall and native streaming path remain unchanged. A bounded adapter can instead consume decisions from a user-managed full vLLM Semantic Router `/api/v1/eval` endpoint.
-
-The delegated-worker slice adds one explicit packet boundary that the HTTP overlay cannot infer. Codex or Claude calls `lao.execute` with an objective and exact relative paths. The tested integrations make that handoff explicit for ordinary small mechanical edits, while planning, broad, ambiguous, sensitive, and multi-area work stays in the cloud harness. The same semantic policy routes the packet once. Cloud returns control to the current harness. Local starts a pinned OpenCode run whose read/edit permissions are limited to those paths and whose model traffic can reach only the authenticated local runtime path. OpenCode owns the coherent tool loop for that packet; the parent harness reviews and verifies the result. The managed client settings pre-approve only this one constrained MCP tool.
-
-The first post-Stage 1 latency slice adds leased residency and background warming without changing routing. A Local response holds one runtime endpoint reference until its body completes or is dropped. The healthy worker and two harness prompt prefixes remain in a bounded RAM cache; a five-second watcher stops them when it observes idle macOS memory pressure. Pressure-probe failure evicts safely and active streams are never interrupted. The next Local request repeats the fresh fit check and cold start. Cloud requests never acquire runtime leases. A separate optimizer component owns single-flight Claude-then-Codex warm probes and exposes only `idle`, `warming`, `ready`, or `failed` state.
 
 ### 6.1 Core interfaces
 
@@ -583,6 +500,8 @@ Cloud only still traverses a healthy gateway. Native bypass is different: `lao o
 ## 8. Hardware discovery and inference
 
 ### 8.1 Backend order
+
+Apple Silicon/Metal is the first release target. The remaining backend order is a plan, requiring certification on Linux, Windows and each accelerator combination:
 
 - Apple Silicon: Metal.
 - NVIDIA: CUDA, then Vulkan, then CPU.
@@ -885,39 +804,27 @@ Root compromise, same-user malware while the vault is unlocked, perfect redactio
 
 ### Phase 0: proof of concept
 
-- Keep the full component skeleton, but implement only Codex, Claude Code, gate, route, local agent, run, model, daemon, and CLI.
-- Support one 24 GiB Apple Silicon machine, one pinned llama.cpp build, and one verified prequantized model.
-- Preserve each harness's saved-login native cloud path without LAO reading its credential.
-- Admit one explicit bounded local canary through llama.cpp's native Responses and Messages streaming, without a translation layer.
-- Keep unsupported, risky, and ambiguous work in Cloud. Permit the narrow R2 direct-text slice and route each explicit R4 delegated packet once before its local tool loop.
-- Use pinned OpenCode only for a bounded delegated packet; keep the parent harness responsible for planning, review, and verification.
-- Install and turn off transactionally; restore unchanged managed files exactly and remove only LAO's entry from mutable client state.
-- Prove the full real Codex + Claude → router → llama.cpp/cloud path, resource bounds, credential isolation, cleanup, and rollback.
-- Leave capture, vault, evaluation, training, multiple inference models, and other platforms as disabled drafts.
+Complete on the 24 GiB Apple M4 test Mac: native saved-login paths, bounded local execution, resource admission, credential isolation and transactional install/off. The [historical ledger](IMPLEMENTATION_PLAN.md#proof-ledger) records exact configurations and limits; this is not certification of a public release.
 
 ### Phase 1: first supported release
 
 The first release is a limited Apple Silicon Mac beta. Detailed owners, order and acceptance gates live in [the implementation plan](IMPLEMENTATION_PLAN.md#next-steps). Four requirements determine readiness:
 
-1. **Prove useful tasks (R9).** Build a small public fixture suite with independent outcome/scope verification, then compare native Cloud with the complete LAO hybrid workflow. Include planning, handoff, review, repairs and failed attempts; measure resource costs and actual cloud usage where available. Keep local-only diagnostics separate from paired user-benefit evidence. R8's offline checker is already implemented; it does not collect or authenticate measurements.
-2. **Earn Local eligibility (R10).** Admit only task types supported by matched and held-out evidence. Count false Local decisions and unnecessary Cloud deferrals separately. Keep broad/risky/uncertain work Cloud. Return partial changes safely for parent review; improve the measured bottleneck before increasing coverage. Never infer savings from local completion or latency alone.
-3. **Make installation ordinary (R11).** Provide signed, notarized prebuilt artifacts with no Rust/source-build prerequisite. Support Codex-only, Claude-only and both. Prove clean installation, upgrades, interruption recovery, rollback, off and removal while preserving unrelated settings and native use.
-4. **Certify an honest support range (R12).** Publish the Apple Silicon hardware/RAM, macOS, harness-version and authentication combinations actually exercised. Validate existing settings, native Cloud/local work, streaming, cancellation, offline behavior, sleep/wake, login/reboot, pressure and cleanup. Test the worker sandbox on every advertised macOS version. Unsupported combinations leave native harnesses usable.
+1. **Prove useful tasks (R9):** matched Cloud/hybrid workflows, independent verification, all overhead and failures included. R9a's six fixtures and local-only diagnostic are complete; the consented R9b comparison remains open.
+2. **Earn Local eligibility (R10):** held-out outcomes justify a narrow task slice; report route errors, repairs and measured cloud usage before widening it.
+3. **Make installation ordinary (R11):** signed, notarized prebuilt artifacts; either harness independently or both; verified install, upgrade, rollback, off and removal. Unsigned packaging and isolated single-client lifecycle evidence are preparation, not release certification.
+4. **Certify an honest support range (R12):** publish tested hardware, OS, client and authentication combinations with native/local, sandbox, failure-recovery and resource evidence.
 
-R9a's contributor fixture suite is implemented: six authored structured-file tasks in three miniature projects, independent content/scope verification, and one local diagnostic with two verified Local edits and four Cloud deferrals. This extends execution evidence beyond the typo fixture but does not satisfy R9's paired benefit gate or justify routing promotion. See the [dated diagnostic](docs/benchmarks/local-2026-09-06.md) for all outcomes and limits.
+After these gates, run a consent-based beta with 5–10 users (R13), retaining failed installs and tasks and leaving unknown savings unknown. The success targets below govern wider release. Capture, encrypted personal storage, replay and training remain later consented work.
 
-Only after these gates, run a small consent-based beta with 5–10 users (R13). Report verified work, repair burden, activation, total latency, resources and measurable cloud usage. Keep unknown savings unknown. The larger success targets below govern widening the release; they are not satisfied by synthetic pairs or a small hand-authored fixture suite. Capture, encrypted personal storage, isolated replay and training remain later consented product work.
-
-After the llama.cpp proof and first supported release, add optional engines behind the runtime API and let the user explicitly choose a compatible engine. Keep llama.cpp as the default; each new choice must pass hardware, protocol, authentication, resource and verified-task admission. Windows/Linux, NVIDIA/AMD, multi-model catalogs, llama-swap and broader adapters remain expansion candidates after that release earns its quality and utility gates. They are not prerequisites for it. The personal evidence loop remains the long-term differentiator, not an excuse to activate every draft service now.
+Optional engines, Linux/Windows and NVIDIA/AMD follow the first supported release, one certified combination at a time behind existing APIs. Keep llama.cpp as the default.
 
 ### Phase 2: owned intelligence
 
 - Contextual router in shadow mode and gated promotion.
 - Controlled exploration.
 - Regression monitoring.
-- shoehorn exact-fit optimization.
-- Maximum-mode FreeToken backend where supported.
-- MLX/Axolotl/Unsloth adapters, provenance, held-out evaluation, and adapter rollback.
+- Consented artifact optimization and training adapters, with provenance, held-out evaluation and rollback; select implementations only when their admission gates are met.
 
 ### Explicitly deferred
 
@@ -956,11 +863,3 @@ Wider-release value targets across at least 300 tasks, 10 repositories, and 10 d
 - after 50 verified tasks per user/repository, evidence improves held-out calibration or remains advisory.
 
 Report electricity, download, and storage costs separately from cloud savings.
-
-## 17. Research conclusion
-
-The product appears technically feasible subject to the Phase 0 protocol and authentication gates. llama.cpp exposes the cross-platform inference and candidate wire endpoints; current gateways demonstrate the integration pattern; shoehorn and Magnitude show that hardware-aware Rust control is practical; FreeToken shows a path for high-end consumer MoE serving; current routing research supports execution-grounded learning; and existing evaluation harnesses provide useful formats.
-
-The opportunity is also narrower than the initial idea. A broad router would be undifferentiated. The project earns a place only by being smaller, safer, more private, and more personally evidence-driven than the generic alternatives.
-
-The correct first product is not an automatic local replacement for frontier coding models. It is a quiet layer that makes a few good local decisions, proves them, learns from them, and turns the resulting evidence into trustworthy model advice.
