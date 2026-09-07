@@ -2,6 +2,8 @@
 
 This file applies to the whole repository. Read it before acting and reread it before finishing. When editing this file, follow its own rules: keep only instructions that change behavior.
 
+Use these instructions with any coding agent or harness. Keep shared guidance independent of model or vendor; use equivalent available tools without requiring a particular agent feature.
+
 ## Read first
 
 1. [README.md](README.md) — product summary and manifesto. Always read the manifesto.
@@ -30,7 +32,7 @@ Read only the relevant parts after the manifesto. Follow the ordered release gat
 
 ## Preserve the product
 
-- Keep Codex and Claude Code as the user's harnesses.
+- Preserve the user's chosen harness and keep compatibility claims tied to tested adapters and versions.
 - Keep cloud as the safe default until local quality and fit are proven. Each local packet gets fresh disposable state and exact file permissions; never resume an earlier packet or treat permission patterns as filenames. Never bypass a failed worker sandbox; review partial edits before retrying.
 - Never consume the whole machine.
 - Do not read or copy harness-owned provider credentials.
@@ -59,4 +61,4 @@ Read only the relevant parts after the manifesto. Follow the ordered release gat
 - Run `cargo fmt --all -- --check` and `git diff --check`. For Rust changes run focused tests and strict Clippy; for API or dependency changes also run workspace tests, `cargo xtask check`, and `cargo xtask extract`. Limit builds to two jobs on the test Mac.
 - Report the result, verification, and material limitations in plain language. Distinguish current evidence from historical measurements. Stop when acceptance is met.
 
-Git author and committer must always be `YavorGIvanov <yavorgenadiev@gmail.com>`. Never add Codex as author or coauthor.
+Git author and committer must always be `YavorGIvanov <yavorgenadiev@gmail.com>`. Never add a coding agent as author or coauthor.

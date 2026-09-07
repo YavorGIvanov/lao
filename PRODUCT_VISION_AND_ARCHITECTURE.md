@@ -269,6 +269,8 @@ The north star for every contributor and agent is the simplest elegant solution 
 - Comments explain security invariants, non-obvious constraints, and upstream quirks. They do not narrate clear code. Diagrams are preferred when they express component relationships more compactly than prose.
 - Delete or consolidate code before introducing another abstraction. A component boundary is valid; parallel internal frameworks for hypothetical futures are not.
 
+Contributor instructions in [AGENTS.md](AGENTS.md) apply across coding agents and harnesses, with no required model or vendor-specific workflow. Product integration support remains separately bound to tested client adapters and versions.
+
 The goal is minimum total system complexity, not minimum files. Small independent packages and a few explicit adapters are acceptable when they prevent hidden coupling; duplicated wrappers and premature extensibility are not.
 
 ### 5.2 Language boundary

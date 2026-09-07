@@ -149,6 +149,8 @@ Codex and Claude may update their own unrelated settings while LAO is installed;
 
 Start with [AGENTS.md](AGENTS.md) and the manifesto above. Use the [visual architecture map](architecture.html) to locate the running path and its owner, then read the relevant acceptance criteria in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The [product vision](PRODUCT_VISION_AND_ARCHITECTURE.md) describes the longer-term decisions; its deferred features are not an instruction to build them now.
 
+Any coding agent or harness can use the shared instructions in [AGENTS.md](AGENTS.md). If your harness does not load that file automatically, supply it as repository context. Keep model-specific settings outside the shared guide.
+
 For Rust changes, run the closest tests first. API or dependency changes also require the workspace boundary checks:
 
 ```sh
@@ -161,12 +163,6 @@ git diff --check
 ```
 
 Installed-client and model tests are opt-in. `cargo test --workspace` does not establish new saved-login or installed-runtime evidence. Keep capture, eval, training, and extra backends disabled until their own acceptance work is authorized.
-
-### Working with Astra
-
-The repository instructions follow OpenAI's [GPT-6 Astra prompting guidance](https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices) and [AGENTS.md guidance](https://developers.openai.com/codex/agent-configuration/agents-md), reviewed on 5 September 2026. They make task completion and approval boundaries explicit, keep skill conflicts visible, bound delegation, and scale verification to the change. Keep these instructions concise and behavioral; the manifesto remains the product's authority.
-
-This is guidance for the coding harness working on LAO. It does not select a cloud model, change the pinned local model, or certify Astra through the installed gateway. Harness compatibility evidence remains tied to the recorded client versions.
 
 ## Current architectural decision
 

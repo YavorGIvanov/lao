@@ -543,7 +543,7 @@ Changes:
 - reject wildcard paths and backslashes: filenames must not expand into OpenCode permission patterns or be silently rewritten;
 - replace continuation evidence with two independent turns through one worker object, state cleanup on success and failure, stale MCP session rejection, and exact-path rejection;
 - rebuild the human architecture map around the two current flows, process/state ownership, failure behavior, and evidence limits;
-- align agent instructions with OpenAI's Astra guidance while retaining the manifesto, consent rules, API boundaries, cloud default, and proportional testing.
+- clarify task completion, approval boundaries, bounded delegation and verification while retaining the manifesto, consent rules, API boundaries, cloud default, and proportional testing.
 
 Retained deliberately: disabled strategic stubs are already tiny; runtime leases, pressure checks, install rollback, credential isolation, and pinned support-tree checks protect exercised requirements. Removing them would reduce safety or erase useful architectural seams. No new framework, dependency, backend, or automation was added.
 
@@ -554,7 +554,7 @@ Evidence and limits:
 - architecture link targets and section IDs passed validation; desktop and mobile renders were visually reviewed;
 - a delegated README edit in this review changed only its allowed file but returned `agent_failed`; independent diff review retained the correct edit. This is not a new successful worker benchmark;
 - at R6, OpenCode tool permissions were not an OS sandbox; R7 adds the supported-Mac boundary. Reported changed paths still cover the allowlist only, and parent verification remains required;
-- no net cloud-cost or quota reduction, broad task success rate, or Astra gateway compatibility is claimed.
+- no net cloud-cost or quota reduction, broad task success rate, or untested model/harness compatibility is claimed.
 
 ## R7 — Worker OS boundary and terminal completion
 
