@@ -75,56 +75,108 @@ elif command -v git >/dev/null 2>&1 &&
     revision=$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || :)
 fi
 
-# A second installer must not replace files while another owns rollback snapshots.
+# The open descriptor serializes installers and releases the lock after process death.
 mkdir -p "$prefix" "$bin_dir"
+lock="$prefix/.install-lock"
+[ ! -L "$lock" ] && { [ ! -e "$lock" ] || [ -f "$lock" ]; } || fail "install lock is not a regular file"
+exec 9>>"$lock"
+/usr/bin/lockf -s -t 0 9 || fail "another binary installer is running"
 transaction="$prefix/.install-pending"
-mkdir "$transaction" 2>/dev/null || fail "concurrent or unfinished install; inspect $transaction before retrying"
-updating=false
-original_files=
-cli_link_new=true
-daemon_link_new=true
-[ ! -L "$cli_link" ] || cli_link_new=false
-[ ! -L "$daemon_link" ] || daemon_link_new=false
+staging="$prefix/.install-staging"
+
+manifest() (
+    cd "$1" || exit 1
+    for directory in old new; do
+        [ -d "$directory" ] && [ ! -L "$directory" ] || exit 1
+        for file in lao lao-daemon source-revision; do
+            path="$directory/$file"
+            if [ -e "$path" ] || [ -L "$path" ]; then
+                [ ! -e "$path.absent" ] && [ ! -L "$path.absent" ] || exit 1
+            else
+                path="$path.absent"
+                [ ! -s "$path" ] || exit 1
+            fi
+            [ -f "$path" ] && [ ! -L "$path" ] || exit 1
+            /usr/bin/shasum -a 256 "$path" || exit 1
+        done
+    done
+    for file in format bin-dir links; do
+        [ -f "$file" ] && [ ! -L "$file" ] || exit 1
+        /usr/bin/shasum -a 256 "$file" || exit 1
+    done
+)
+
+recover() {
+    [ -d "$transaction" ] && [ ! -L "$transaction" ] || fail "invalid binary recovery directory"
+    [ -f "$transaction/SHA256SUMS" ] && [ ! -L "$transaction/SHA256SUMS" ] ||
+        fail "incomplete binary recovery record; snapshots retained"
+    recorded=$(manifest "$transaction") || fail "invalid binary recovery snapshots; retained for inspection"
+    [ "$recorded" = "$(cat "$transaction/SHA256SUMS")" ] || fail "binary recovery checksum mismatch; snapshots retained"
+    [ "$(cat "$transaction/format")" = 1 ] || fail "unknown binary recovery format"
+    [ "$(cat "$transaction/bin-dir")" = "$(printf '%s' "$bin_dir" | /usr/bin/shasum -a 256)" ] ||
+        fail "binary recovery requires the original LAO_BIN_DIR"
+    links=$(cat "$transaction/links")
+    case "$links" in
+        'true true'|'true false'|'false true'|'false false') ;;
+        *) fail "invalid binary recovery links" ;;
+    esac
+    cli_link_new=${links% *}
+    daemon_link_new=${links#* }
+
+    # Validate every destination before restoring any of them; preserve external edits.
+    for file in lao lao-daemon source-revision; do
+        destination="$prefix/$file"
+        [ ! -L "$destination" ] || fail "binary recovery conflicts with installed $file"
+        if [ -e "$destination" ]; then
+            [ -f "$destination" ] || fail "binary recovery conflicts with installed $file"
+            cmp -s "$destination" "$transaction/old/$file" ||
+                cmp -s "$destination" "$transaction/new/$file" || fail "binary recovery conflicts with installed $file"
+        else
+            [ -f "$transaction/old/$file.absent" ] || [ -f "$transaction/new/$file.absent" ] ||
+                fail "binary recovery conflicts with missing $file"
+        fi
+    done
+    check_link "$cli_link" "$cli"
+    check_link "$daemon_link" "$daemon"
+    [ "$cli_link_new" = true ] || [ -L "$cli_link" ] || fail "binary recovery conflicts with missing CLI link"
+    [ "$daemon_link_new" = true ] || [ -L "$daemon_link" ] || fail "binary recovery conflicts with missing daemon link"
+    for file in lao lao-daemon source-revision; do
+        if [ -f "$transaction/old/$file" ]; then
+            rm -f "$transaction/restore-$file"
+            ln "$transaction/old/$file" "$transaction/restore-$file" &&
+                mv -f "$transaction/restore-$file" "$prefix/$file" || fail "rollback failed; snapshots retained in $transaction"
+        else
+            rm -f "$prefix/$file"
+        fi
+    done
+    if [ "$cli_link_new" = true ]; then rm -f "$cli_link"; fi
+    if [ "$daemon_link_new" = true ]; then rm -f "$daemon_link"; fi
+    mv "$transaction" "$staging"
+    rm -rf -- "$staging"
+    printf 'Recovered interrupted binary installation.\n'
+}
+
+# Staging is never authoritative: it is either unpublished preparation or completed work.
+[ ! -L "$staging" ] && { [ ! -e "$staging" ] || [ -d "$staging" ]; } || fail "invalid binary staging directory"
+rm -rf -- "$staging"
+if [ -e "$transaction" ] || [ -L "$transaction" ]; then recover; fi
+
 cleanup() {
     result=$?
     trap - EXIT
     trap '' HUP INT TERM
-    if [ "$result" -ne 0 ]; then
-        if [ "$updating" = true ]; then
-            for file in $original_files; do
-                [ -f "$transaction/old/$file" ] && [ ! -L "$transaction/old/$file" ] || {
-                    printf 'LAO setup: rollback snapshot missing; retained state in %s\n' "$transaction" >&2
-                    exit 1
-                }
-            done
-            for file in lao lao-daemon source-revision; do
-                if [ -f "$transaction/old/$file" ]; then
-                    ln "$transaction/old/$file" "$transaction/restore-$file" &&
-                        mv -f "$transaction/restore-$file" "$prefix/$file" || {
-                        printf 'LAO setup: rollback failed; snapshots retained in %s\n' "$transaction" >&2
-                        exit 1
-                    }
-                else
-                    rm -f "$prefix/$file" || exit 1
-                fi
-            done
-        fi
-        if [ "$cli_link_new" = true ] && [ -L "$cli_link" ] &&
-            [ "$(readlink "$cli_link")" = "$cli" ]; then
-            rm "$cli_link" || exit 1
-        fi
-        if [ "$daemon_link_new" = true ] && [ -L "$daemon_link" ] &&
-            [ "$(readlink "$daemon_link")" = "$daemon" ]; then
-            rm "$daemon_link" || exit 1
-        fi
-    fi
-    rm -rf -- "$transaction"
+    if [ "$result" -ne 0 ] && { [ -e "$transaction" ] || [ -L "$transaction" ]; }; then recover; fi
+    rm -rf -- "$staging"
     exit "$result"
 }
 trap cleanup EXIT
 trap 'exit 1' HUP INT TERM
 check_link "$cli_link" "$cli"
 check_link "$daemon_link" "$daemon"
+cli_link_new=true
+daemon_link_new=true
+[ ! -L "$cli_link" ] || cli_link_new=false
+[ ! -L "$daemon_link" ] || daemon_link_new=false
 for file in lao lao-daemon source-revision; do
     [ ! -L "$prefix/$file" ] && { [ ! -e "$prefix/$file" ] || [ -f "$prefix/$file" ]; } ||
         fail "installed $file is not a regular file"
@@ -138,7 +190,8 @@ signature() {
 }
 
 reuse=false
-if [ -n "$revision" ] && [ -f "$revision_file" ] && [ ! -L "$revision_file" ] &&
+if [ -L "$cli_link" ] && [ -L "$daemon_link" ] &&
+    [ -n "$revision" ] && [ -f "$revision_file" ] && [ ! -L "$revision_file" ] &&
     [ -f "$cli" ] && [ ! -L "$cli" ] && [ -x "$cli" ] &&
     [ -f "$daemon" ] && [ ! -L "$daemon" ] && [ -x "$daemon" ] &&
     [ "$(cat "$revision_file")" = "$(signature)" ]; then
@@ -163,31 +216,39 @@ else
 fi
 
 if [ "$reuse" = false ]; then
-    mkdir "$transaction/old" "$transaction/new"
+    mkdir "$staging" "$staging/old" "$staging/new"
     for file in lao lao-daemon source-revision; do
         if [ -f "$prefix/$file" ]; then
-            original_files="$original_files $file"
-            ln "$prefix/$file" "$transaction/old/$file"
+            ln "$prefix/$file" "$staging/old/$file"
+        else
+            : >"$staging/old/$file.absent"
         fi
     done
-    /usr/bin/install -m 700 "$binaries/lao" "$transaction/new/lao"
-    /usr/bin/install -m 700 "$binaries/lao-daemon" "$transaction/new/lao-daemon"
+    /usr/bin/install -m 700 "$binaries/lao" "$staging/new/lao"
+    /usr/bin/install -m 700 "$binaries/lao-daemon" "$staging/new/lao-daemon"
     if [ -n "$revision" ]; then
-        signature "$transaction/new" >"$transaction/new/source-revision"
-    fi
-
-    updating=true
-    mv -f "$transaction/new/lao" "$cli"
-    mv -f "$transaction/new/lao-daemon" "$daemon"
-    if [ -n "$revision" ]; then
-        mv -f "$transaction/new/source-revision" "$revision_file"
+        signature "$staging/new" >"$staging/new/source-revision"
     else
-        rm -f -- "$revision_file"
+        : >"$staging/new/source-revision.absent"
     fi
+    printf '1\n' >"$staging/format"
+    printf '%s' "$bin_dir" | /usr/bin/shasum -a 256 >"$staging/bin-dir"
+    printf '%s %s\n' "$cli_link_new" "$daemon_link_new" >"$staging/links"
+    manifest "$staging" >"$staging/SHA256SUMS"
+    mv "$staging" "$transaction"
+
+    for file in lao lao-daemon source-revision; do
+        if [ -f "$transaction/new/$file" ]; then
+            ln "$transaction/new/$file" "$transaction/publish-$file"
+            mv -f "$transaction/publish-$file" "$prefix/$file"
+        else
+            rm -f "$prefix/$file"
+        fi
+    done
 fi
 
 ensure_link "$cli_link" "$cli"
 ensure_link "$daemon_link" "$daemon"
-updating=false
+if [ "$reuse" = false ]; then mv "$transaction" "$staging"; fi
 
 printf '\nLAO binaries are installed. Finish setup with: "%s" install\n' "$cli_link"

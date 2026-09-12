@@ -72,17 +72,20 @@ mkdir "$stage/fault-tools"
 cat >"$stage/fault-tools/mv" <<'SH'
 #!/bin/sh
 case "$2" in
-    */.install-pending/new/lao-daemon)
+    */.install-pending/publish-lao-daemon)
         if [ "$INSTALL_TEST_FAULT" = signal ]; then kill -TERM "$PPID"; fi
+        if [ "$INSTALL_TEST_FAULT" = kill ] || [ "$INSTALL_TEST_FAULT" = conflict ]; then kill -KILL "$PPID"; fi
         if [ "$INSTALL_TEST_FAULT" = missing ]; then rm "$LAO_PREFIX/.install-pending/old/lao-daemon"; fi
         exit 1 ;;
+    */.install-pending/restore-lao-daemon)
+        if [ "$INSTALL_TEST_FAULT" = restore-kill ]; then kill -KILL "$PPID"; exit 1; fi ;;
     */.install-pending/restore-lao)
         if [ "$INSTALL_TEST_FAULT" = recovery ]; then exit 1; fi ;;
 esac
 exec /bin/mv "$@"
 SH
 chmod 700 "$stage/fault-tools/mv"
-for fault in command signal recovery missing; do
+for fault in command signal recovery missing kill conflict; do
     (
         export LAO_PREFIX="$stage/failed-$fault/libexec"
         export LAO_BIN_DIR="$stage/failed-$fault/bin"
@@ -94,21 +97,57 @@ for fault in command signal recovery missing; do
         ln -s "$LAO_PREFIX/lao" "$LAO_BIN_DIR/lao"
         ln -s "$LAO_PREFIX/lao-daemon" "$LAO_BIN_DIR/lao-daemon"
         previous_inode=$(stat -f %i "$LAO_PREFIX/lao")
-        if PATH="$stage/fault-tools:$PATH" INSTALL_TEST_FAULT="$fault" \
-            sh "$bundle/install.sh" >"$stage/failed-$fault.log" 2>&1; then exit 1; fi
-        if [ "$fault" = recovery ] || [ "$fault" = missing ]; then
-            if [ "$fault" = recovery ]; then
-                grep -q 'rollback failed; snapshots retained' "$stage/failed-$fault.log"
-                cmp /usr/bin/false "$LAO_PREFIX/.install-pending/old/lao-daemon"
-            else
-                grep -q 'rollback snapshot missing' "$stage/failed-$fault.log"
-            fi
-            cmp /usr/bin/true "$LAO_PREFIX/.install-pending/old/lao"
-            [ "$(cat "$LAO_PREFIX/.install-pending/old/source-revision")" = 'previous test revision' ]
-            if sh "$bundle/install.sh" >"$stage/blocked-retry.log" 2>&1; then exit 1; fi
-            grep -q 'concurrent or unfinished install' "$stage/blocked-retry.log"
+        if { PATH="$stage/fault-tools:$PATH" INSTALL_TEST_FAULT="$fault" \
+            sh "$bundle/install.sh"; } >"$stage/failed-$fault.log" 2>&1; then exit 1; fi
+        if [ "$fault" = kill ] || [ "$fault" = conflict ]; then
             cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
             cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+            if [ "$fault" = conflict ]; then
+                printf 'unrelated replacement\n' >"$LAO_PREFIX/replacement"
+                mv "$LAO_PREFIX/replacement" "$LAO_PREFIX/lao"
+                if sh "$bundle/install.sh" >"$stage/conflict.log" 2>&1; then exit 1; fi
+                grep -q 'binary recovery conflicts with installed lao' "$stage/conflict.log"
+                [ "$(cat "$LAO_PREFIX/lao")" = 'unrelated replacement' ]
+                cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+                [ "$(cat "$LAO_PREFIX/source-revision")" = 'previous test revision' ]
+                [ -f "$LAO_PREFIX/.install-pending/SHA256SUMS" ]
+                exit 0
+            fi
+            exec 8>>"$LAO_PREFIX/.install-lock"
+            /usr/bin/lockf -s -t 0 8
+            if sh "$bundle/install.sh" >"$stage/concurrent.log" 2>&1; then exit 1; fi
+            grep -q 'another binary installer is running' "$stage/concurrent.log"
+            exec 8>&-
+            # Kill recovery itself after the first restore; another retry must be safe.
+            if { PATH="$stage/fault-tools:$PATH" INSTALL_TEST_FAULT=restore-kill \
+                sh "$bundle/install.sh"; } >"$stage/restore-kill.log" 2>&1; then exit 1; fi
+            cmp /usr/bin/true "$LAO_PREFIX/lao"
+            cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+            sh "$bundle/install.sh" >"$stage/kill-retry.log"
+            grep -q 'Recovered interrupted binary installation' "$stage/kill-retry.log"
+            cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+            cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
+            [ ! -e "$LAO_PREFIX/.install-pending" ]
+            [ ! -e "$LAO_PREFIX/.install-staging" ]
+            exit 0
+        fi
+        if [ "$fault" = missing ]; then
+            grep -q 'invalid binary recovery snapshots' "$stage/failed-$fault.log"
+            cmp /usr/bin/true "$LAO_PREFIX/.install-pending/old/lao"
+            if sh "$bundle/install.sh" >"$stage/blocked-retry.log" 2>&1; then exit 1; fi
+            grep -q 'invalid binary recovery snapshots' "$stage/blocked-retry.log"
+            cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+            cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+            exit 0
+        fi
+        if [ "$fault" = recovery ]; then
+            grep -q 'rollback failed; snapshots retained' "$stage/failed-$fault.log"
+            cmp /usr/bin/true "$LAO_PREFIX/.install-pending/old/lao"
+            cmp /usr/bin/false "$LAO_PREFIX/.install-pending/old/lao-daemon"
+            sh "$bundle/install.sh" >"$stage/recovered-retry.log"
+            grep -q 'Recovered interrupted binary installation' "$stage/recovered-retry.log"
+            cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+            cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
             exit 0
         fi
         cmp /usr/bin/true "$LAO_PREFIX/lao"
@@ -124,7 +163,7 @@ for fault in command signal recovery missing; do
         cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
     )
 done
-printf 'PASS: failed/interrupted binary upgrade restores prior binaries, identity and links; retry succeeds; failed recovery retains snapshots\n'
+printf 'PASS: failed/interrupted binary upgrade restores prior binaries, identity and links; retry succeeds; SIGKILL recovery retries safely; conflicts retain snapshots\n'
 
 printf 'local-test-key' >"$stage/runtime.key"
 for client in codex claude; do
