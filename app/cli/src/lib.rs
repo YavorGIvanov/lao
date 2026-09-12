@@ -1,3 +1,5 @@
+mod uninstall;
+
 use lao_optimize_api::{State as OptimizeState, StateStore};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -175,6 +177,7 @@ enum Action {
     Status,
     Smoke,
     Off,
+    Uninstall,
     Mcp,
 }
 
@@ -216,10 +219,15 @@ struct Lock(File);
 
 impl Lock {
     #[cfg(target_os = "macos")]
-    #[allow(unsafe_code)]
     fn acquire(root: &Path) -> io::Result<Self> {
         private_dir(root)?;
-        if let Ok(metadata) = fs::symlink_metadata(root.join("install.lock"))
+        Self::file(&root.join("install.lock"))
+    }
+
+    #[cfg(target_os = "macos")]
+    #[allow(unsafe_code)]
+    fn file(path: &Path) -> io::Result<Self> {
+        if let Ok(metadata) = fs::symlink_metadata(path)
             && !metadata.file_type().is_file()
         {
             return Err(conflict("install lock is not a regular file"));
@@ -230,7 +238,8 @@ impl Lock {
             .create(true)
             .truncate(false)
             .mode(0o600)
-            .open(root.join("install.lock"))?;
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(path)?;
         // SAFETY: flock only reads this live descriptor and releases its lock when it closes.
         if unsafe {
             libc::flock(
@@ -241,7 +250,7 @@ impl Lock {
         {
             return Err(io::Error::new(
                 io::ErrorKind::WouldBlock,
-                "another lao install or off is running",
+                "another lao install, off or uninstall is running",
             ));
         }
         Ok(Self(file))
@@ -557,11 +566,12 @@ pub fn run() -> Result<()> {
         Some(Action::Status) => status(),
         Some(Action::Smoke) => smoke(),
         Some(Action::Off) => off(),
+        Some(Action::Uninstall) => uninstall::run(),
         Some(Action::Mcp) => mcp(),
         None => {
             println!(
                 "usage: lao <preview|install> [--router semantic|safe|vllm-semantic] \
-                 [--runtime llama-cpp|external] [--client codex|claude|both]\n       lao <status|smoke|off|mcp>"
+                 [--runtime llama-cpp|external] [--client codex|claude|both]\n       lao <status|smoke|off|uninstall|mcp>"
             );
             Ok(())
         }
@@ -582,7 +592,7 @@ fn parse(mut args: impl Iterator<Item = OsString>) -> io::Result<Option<Action>>
                 Action::Install(choice)
             }))
         }
-        "status" | "smoke" | "off" | "mcp" => {
+        "status" | "smoke" | "off" | "uninstall" | "mcp" => {
             if args.next().is_some() {
                 return Err(invalid("unexpected option"));
             }
@@ -590,6 +600,7 @@ fn parse(mut args: impl Iterator<Item = OsString>) -> io::Result<Option<Action>>
                 "status" => Action::Status,
                 "smoke" => Action::Smoke,
                 "off" => Action::Off,
+                "uninstall" => Action::Uninstall,
                 "mcp" => Action::Mcp,
                 _ => unreachable!(),
             }))
@@ -966,6 +977,13 @@ fn install(_: &Selected) -> Result<()> {
 fn off() -> Result<()> {
     let paths = paths()?;
     let _lock = Lock::acquire(&paths.state)?;
+    disable(&paths, deactivate)?;
+    println!("off: LAO settings removed; cached artifacts and installed binaries retained");
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn disable(paths: &Paths, stop: impl FnOnce(&Paths) -> io::Result<()>) -> Result<()> {
     let mut transaction = Transaction::load(&paths.state)?;
     match transaction.record.phase {
         Phase::Installed => {
@@ -982,13 +1000,12 @@ fn off() -> Result<()> {
         }
         Phase::Restored => {}
     }
-    deactivate(&paths)?;
+    stop(paths)?;
     remove_optional(&paths.daemon)?;
     remove_optional(&paths.state.join(DAEMON_ERROR))?;
     remove_optional(&paths.worker_key)?;
     transaction.discard()?;
     remove_optional(&paths.adopted)?;
-    println!("off: LAO settings removed; unrelated client settings preserved");
     Ok(())
 }
 
@@ -2137,6 +2154,8 @@ fn invalid(message: &'static str) -> io::Error {
 mod tests {
     #[cfg(target_os = "macos")]
     mod lifecycle;
+    #[cfg(target_os = "macos")]
+    mod removal;
 
     use super::*;
     use std::os::unix::ffi::OsStringExt;

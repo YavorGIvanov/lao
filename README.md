@@ -51,6 +51,14 @@ lao off
 
 This stops owned services, restores unchanged settings exactly, preserves unrelated client edits, and refuses conflicts in LAO-owned entries. Failed workers may leave edits: inspect them before retrying. See the [architecture map](architecture.html#failure-title) for trust boundaries and recovery limits.
 
+`off` retains downloaded models, runtimes, router/worker caches, and installed binaries. To restore settings and remove those artifacts too, run:
+
+```sh
+lao uninstall
+```
+
+This deletes LAO's private application state and cache directories, its installed binary pair, ownership receipt, and matching command links. It preserves client homes, external runtimes, unrelated files, and your source checkout or archive. For custom binary locations, supply the same `LAO_PREFIX` and `LAO_BIN_DIR` used with `install.sh`. Conflicting settings, changed binaries or pending binary recovery stop removal. Older source installs without an ownership receipt need `install.sh` rerun first. If removal was interrupted after deleting the CLI, rerun the archive's `bin/lao uninstall` with the same locations.
+
 ## Manifesto
 
 ### Product

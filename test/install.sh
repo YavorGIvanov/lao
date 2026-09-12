@@ -165,6 +165,30 @@ for fault in command signal recovery missing kill conflict; do
 done
 printf 'PASS: failed/interrupted binary upgrade restores prior binaries, identity and links; retry succeeds; SIGKILL recovery retries safely; conflicts retain snapshots\n'
 
+# R11: the real archive CLI removes a binary-only install without touching client homes.
+(
+    mkdir "$stage/removal-home"
+    removal_home=$(cd "$stage/removal-home" && pwd -P)
+    export LAO_PREFIX="$removal_home/.local/libexec/lao"
+    export LAO_BIN_DIR="$removal_home/.local/bin"
+    sh "$bundle/install.sh" >"$stage/removal-install.log"
+    mkdir -p "$removal_home/Library/Caches/lao/models" "$removal_home/.codex"
+    printf 'cached model fixture\n' >"$removal_home/Library/Caches/lao/models/model"
+    printf 'user settings fixture\n' >"$removal_home/.codex/config.toml"
+    env HOME="$removal_home" "$LAO_BIN_DIR/lao" uninstall >"$stage/removal.log"
+    [ ! -e "$LAO_PREFIX" ]
+    [ ! -L "$LAO_BIN_DIR/lao" ]
+    [ ! -L "$LAO_BIN_DIR/lao-daemon" ]
+    [ ! -e "$removal_home/Library/Caches/lao" ]
+    [ ! -e "$removal_home/Library/Application Support/lao" ]
+    [ "$(cat "$removal_home/.codex/config.toml")" = 'user settings fixture' ]
+    env HOME="$removal_home" "$bundle/bin/lao" uninstall >"$stage/removal-repeat.log"
+    sh "$bundle/install.sh" >"$stage/removal-reinstall.log"
+    cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+    cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
+)
+printf 'PASS: archive uninstall removes binaries and cache; client settings survive; repeat and reinstall pass\n'
+
 printf 'local-test-key' >"$stage/runtime.key"
 for client in codex claude; do
     mkdir "$stage/$client"

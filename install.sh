@@ -186,7 +186,7 @@ signature() {
     signature_dir=${1:-"$prefix"}
     cli_hash=$(/usr/bin/shasum -a 256 "$signature_dir/lao") || return 1
     daemon_hash=$(/usr/bin/shasum -a 256 "$signature_dir/lao-daemon") || return 1
-    printf '%s\n%s\n%s\n' "$revision" "${cli_hash%% *}" "${daemon_hash%% *}"
+    printf '%s\n%s\n%s\n' "${revision:-source:unversioned}" "${cli_hash%% *}" "${daemon_hash%% *}"
 }
 
 reuse=false
@@ -226,11 +226,7 @@ if [ "$reuse" = false ]; then
     done
     /usr/bin/install -m 700 "$binaries/lao" "$staging/new/lao"
     /usr/bin/install -m 700 "$binaries/lao-daemon" "$staging/new/lao-daemon"
-    if [ -n "$revision" ]; then
-        signature "$staging/new" >"$staging/new/source-revision"
-    else
-        : >"$staging/new/source-revision.absent"
-    fi
+    signature "$staging/new" >"$staging/new/source-revision"
     printf '1\n' >"$staging/format"
     printf '%s' "$bin_dir" | /usr/bin/shasum -a 256 >"$staging/bin-dir"
     printf '%s %s\n' "$cli_link_new" "$daemon_link_new" >"$staging/links"
