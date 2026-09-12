@@ -15,6 +15,26 @@ export LAO_BIN_DIR="$stage/user home/bin"
 # Only stock OS tools are available; never activate clients or models in this test.
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
+# R11: the archive carries the audited notices and checks their integrity before writes.
+cmp "$root/THIRD_PARTY_NOTICES.txt" "$bundle/THIRD_PARTY_NOTICES.txt"
+(cd "$bundle" && shasum -a 256 -c SHA256SUMS) >"$stage/checksums.log"
+for invalid in missing corrupt symlink; do
+    mv "$bundle/THIRD_PARTY_NOTICES.txt" "$stage/notices"
+    case "$invalid" in
+        missing) ;;
+        corrupt) printf 'corrupt notices\n' >"$bundle/THIRD_PARTY_NOTICES.txt" ;;
+        symlink) ln -s "$stage/notices" "$bundle/THIRD_PARTY_NOTICES.txt" ;;
+    esac
+    if sh "$bundle/install.sh" >"$stage/notices.log" 2>&1; then exit 1; fi
+    if [ "$invalid" = corrupt ]; then reason='checksum mismatch'; else reason='incomplete prebuilt archive'; fi
+    grep -q "$reason" "$stage/notices.log"
+    [ ! -e "$LAO_PREFIX" ]
+    [ ! -e "$LAO_BIN_DIR" ]
+    rm -f "$bundle/THIRD_PARTY_NOTICES.txt"
+    mv "$stage/notices" "$bundle/THIRD_PARTY_NOTICES.txt"
+done
+printf 'PASS: audited notices included; missing, corrupt or symlinked notices rejected before writes\n'
+
 sh "$bundle/install.sh" >"$stage/install.log"
 cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
 cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"

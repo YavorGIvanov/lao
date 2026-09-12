@@ -9,6 +9,13 @@ esac
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 cd "$root"
+# Keep the checked-in audit tied to the dependencies and compiler being shipped.
+lock_hash=$(/usr/bin/shasum -a 256 Cargo.lock | cut -d ' ' -f 1)
+grep -Fqx "Cargo.lock SHA-256: $lock_hash" THIRD_PARTY_NOTICES.txt &&
+    grep -Fqx "Rust compiler: $(rustc --version)" THIRD_PARTY_NOTICES.txt || {
+    printf 'Refresh THIRD_PARTY_NOTICES.txt for this lockfile/compiler before packaging\n' >&2
+    exit 1
+}
 cargo build --release --locked --jobs 2 -p lao-cli -p lao-daemon
 
 # A prebuilt archive must not rely on the builder's Homebrew or Rust libraries.
@@ -27,12 +34,12 @@ bundle="$stage/lao-macos-arm64"
 mkdir -p "$bundle/bin"
 /usr/bin/install -m 700 target/release/lao target/release/lao-daemon "$bundle/bin/"
 /usr/bin/install -m 700 install.sh "$bundle/install.sh"
-/usr/bin/install -m 600 LICENSE "$bundle/LICENSE"
+/usr/bin/install -m 600 LICENSE THIRD_PARTY_NOTICES.txt "$bundle/"
 git rev-parse --verify HEAD >"$bundle/source-revision"
 if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
     printf 'modified working tree\n' >>"$bundle/source-revision"
 fi
-(cd "$bundle" && /usr/bin/shasum -a 256 install.sh bin/lao bin/lao-daemon LICENSE source-revision >SHA256SUMS)
+(cd "$bundle" && /usr/bin/shasum -a 256 install.sh bin/lao bin/lao-daemon LICENSE THIRD_PARTY_NOTICES.txt source-revision >SHA256SUMS)
 COPYFILE_DISABLE=1 tar -czf "$stage/lao-macos-arm64.tar.gz" -C "$stage" lao-macos-arm64
 mv -f "$stage/lao-macos-arm64.tar.gz" target/release/lao-macos-arm64.tar.gz
 (cd target/release && /usr/bin/shasum -a 256 lao-macos-arm64.tar.gz >lao-macos-arm64.tar.gz.sha256)

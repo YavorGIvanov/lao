@@ -63,11 +63,11 @@ prebuilt=false
 if [ -e "$root/SHA256SUMS" ] || [ -e "$root/bin" ]; then
     prebuilt=true
     binaries="$root/bin"
-    for file in SHA256SUMS install.sh bin/lao bin/lao-daemon LICENSE source-revision; do
+    for file in SHA256SUMS install.sh bin/lao bin/lao-daemon LICENSE THIRD_PARTY_NOTICES.txt source-revision; do
         [ -f "$root/$file" ] && [ ! -L "$root/$file" ] || fail "incomplete prebuilt archive"
     done
     [ ! -L "$binaries" ] || fail "prebuilt binaries must be in a real directory"
-    expected=$(cd "$root" && /usr/bin/shasum -a 256 install.sh bin/lao bin/lao-daemon LICENSE source-revision)
+    expected=$(cd "$root" && /usr/bin/shasum -a 256 install.sh bin/lao bin/lao-daemon LICENSE THIRD_PARTY_NOTICES.txt source-revision)
     [ "$(cat "$root/SHA256SUMS")" = "$expected" ] || fail "prebuilt archive checksum mismatch"
     revision="prebuilt:$(/usr/bin/shasum -a 256 "$root/SHA256SUMS" | cut -d ' ' -f 1)"
 elif command -v git >/dev/null 2>&1 &&
