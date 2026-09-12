@@ -14,7 +14,7 @@ The contract requires explicit measurement boundaries, pinned configurations, LA
 
 ## Public task suite (R9a)
 
-[Tasks](tasks.json) declare six objectives across three small repository-owned JSON fixture projects: web manifest settings, service settings and catalog data. These are authored examples, not a sample of three real user repositories. The exact task corpus and [verifier/runner](../../app/cli/tests/worker.rs) are pinned by [tasks.sha256](tasks.sha256).
+[Tasks](tasks.json) declare six objectives across three small repository-owned JSON fixture projects: web manifest settings, service settings and catalog data. These are authored examples, not a sample of three real user repositories. The exact task corpus and [shared verifier](../../app/cli/tests/support/tasks.rs) / [local runner](../../app/cli/tests/worker.rs) are pinned by [tasks.sha256](tasks.sha256).
 
 Run the offline fixture acceptance checks from the repository root:
 
@@ -35,7 +35,7 @@ It sends each of the six fixed packets once, serially, then the broad Cloud cont
 
 Output contains only public task IDs, route/status enums, independent verdicts, elapsed time and aggregate counts. A successful diagnostic exit requires usable infrastructure, intact file scope, at least one independently verified Local result and the unchanged Cloud control; it does **not** require or imply all tasks completed locally. Failed workers, timeouts and deferrals remain visible. Timing is `mcp_dispatch_through_verification` with uncontrolled cache state; it excludes parent model planning, review, repair and Cloud continuation. This is deliberately not schema-1 paired evidence and cannot support savings or promotion claims.
 
-The [first local run](local-2026-09-06.md) verified two Local tasks and retained four Cloud deferrals. R9b still needs representative projects/holdouts, consented matched cloud/hybrid arms, controlled cohorts, actual artifact/resource observations and complete failure accounting. Reuse the fixtures and independent verifier there; do not tune these prompts to obtain more Local routes. If the fixture or verifier changes, review it and regenerate the hash manifest before a new run, retaining the prior results and their identities.
+The [first local run](local-2026-09-06.md) verified two Local tasks and retained four Cloud deferrals. The [R9b registration](workflow.md) adds six pinned public-project manifest edits, reserving Express as a repository holdout. All twelve tasks pass offline verifier acceptance; the opt-in diagnostic still runs only the original six. The subscription collector is implemented and authorized for this registration. The complete cold comparison verified 36/36 native objectives and 22/36 hybrid objectives, with all delegations returning Cloud. Its [cold-only export](subscription-2026-09-12-codex-cold.json) passes the paired checker. Warm/Claude collection is paused at the user’s request. Do not tune these prompts to obtain more Local routes. If the fixture or verifier changes, review it and regenerate the hash manifest before a new run, retaining the prior results and their identities.
 
 ## Schema 1
 

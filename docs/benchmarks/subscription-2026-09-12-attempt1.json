@@ -1,0 +1,1696 @@
+{
+  "schema": "lao-subscription-workflow-1",
+  "status": "refused",
+  "budget_usd_max": 5,
+  "registered_at_unix": 1789228816,
+  "expires_at_unix": 1789315216,
+  "boundary": "parent_dispatch_through_independent_verification",
+  "claim": "public manifest pilot; no promotion or inferred monetary savings",
+  "token_limit": "native subscriptions; observed at completion, no hard per-request token reservation",
+  "claude_scope": "two-task single-round warm smoke; separate from Codex comparison",
+  "billing": "subscriptions_only_no_api_or_credit_purchase",
+  "metadata": {
+    "versions": {
+      "codex": "codex-cli 0.154.0",
+      "claude": "2.1.251 (Claude Code)"
+    },
+    "subscription": {
+      "within_subscription": true,
+      "used_percent": [
+        5
+      ],
+      "paid_credits_available": false
+    },
+    "resources": {
+      "pressure": 1,
+      "available_percent": 66,
+      "ac_power": false,
+      "battery_percent": 82,
+      "thermal_ok": true,
+      "stable": true
+    },
+    "artifacts": {
+      "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+      "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+      "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+      "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+      "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+      "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+      "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+      "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+      "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+      "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+    },
+    "source_dirty": false,
+    "fixture_manifest_sha256": "baeb1fa31d1be3d04b273339cee507533f302946b77fa4e92a09cd9da9aa9fed",
+    "source_revision": "cc3bb100004063a0e95c9c5f1bc917f59f322a6d",
+    "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+    "collector_sha256": "725fccd54cc3c7e2f6c1bc0f33b68c41d568729383f60dd93719f6770098c1e7",
+    "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+    "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+    "host": "Mac16,13",
+    "ram_bytes": 25769803776,
+    "os": "15.6"
+  },
+  "trials": [
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2903,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66324,
+        "cached_input_tokens": 42240,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 856,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 40051,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 82,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 82,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          5
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 43003,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1739,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46091,
+        "cached_input_tokens": 33536,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 349,
+        "reasoning_output_tokens": 15
+      },
+      "mcp_calls": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 21747,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 82,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          5
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 23534,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1875,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 58089,
+        "cached_input_tokens": 33792,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 405,
+        "reasoning_output_tokens": 40
+      },
+      "mcp_calls": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 26631,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          5
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 28552,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1788,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 65406,
+        "cached_input_tokens": 41728,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 604,
+        "reasoning_output_tokens": 20
+      },
+      "mcp_calls": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 33781,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 35614,
+      "cleanup_ms": 45,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1832,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 54052,
+        "cached_input_tokens": 41856,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 613,
+        "reasoning_output_tokens": 25
+      },
+      "mcp_calls": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 30315,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 32191,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1731,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46219,
+        "cached_input_tokens": 22144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 553,
+        "reasoning_output_tokens": 16
+      },
+      "mcp_calls": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 27808,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 29586,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1801,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46281,
+        "cached_input_tokens": 22272,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 440,
+        "reasoning_output_tokens": 11
+      },
+      "mcp_calls": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 24114,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 25964,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2079,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66328,
+        "cached_input_tokens": 42368,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 897,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 40477,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 42603,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1764,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66327,
+        "cached_input_tokens": 50176,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 787,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 40434,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 42245,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 2207,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46327,
+        "cached_input_tokens": 22144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 494,
+        "reasoning_output_tokens": 12
+      },
+      "mcp_calls": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 25024,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 63,
+        "ac_power": false,
+        "battery_percent": 81,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          6
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 27279,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "candidate",
+      "state": "dispatched",
+      "setup_ms": 1977,
+      "total_elapsed_ms": 16146,
+      "cleanup_ms": 14169,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    }
+  ],
+  "refusal": "interrupted"
+}

@@ -1,0 +1,4416 @@
+{
+  "schema": "lao-subscription-workflow-1",
+  "status": "refused",
+  "budget_usd_max": 5,
+  "registered_at_unix": 1789230316,
+  "expires_at_unix": 1789316716,
+  "boundary": "parent_dispatch_through_independent_verification",
+  "claim": "public manifest pilot; no promotion or inferred monetary savings",
+  "token_limit": "native subscriptions; observed at completion, no hard per-request token reservation",
+  "claude_scope": "two-task single-round warm smoke; separate from Codex comparison",
+  "billing": "subscriptions_only_no_api_or_credit_purchase",
+  "metadata": {
+    "versions": {
+      "codex": "codex-cli 0.154.0",
+      "claude": "2.1.251 (Claude Code)"
+    },
+    "subscription": {
+      "within_subscription": true,
+      "used_percent": [
+        9
+      ],
+      "paid_credits_available": false
+    },
+    "resources": {
+      "pressure": 1,
+      "available_percent": 67,
+      "ac_power": false,
+      "battery_percent": 78,
+      "thermal_ok": true,
+      "stable": true
+    },
+    "artifacts": {
+      "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+      "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+      "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+      "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+      "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+      "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+      "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+      "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+      "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+      "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+    },
+    "source_dirty": false,
+    "fixture_manifest_sha256": "e900d632d0ba3ca5eaf4530a1403d47aa9b5870e22601be642d493cd39949deb",
+    "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+    "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+    "collector_sha256": "d3128a077bf43ab89d71fc2bde882cc0e446a028df671ae206329d48deeea40b",
+    "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+    "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+    "host": "Mac16,13",
+    "ram_bytes": 25769803776,
+    "os": "15.6"
+  },
+  "trials": [
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2027,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 54602,
+        "cached_input_tokens": 31232,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 636,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 31680,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 68,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          9
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 33742,
+      "cleanup_ms": 35,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1934,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 84820,
+        "cached_input_tokens": 70656,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1005,
+        "reasoning_output_tokens": 91
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 48103,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          9
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 50080,
+      "cleanup_ms": 43,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1937,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46467,
+        "cached_input_tokens": 33920,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 370,
+        "reasoning_output_tokens": 24
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 22297,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 68,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          9
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 24280,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1934,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66998,
+        "cached_input_tokens": 42496,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 983,
+        "reasoning_output_tokens": 16
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 44963,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 68,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 68,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          9
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 46945,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1807,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66913,
+        "cached_input_tokens": 45952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 950,
+        "reasoning_output_tokens": 21
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 40680,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 42531,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1883,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46771,
+        "cached_input_tokens": 22400,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 479,
+        "reasoning_output_tokens": 12
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 23321,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 25253,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1770,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85894,
+        "cached_input_tokens": 80128,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1239,
+        "reasoning_output_tokens": 91
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 53212,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 78,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 55026,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2003,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 54705,
+        "cached_input_tokens": 42368,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 603,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 30493,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 32542,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1778,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67237,
+        "cached_input_tokens": 54144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 928,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 42807,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 44632,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1706,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 86269,
+        "cached_input_tokens": 76928,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1090,
+        "reasoning_output_tokens": 42
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 48657,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 50410,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1745,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85508,
+        "cached_input_tokens": 71168,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1023,
+        "reasoning_output_tokens": 145
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 49644,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 51439,
+      "cleanup_ms": 50,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1972,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66777,
+        "cached_input_tokens": 62080,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 679,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 35064,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 37083,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1711,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67477,
+        "cached_input_tokens": 62592,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 833,
+        "reasoning_output_tokens": 10
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 45821,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 47578,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1732,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85486,
+        "cached_input_tokens": 80000,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 932,
+        "reasoning_output_tokens": 61
+      },
+      "mcp_calls": 1,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46436,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48212,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1826,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46808,
+        "cached_input_tokens": 22528,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 404,
+        "reasoning_output_tokens": 63
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 25715,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          10
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 27588,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1874,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66897,
+        "cached_input_tokens": 51456,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 922,
+        "reasoning_output_tokens": 13
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46220,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48137,
+      "cleanup_ms": 43,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1708,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 96169,
+        "cached_input_tokens": 79488,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1379,
+        "reasoning_output_tokens": 34
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 58817,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 77,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 60571,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1990,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 101939,
+        "cached_input_tokens": 88448,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1035,
+        "reasoning_output_tokens": 46
+      },
+      "mcp_calls": 1,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 56862,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 58895,
+      "cleanup_ms": 43,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1745,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 54387,
+        "cached_input_tokens": 28288,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 367,
+        "reasoning_output_tokens": 27
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 21710,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 23494,
+      "cleanup_ms": 39,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1804,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 95237,
+        "cached_input_tokens": 87296,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1125,
+        "reasoning_output_tokens": 44
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 49918,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 51770,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1777,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 71435,
+        "cached_input_tokens": 61440,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 619,
+        "reasoning_output_tokens": 18
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 30113,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 31935,
+      "cleanup_ms": 45,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1752,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 91951,
+        "cached_input_tokens": 76416,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 961,
+        "reasoning_output_tokens": 34
+      },
+      "mcp_calls": 1,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 49130,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          11
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 50924,
+      "cleanup_ms": 42,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1735,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 49964,
+        "cached_input_tokens": 39936,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 462,
+        "reasoning_output_tokens": 12
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 25699,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 27469,
+      "cleanup_ms": 35,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1927,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 72077,
+        "cached_input_tokens": 45952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 857,
+        "reasoning_output_tokens": 43
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 39697,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 41671,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1833,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66589,
+        "cached_input_tokens": 61696,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 664,
+        "reasoning_output_tokens": 14
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 38280,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 40161,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1985,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85440,
+        "cached_input_tokens": 71168,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 941,
+        "reasoning_output_tokens": 53
+      },
+      "mcp_calls": 1,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46881,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 76,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48914,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1737,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85254,
+        "cached_input_tokens": 79744,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 805,
+        "reasoning_output_tokens": 69
+      },
+      "mcp_calls": 1,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 40443,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 42228,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2120,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66154,
+        "cached_input_tokens": 51200,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 585,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 31754,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 33926,
+      "cleanup_ms": 52,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1690,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66708,
+        "cached_input_tokens": 42368,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 832,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 39507,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          12
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 41246,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1754,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 84582,
+        "cached_input_tokens": 70528,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 916,
+        "reasoning_output_tokens": 55
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 48802,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 50604,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1744,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 47002,
+        "cached_input_tokens": 34304,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 503,
+        "reasoning_output_tokens": 54
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 27152,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 64,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 28942,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1700,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67129,
+        "cached_input_tokens": 61952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1012,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46253,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 66,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 47998,
+      "cleanup_ms": 45,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1704,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66667,
+        "cached_input_tokens": 53888,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 744,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 39976,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 41728,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1883,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85156,
+        "cached_input_tokens": 79872,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 886,
+        "reasoning_output_tokens": 68
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 44930,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 46846,
+      "cleanup_ms": 33,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1881,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46755,
+        "cached_input_tokens": 33920,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 669,
+        "reasoning_output_tokens": 24
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 31211,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 33137,
+      "cleanup_ms": 45,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1817,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67439,
+        "cached_input_tokens": 42752,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1081,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 45043,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 67,
+        "ac_power": false,
+        "battery_percent": 75,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 65,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          13
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 46892,
+      "cleanup_ms": 32,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2290,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67418,
+        "cached_input_tokens": 62592,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 721,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 42988,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 63,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 61,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          14
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 45327,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 2192,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46748,
+        "cached_input_tokens": 22528,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 425,
+        "reasoning_output_tokens": 26
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 25728,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          14
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 27971,
+      "cleanup_ms": 51,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 3445,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 72243,
+        "cached_input_tokens": 64512,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 718,
+        "reasoning_output_tokens": 62
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 38881,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 46,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          14
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 42376,
+      "cleanup_ms": 50,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2197,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66676,
+        "cached_input_tokens": 61824,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 620,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 35726,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          14
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 37971,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1856,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 95917,
+        "cached_input_tokens": 79744,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1393,
+        "reasoning_output_tokens": 30
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 63989,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          15
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 65894,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1834,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 122527,
+        "cached_input_tokens": 102528,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1126,
+        "reasoning_output_tokens": 88
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 59002,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 74,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          15
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 60872,
+      "cleanup_ms": 36,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1786,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 100937,
+        "cached_input_tokens": 92928,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1071,
+        "reasoning_output_tokens": 73
+      },
+      "mcp_calls": 1,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 55515,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          15
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 57345,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1759,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 94559,
+        "cached_input_tokens": 78976,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 946,
+        "reasoning_output_tokens": 40
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46638,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48446,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2112,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 61075,
+        "cached_input_tokens": 54528,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 585,
+        "reasoning_output_tokens": 15
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 32228,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 34380,
+      "cleanup_ms": 40,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1686,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 93810,
+        "cached_input_tokens": 71424,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 851,
+        "reasoning_output_tokens": 80
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 51523,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 53258,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1871,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 92901,
+        "cached_input_tokens": 77184,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1152,
+        "reasoning_output_tokens": 111
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 54610,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 59,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 56530,
+      "cleanup_ms": 49,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1737,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 72843,
+        "cached_input_tokens": 66560,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1002,
+        "reasoning_output_tokens": 18
+      },
+      "mcp_calls": 0,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 42858,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 44643,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1798,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67159,
+        "cached_input_tokens": 59904,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1004,
+        "reasoning_output_tokens": 18
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 47613,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 49458,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1791,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46612,
+        "cached_input_tokens": 34048,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 416,
+        "reasoning_output_tokens": 27
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 21898,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 73,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 23737,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1824,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85496,
+        "cached_input_tokens": 58624,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 909,
+        "reasoning_output_tokens": 31
+      },
+      "mcp_calls": 1,
+      "failed_tools": 4,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 44858,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 46729,
+      "cleanup_ms": 47,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1820,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67277,
+        "cached_input_tokens": 62336,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1028,
+        "reasoning_output_tokens": 14
+      },
+      "mcp_calls": 0,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 49050,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 59,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          16
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 50916,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1872,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66937,
+        "cached_input_tokens": 58752,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 863,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 47442,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 59,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          17
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 49364,
+      "cleanup_ms": 50,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1916,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 98042,
+        "cached_input_tokens": 83584,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 939,
+        "reasoning_output_tokens": 77
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 47752,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 58,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          17
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 49719,
+      "cleanup_ms": 51,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 2165,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46782,
+        "cached_input_tokens": 40064,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 474,
+        "reasoning_output_tokens": 26
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 27937,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 54,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 72,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          17
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 30150,
+      "cleanup_ms": 48,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1955,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66429,
+        "cached_input_tokens": 53632,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 653,
+        "reasoning_output_tokens": 12
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 35477,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          17
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 37486,
+      "cleanup_ms": 54,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1986,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66659,
+        "cached_input_tokens": 58368,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 665,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 35906,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          17
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 37942,
+      "cleanup_ms": 50,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1943,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46642,
+        "cached_input_tokens": 42880,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 507,
+        "reasoning_output_tokens": 25
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 26964,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 28957,
+      "cleanup_ms": 50,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1967,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 85482,
+        "cached_input_tokens": 71168,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1037,
+        "reasoning_output_tokens": 45
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 55230,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 57243,
+      "cleanup_ms": 46,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1866,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 78705,
+        "cached_input_tokens": 73600,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 866,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 42356,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 55,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 44266,
+      "cleanup_ms": 44,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1754,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 67865,
+        "cached_input_tokens": 62848,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1025,
+        "reasoning_output_tokens": 0
+      },
+      "mcp_calls": 0,
+      "failed_tools": 2,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 56703,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 56,
+        "ac_power": false,
+        "battery_percent": 71,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 57,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 58511,
+      "cleanup_ms": 54,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1918,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46784,
+        "cached_input_tokens": 34176,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 389,
+        "reasoning_output_tokens": 27
+      },
+      "mcp_calls": 1,
+      "failed_tools": 0,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 20670,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 53,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 52,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 22643,
+      "cleanup_ms": 55,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1945,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 46767,
+        "cached_input_tokens": 34048,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 453,
+        "reasoning_output_tokens": 12
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": false,
+      "elapsed_ms": 25641,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 48,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 49,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 27638,
+      "cleanup_ms": 52,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1957,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 66915,
+        "cached_input_tokens": 50688,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 793,
+        "reasoning_output_tokens": 9
+      },
+      "mcp_calls": 0,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 38018,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 48,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 49,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          18
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 40030,
+      "cleanup_ms": 55,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 1853,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 80803,
+        "cached_input_tokens": 73344,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1123,
+        "reasoning_output_tokens": 18
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 49703,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 49,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 49,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          19
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 51608,
+      "cleanup_ms": 52,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1865,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 117293,
+        "cached_input_tokens": 99968,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1315,
+        "reasoning_output_tokens": 85
+      },
+      "mcp_calls": 1,
+      "failed_tools": 3,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 59968,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 49,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 50,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          19
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 61886,
+      "cleanup_ms": 53,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "completed",
+      "setup_ms": 1936,
+      "parent_status": "complete",
+      "local_worker_status": "cloud",
+      "tokens": {
+        "input_tokens": 115800,
+        "cached_input_tokens": 107776,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 838,
+        "reasoning_output_tokens": 81
+      },
+      "mcp_calls": 1,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46035,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 50,
+        "ac_power": false,
+        "battery_percent": 70,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 50,
+        "ac_power": false,
+        "battery_percent": 69,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          19
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48023,
+      "cleanup_ms": 52,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2027,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 80502,
+        "cached_input_tokens": 64896,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1030,
+        "reasoning_output_tokens": 16
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 46265,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 50,
+        "ac_power": false,
+        "battery_percent": 69,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 51,
+        "ac_power": false,
+        "battery_percent": 69,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          19
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 48343,
+      "cleanup_ms": 51,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "baseline",
+      "state": "completed",
+      "setup_ms": 2043,
+      "parent_status": "complete",
+      "local_worker_status": null,
+      "tokens": {
+        "input_tokens": 71330,
+        "cached_input_tokens": 57600,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 690,
+        "reasoning_output_tokens": 10
+      },
+      "mcp_calls": 0,
+      "failed_tools": 1,
+      "model": null,
+      "requested_model": "gpt-6-astra",
+      "reason": null,
+      "route": "cloud",
+      "scope_ok": true,
+      "verified": true,
+      "elapsed_ms": 36806,
+      "resource_before": {
+        "pressure": 1,
+        "available_percent": 50,
+        "ac_power": false,
+        "battery_percent": 69,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "resource_after": {
+        "pressure": 1,
+        "available_percent": 46,
+        "ac_power": false,
+        "battery_percent": 69,
+        "thermal_ok": true,
+        "stable": true
+      },
+      "observed_harness": "codex-cli 0.154.0",
+      "subscription_before": {
+        "within_subscription": true,
+        "used_percent": [
+          19
+        ],
+        "paid_credits_available": false
+      },
+      "total_elapsed_ms": 38908,
+      "cleanup_ms": 59,
+      "cleanup_ok": true
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "cold",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "codex",
+      "cache": "warm",
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "state": "planned"
+    },
+    {
+      "harness": "claude",
+      "cache": "warm",
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "state": "planned"
+    }
+  ],
+  "refusal": "resource_guard_refused"
+}

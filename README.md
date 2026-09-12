@@ -135,7 +135,7 @@ The [product vision](PRODUCT_VISION_AND_ARCHITECTURE.md) explains longer-term de
 
 The proof supports native Responses/Messages traffic through a private credential gate and bounded MCP packets through OpenCode. The macOS worker sandbox has no unrestricted fallback, but uses deprecated `sandbox-exec` and is not portable release hardening.
 
-The [paired-evidence checker and public fixtures](docs/benchmarks/README.md) are implemented. R9b, the matched native-cloud versus LAO-hybrid full-workflow comparison, is the next evidence gate and needs an approved campaign scope and budget. Local canaries do not establish user benefit.
+The [paired-evidence checker and public fixtures](docs/benchmarks/README.md) are implemented. R9b now has a [registered subscription workflow collector](docs/benchmarks/workflow.md), twelve bounded public tasks and a reserved repository holdout. The Codex comparison and separate two-task Claude smoke are authorized. The complete cold comparison verified 36/36 native Cloud objectives and 22/36 hybrid objectives; all hybrid delegations returned Cloud. Warm and Claude collection are paused at the user’s request. Local canaries do not establish user benefit.
 
 Capture, encrypted task storage, personal evaluation, and training remain disabled. Linux/Windows, NVIDIA/AMD, and additional certified engines follow the first Mac release. Current implementation and dated evidence belong in the [implementation plan](IMPLEMENTATION_PLAN.md).
 

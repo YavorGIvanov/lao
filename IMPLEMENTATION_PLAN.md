@@ -28,7 +28,7 @@ The next release is a limited Apple Silicon Mac beta with a measured useful task
 | Beta / R13 | Small consent-based user pilot | Release owner, `docs/benchmarks` | 5–10 users; count activation, verified outcomes, repairs, resource use and observed cloud usage; retain failures and decide whether to widen release. |
 | After first release | Optional engines and platforms | Runtime/CLI and platform owners | One admitted combination at a time behind existing APIs; llama.cpp stays default. Linux/Windows and NVIDIA/AMD are expansion targets, not Mac beta prerequisites. |
 
-**R9a is complete**: the fixture suite and one local-only diagnostic pass. The next evidence step is R9b: pre-register representative tasks/holdouts, matched full-workflow arms and a campaign budget. R9b's cloud campaign needs a separately approved scope and budget. Do not mark R9 or user value proven when only R9a ran. Personal capture/vault/eval/training stay disabled; contributor fixtures do not activate those services.
+**R9a is complete**: the fixture suite and one local-only diagnostic pass. R9b now has an offline-verified corpus and a registered subscription workflow collector. The user authorized the Codex comparison and a separate two-task Claude smoke, with a $5 additional-spend ceiling. The complete cold comparison verified 36/36 native objectives and 22/36 hybrid objectives, with all delegations returning Cloud. Warm/Claude collection is paused at the user’s request. Do not mark R9 or user value proven from fixture checks or local diagnostics. Personal capture/vault/eval/training stay disabled.
 
 ### R8 — Evidence before new performance claims
 
@@ -55,7 +55,7 @@ Current evidence:
 
 ### R9 — Measure the whole bounded task
 
-Status: R9a complete (2026-09-06); R9b planned and requires campaign consent. R9 user-benefit acceptance is still open.
+Status: R9a complete (2026-09-06); R9b collector and corpus verified offline (2026-09-12). Subscription execution is authorized and registered; the complete cold comparison is reported and its paired export passes the evidence checker. Warm/Claude collection is paused at the user’s request. R9 user-benefit acceptance is still open.
 
 **R9a — Build the task suite.** Add six bounded structured-file edits across three small repository-owned fixture projects, beyond the existing typo canary, plus an essential broad/risky Cloud control. Declare task IDs, objectives, exact paths and independent expected behavior before running the worker. Fresh copies separate trials; verifier expectations stay outside worker access. Prove that every untouched task fails its verifier, its reference edit passes, and unrelated changes fail the scope check. Run the real MCP/local path serially with deadlines, bounded output and cleanup; record every route, worker status, content verdict, scope verdict and dispatch-through-verification time. A Cloud return is a deferral, never a local success. No cloud generation, private capture or router tuning occurs in this diagnostic. Hand-authored fixture packets are not evidence of natural harness behavior or broad coding quality.
 
@@ -68,6 +68,12 @@ R9a evidence:
 - The recorded timer is MCP dispatch through independent verification, with uncontrolled cache state. It excludes parent planning/review/repair and is not schema-1 paired evidence. Neither savings nor unnecessary-Cloud error rates can be inferred.
 
 **R9b — Compare the full workflow.** Use these tasks and extend to representative real/public projects with an independent holdout. Both native Cloud and LAO hybrid arms must complete the same objective and verifier. Keep Codex and Claude reports separate. This is the first user-benefit gate; R9a timings alone exclude parent planning/review/repair and cannot satisfy it.
+
+R9b partial evidence (2026-09-12): the [registration](docs/benchmarks/workflow.md) pins twelve narrow JSON tasks, including Vite/Fastify public excerpts and an Express repository holdout. The complete cold Codex comparison contains 36 matched pairs across three repetitions: native Cloud verified 36/36 objectives, hybrid 22/36. All hybrid calls returned Cloud; all parents reported completion. Median primary times were 42.582 and 45.483 seconds respectively, including failed objectives. All cold scope, cleanup and pre/post resource checks passed. The Express holdout verified 6/6 native and 4/6 hybrid objectives. The [cold-only schema-1 export](docs/benchmarks/subscription-2026-09-12-codex-cold.json) passes `cargo xtask evidence`. No Local coverage or user benefit was demonstrated.
+
+Warm collection retained three Codex executions, including a resource-invalid pair. One Claude baseline then completed; its candidate was interrupted when the user requested postponement while using Blender and other programs. Final accounting is 76 finished executions, one interrupted execution and 71 unexecuted rows. All observations and earlier refused checkpoints are retained, with no completed-arm replacement. Six focused collector tests, formatting and diff checks pass; earlier workspace tests, strict Clippy and architecture/extraction checks cover the unchanged Rust implementation. The user's subscription-only scope and $5 additional-spend ceiling remain in force.
+
+R9b remains partial. Finish deferred collection only when requested, retaining invalid/interrupted pairs and the frozen workload; disclose that the cold holdout was reviewed for this authorized partial report. The next measured product issue is unreliable native parent continuation after Cloud handoff, to be reproduced on already-observed tasks before any routing change. Subscription counters do not implement per-request token reservation, encrypted native-traffic inspection or invoice accounting. Public excerpts and repeated objectives do not establish broad coding quality, quota savings or promotion eligibility.
 
 Pre-register before execution:
 

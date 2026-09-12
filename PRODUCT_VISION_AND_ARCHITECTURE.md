@@ -810,7 +810,7 @@ Complete on the 24 GiB Apple M4 test Mac: native saved-login paths, bounded loca
 
 The first release is a limited Apple Silicon Mac beta. Detailed owners, order and acceptance gates live in [the implementation plan](IMPLEMENTATION_PLAN.md#next-steps). Four requirements determine readiness:
 
-1. **Prove useful tasks (R9):** matched Cloud/hybrid workflows, independent verification, all overhead and failures included. R9a's six fixtures and local-only diagnostic are complete; the consented R9b comparison remains open.
+1. **Prove useful tasks (R9):** matched Cloud/hybrid workflows, independent verification, all overhead and failures included. R9a's six fixtures and local-only diagnostic are complete. R9b adds offline-verified public manifest excerpts, a reserved repository holdout and a consented subscription workflow collector. The complete cold comparison verified 36/36 native objectives and 22/36 hybrid objectives, with every hybrid delegation returning Cloud. Warm/Claude collection is paused at the user’s request. Measured user benefit remains open.
 2. **Earn Local eligibility (R10):** held-out outcomes justify a narrow task slice; report route errors, repairs and measured cloud usage before widening it.
 3. **Make installation ordinary (R11):** signed, notarized prebuilt artifacts; either harness independently or both; verified install, upgrade, rollback, off and removal. Unsigned packaging and isolated single-client lifecycle evidence are preparation, not release certification.
 4. **Certify an honest support range (R12):** publish tested hardware, OS, client and authentication combinations with native/local, sandbox, failure-recovery and resource evidence.

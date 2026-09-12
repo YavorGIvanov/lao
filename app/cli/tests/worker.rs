@@ -1,171 +1,20 @@
 #![cfg(target_os = "macos")]
 
-use serde::Deserialize;
+#[path = "support/tasks.rs"]
+mod fixtures;
+use fixtures::*;
 use serde_json::{Value, json};
 use std::{
-    collections::BTreeMap,
     fs,
     io::{Read, Write},
-    os::unix::{fs::DirBuilderExt, fs::MetadataExt, fs::PermissionsExt, process::CommandExt},
-    path::{Path, PathBuf},
+    os::unix::process::CommandExt,
+    path::Path,
     process::{Child, Command, Stdio},
     thread,
     time::{Duration, Instant},
 };
 
-const LIMIT: usize = 1024 * 1024;
 const DEADLINE: Duration = Duration::from_secs(10 * 60 + 5);
-const MANIFEST: &str = include_str!("../../../docs/benchmarks/tasks.json");
-const PROJECTS: &[(&str, &str)] = &[
-    (
-        "web",
-        include_str!("../../../docs/benchmarks/fixtures/web/package.json"),
-    ),
-    (
-        "service",
-        include_str!("../../../docs/benchmarks/fixtures/service/settings.json"),
-    ),
-    (
-        "catalog",
-        include_str!("../../../docs/benchmarks/fixtures/catalog/products.json"),
-    ),
-];
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Task {
-    id: String,
-    project: String,
-    file: String,
-    objective: String,
-    pointer: String,
-    value: Value,
-}
-
-impl Task {
-    fn source(&self) -> &'static str {
-        PROJECTS
-            .iter()
-            .find(|(name, _)| *name == self.project)
-            .unwrap()
-            .1
-    }
-
-    fn expected(&self) -> Value {
-        let mut expected: Value = serde_json::from_str(self.source()).unwrap();
-        let value = expected.pointer_mut(&self.pointer).unwrap();
-        assert_ne!(*value, self.value, "fixture must require an edit");
-        *value = self.value.clone();
-        expected
-    }
-}
-
-struct Repo(PathBuf);
-
-impl Repo {
-    fn new(task: &Task) -> Self {
-        let mut nonce = [0u8; 8];
-        getrandom::getrandom(&mut nonce).unwrap();
-        let root =
-            std::env::temp_dir().join(format!("lao-task-{:016x}", u64::from_ne_bytes(nonce)));
-        fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
-        let repo = Self(root);
-        assert!(
-            Command::new("/usr/bin/git")
-                .env_clear()
-                .args(["-c", "init.templateDir=", "init", "-q"])
-                .env("GIT_CONFIG_NOSYSTEM", "1")
-                .env("GIT_CONFIG_GLOBAL", "/dev/null")
-                .current_dir(&repo.0)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .unwrap()
-                .success(),
-            "fixture Git setup failed"
-        );
-        fs::write(repo.0.join(&task.file), task.source()).unwrap();
-        fs::write(
-            repo.0.join("README.md"),
-            "Public LAO fixture. This file must remain unchanged.\n",
-        )
-        .unwrap();
-        repo
-    }
-}
-
-impl Drop for Repo {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.0);
-    }
-}
-
-#[derive(PartialEq, Eq)]
-struct Entry {
-    mode: u32,
-    bytes: Vec<u8>,
-}
-
-type Tree = BTreeMap<PathBuf, Entry>;
-
-fn tree(root: &Path) -> Option<Tree> {
-    let mut result = Tree::new();
-    let mut pending = vec![PathBuf::new()];
-    let mut bytes = 0;
-    while let Some(dir) = pending.pop() {
-        for entry in fs::read_dir(root.join(dir)).ok()? {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            let meta = fs::symlink_metadata(&path).ok()?;
-            if !meta.is_file() && !meta.is_dir()
-                || meta.is_file() && meta.nlink() != 1
-                || result.len() >= 256
-            {
-                return None;
-            }
-            let relative = path.strip_prefix(root).ok()?.to_path_buf();
-            let mut data = Vec::new();
-            if meta.is_dir() {
-                pending.push(relative.clone());
-            } else {
-                fs::File::open(path)
-                    .ok()?
-                    .take((LIMIT + 1) as u64)
-                    .read_to_end(&mut data)
-                    .ok()?;
-                bytes += data.len();
-                if bytes > LIMIT {
-                    return None;
-                }
-            }
-            result.insert(
-                relative,
-                Entry {
-                    mode: meta.permissions().mode(),
-                    bytes: data,
-                },
-            );
-        }
-    }
-    Some(result)
-}
-
-fn verdict(root: &Path, task: &Task, before: &Tree, expected: &Value) -> (bool, bool) {
-    let Some(after) = tree(root) else {
-        return (false, false);
-    };
-    let verified = after
-        .get(Path::new(&task.file))
-        .and_then(|entry| serde_json::from_slice::<Value>(&entry.bytes).ok())
-        .is_some_and(|actual| actual == *expected);
-    let scope_ok = before.len() == after.len()
-        && before.iter().all(|(path, old)| {
-            after.get(path).is_some_and(|new| {
-                old.mode == new.mode && (path == Path::new(&task.file) || old.bytes == new.bytes)
-            })
-        });
-    (verified, scope_ok)
-}
 
 struct Process(Child);
 
@@ -251,14 +100,11 @@ fn packet(root: &Path, task: &Task, objective: &str) -> Option<&'static str> {
     }
 }
 
-fn tasks() -> Vec<Task> {
-    serde_json::from_str(MANIFEST).unwrap()
-}
-
 #[test]
 fn public_tasks_fail_before_and_pass_independent_reference_edits() {
-    let tasks = tasks();
-    assert_eq!(tasks.len(), 6);
+    assert_eq!(tasks().len(), 6);
+    let tasks = workflow_tasks();
+    assert_eq!(tasks.len(), 12);
     let mut ids = std::collections::BTreeSet::new();
     for task in tasks {
         assert!(ids.insert(task.id.clone()));

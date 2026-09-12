@@ -1,0 +1,217 @@
+{
+  "source_report_sha256": "a9838b3b824998c8372bfed81dbd02acae6d1dfcd029915356e4c12190cf1162",
+  "metadata": {
+    "versions": {
+      "codex": "codex-cli 0.154.0",
+      "claude": "2.1.251 (Claude Code)"
+    },
+    "subscription": {
+      "within_subscription": true,
+      "used_percent": [
+        9
+      ],
+      "paid_credits_available": false
+    },
+    "resources": {
+      "pressure": 1,
+      "available_percent": 67,
+      "ac_power": false,
+      "battery_percent": 78,
+      "thermal_ok": true,
+      "stable": true
+    },
+    "artifacts": {
+      "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+      "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+      "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+      "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+      "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+      "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+      "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+      "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+      "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+      "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+    },
+    "source_dirty": false,
+    "fixture_manifest_sha256": "e900d632d0ba3ca5eaf4530a1403d47aa9b5870e22601be642d493cd39949deb",
+    "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+    "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+    "collector_sha256": "d3128a077bf43ab89d71fc2bde882cc0e446a028df671ae206329d48deeea40b",
+    "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+    "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+    "host": "Mac16,13",
+    "ram_bytes": 25769803776,
+    "os": "15.6"
+  },
+  "continuations": [
+    {
+      "from_report_sha256": "4db4ee0a2a1252d9af1752d70d6a63395d0f460aefb1b8d0fca45021f3172dbb",
+      "prior_refusal": "resource_guard_refused",
+      "first_trial_index": 69,
+      "resumed_at_unix": 1789233710,
+      "collector_metadata": {
+        "versions": {
+          "codex": "codex-cli 0.154.0",
+          "claude": "2.1.251 (Claude Code)"
+        },
+        "subscription": {
+          "within_subscription": true,
+          "used_percent": [
+            23
+          ],
+          "paid_credits_available": false
+        },
+        "resources": {
+          "pressure": 1,
+          "available_percent": 49,
+          "ac_power": false,
+          "battery_percent": 67,
+          "thermal_ok": true,
+          "stable": true
+        },
+        "artifacts": {
+          "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+          "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+          "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+          "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+          "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+          "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+          "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+          "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+          "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+          "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+        },
+        "source_dirty": false,
+        "fixture_manifest_sha256": "dce87fa2e02c943f71e6b5b80c98d3337afabd9b5581d1ccf1b0e5ae63d3f3ae",
+        "source_revision": "64eb71190b69bfe2997755e4b28e6410c23235a6",
+        "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+        "collector_sha256": "720f894c6e810b5ce546853a2b9c134e6eb2d7e4bae15a741eeb1cf9f1b73410",
+        "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+        "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+        "host": "Mac16,13",
+        "ram_bytes": 25769803776,
+        "os": "15.6"
+      }
+    },
+    {
+      "from_report_sha256": "75bf6a56a85bc65975a6c205980dd9191ddea4dc6badf97017dd6f31659785b2",
+      "prior_refusal": "setup_cleanup_failed_before_dispatch",
+      "first_trial_index": 72,
+      "resumed_at_unix": 1789235186,
+      "collector_metadata": {
+        "versions": {
+          "codex": "codex-cli 0.154.0",
+          "claude": "2.1.251 (Claude Code)"
+        },
+        "subscription": {
+          "within_subscription": true,
+          "used_percent": [
+            31
+          ],
+          "paid_credits_available": false
+        },
+        "resources": {
+          "pressure": 1,
+          "available_percent": 59,
+          "ac_power": false,
+          "battery_percent": 61,
+          "thermal_ok": true,
+          "stable": true
+        },
+        "artifacts": {
+          "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+          "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+          "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+          "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+          "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+          "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+          "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+          "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+          "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+          "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+        },
+        "source_dirty": false,
+        "fixture_manifest_sha256": "76de3b20f6982f36e45e73e1088d66de73ea5de7d7bb0f8ce2a6095c9bcabef8",
+        "source_revision": "a394dd77e9c12c1235c4ba93cc20b51e12082864",
+        "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+        "collector_sha256": "027196894b5f2cae583b6956eb09dcff4d537a82400dcbb179895780ce300481",
+        "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+        "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+        "host": "Mac16,13",
+        "ram_bytes": 25769803776,
+        "os": "15.6"
+      }
+    },
+    {
+      "from_report_sha256": "c8f083cb79a79517705df55b26e65fba3de2db698d0b9b659c97eeba7668977a",
+      "prior_refusal": "postflight_resource_or_scope_refused",
+      "first_trial_index": 75,
+      "resumed_at_unix": 1789236294,
+      "collector_metadata": {
+        "versions": {
+          "codex": "codex-cli 0.154.0",
+          "claude": "2.1.251 (Claude Code)"
+        },
+        "subscription": {
+          "within_subscription": true,
+          "used_percent": [
+            42
+          ],
+          "paid_credits_available": false
+        },
+        "resources": {
+          "pressure": 1,
+          "available_percent": 62,
+          "ac_power": false,
+          "battery_percent": 54,
+          "thermal_ok": true,
+          "stable": true
+        },
+        "artifacts": {
+          "gate": "c2f1f69df2b08e7e27a2060c47f40852bbbf613d3cdc7f269a05159c12d4dafd",
+          "codex": "4f85982624b3898c8991cb80c0981b2aa71070e3537046c9a95950318a95afcc",
+          "claude": "625869b01e0050f260b2980fac248fd9cef9e462612bded4ec9d3d49ff8969a5",
+          "runtime": "02723fc39fbeebd9849ce4c9ca3799649df3cf91f101c2cd56b8756e1db54d28",
+          "model_tokenizer_template": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+          "worker": "88eed7b0c2431162422cb0625aa68a55239970446951e4c9aad6a4f1fbc232b9",
+          "worker_support_lockfile": "2c3f305186cf43d2ea8ac87aac5812ad735ba08e35db68126cd1ae166c5d5721",
+          "router_config.json": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41",
+          "router_tokenizer.json": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+          "router_model.safetensors": "53aa51172d142c89d9012cce15ae4d6cc0ca6895895114379cacb4fab128d9db"
+        },
+        "source_dirty": false,
+        "fixture_manifest_sha256": "28a02a0fc17549d98cd3107ba40bcf99caf92ef8bb55c8f0222221e84e8c501b",
+        "source_revision": "874a204bf472e5eccb2c6d37a9eac0d7f2fac10e",
+        "lockfile_sha256": "a7462d67acb8ed8f563821887610bbb0ebeff8e2fb2eaee8c8f1a1016de71d66",
+        "collector_sha256": "213798f97d620aac85d56aafa1cd7d71f57818b6f706da2ee51325c0b6292ad5",
+        "oracle_sha256": "847970e4868f1bdb55594562e316ca19461e08bfbbafb8e03ad337fce42f6e22",
+        "lao_sha256": "11c3dc8cef1259387b6322a3d2663583dca874539651472805443b3ded1f643a",
+        "host": "Mac16,13",
+        "ram_bytes": 25769803776,
+        "os": "15.6"
+      }
+    }
+  ],
+  "registration_manifest_sha256": "e900d632d0ba3ca5eaf4530a1403d47aa9b5870e22601be642d493cd39949deb",
+  "limits": {
+    "parent_seconds": 900,
+    "worker_seconds": 600,
+    "output_bytes": 4194304,
+    "additional_spend_usd": 5
+  },
+  "codex": {
+    "requested_model": "gpt-6-astra",
+    "effort": "medium",
+    "context": 32768,
+    "remote_model_identity": "requested through pinned client; remote weights opaque"
+  },
+  "candidate": {
+    "worker": "opencode-v1.18.25",
+    "model": "Qwen3-4B-Q4_K_M",
+    "runtime": "llama-b10280",
+    "threads": 2,
+    "mode": "Light",
+    "router": "semantic-minilm"
+  },
+  "observations": "Cold cohort only: all 36 paired tasks are complete and resource-valid. Native versions and runtime/model artifacts were checked before every arm; CLI/oracle hashes were checked at setup and final review. Product binaries remained fixed; collector revisions are recorded separately. Remote model weights remain opaque."
+}

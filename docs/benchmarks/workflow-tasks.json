@@ -1,0 +1,50 @@
+[
+  {
+    "id": "vite-dev-strict-port",
+    "project": "vite",
+    "file": "package.json",
+    "objective": "Configure the dev script in package.json to use port 5173 and fail if that port is occupied, using Vite's --port and --strictPort flags in that order. Preserve all other settings.",
+    "pointer": "/scripts/dev",
+    "value": "vite --port 5173 --strictPort"
+  },
+  {
+    "id": "vite-preview-port",
+    "project": "vite",
+    "file": "package.json",
+    "objective": "Change the preview script in package.json to serve the built site on port 4174 using the --port flag. Preserve all other settings.",
+    "pointer": "/scripts/preview",
+    "value": "vite preview --port 4174"
+  },
+  {
+    "id": "fastify-ci-lint",
+    "project": "fastify",
+    "file": "package.json",
+    "objective": "Update the test:ci script in package.json to run npm run lint before its existing unit and TypeScript checks, joining the commands with && so a failed lint stops the sequence. Preserve all other settings.",
+    "pointer": "/scripts/test:ci",
+    "value": "npm run lint && npm run unit && npm run test:typescript"
+  },
+  {
+    "id": "fastify-markdown-lint",
+    "project": "fastify",
+    "file": "package.json",
+    "objective": "Update the lint script in package.json to run npm run lint:markdown after its existing ESLint command, joining them with &&. Preserve all other settings.",
+    "pointer": "/scripts/lint",
+    "value": "npm run lint:eslint && npm run lint:markdown"
+  },
+  {
+    "id": "express-node-floor",
+    "project": "express",
+    "file": "package.json",
+    "objective": "Update engines.node in package.json to require Node 20 or newer, using the version range >=20. Preserve all other settings.",
+    "pointer": "/engines/node",
+    "value": ">=20"
+  },
+  {
+    "id": "express-coverage-lcov",
+    "project": "express",
+    "file": "package.json",
+    "objective": "Update the test-cov script in package.json to also emit lcovonly coverage by inserting --reporter=lcovonly immediately before its existing HTML reporter. Keep the HTML and text reporters, exclusions, and final command unchanged. Preserve all other settings.",
+    "pointer": "/scripts/test-cov",
+    "value": "nyc --exclude examples --exclude test --exclude benchmarks --reporter=lcovonly --reporter=html --reporter=text npm test"
+  }
+]

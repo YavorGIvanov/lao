@@ -1315,6 +1315,7 @@ dependencies = [
  "lao-run",
  "lao-run-api",
  "libc",
+ "serde_json",
 ]
 
 [[package]]

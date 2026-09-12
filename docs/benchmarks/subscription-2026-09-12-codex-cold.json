@@ -1,0 +1,1339 @@
+{
+  "schema": 1,
+  "evidence": "measured",
+  "status": "complete",
+  "host": "Mac16-13-24GiB-macos15.6-Light",
+  "fixture_sha256": "e900d632d0ba3ca5eaf4530a1403d47aa9b5870e22601be642d493cd39949deb",
+  "verifier_sha256": "e900d632d0ba3ca5eaf4530a1403d47aa9b5870e22601be642d493cd39949deb",
+  "boundary": "dispatch_through_verification",
+  "cache": "cold",
+  "baseline": {
+    "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+    "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+    "runtime": "native-chatgpt",
+    "model": "gpt-6-astra",
+    "harness": "codex-0.154.0",
+    "context": 32768
+  },
+  "candidate": {
+    "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+    "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+    "runtime": "native-chatgpt-and-llama-b10280",
+    "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+    "harness": "codex-0.154.0",
+    "context": 32768
+  },
+  "tasks": [
+    "web-dev-port",
+    "web-node-version",
+    "service-timeout-units",
+    "service-retry-limit",
+    "catalog-numeric-price",
+    "catalog-unique-tags",
+    "vite-dev-strict-port",
+    "vite-preview-port",
+    "fastify-ci-lint",
+    "fastify-markdown-lint",
+    "express-node-floor",
+    "express-coverage-lcov"
+  ],
+  "rounds": 3,
+  "trials": [
+    {
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 31680,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-dev-port",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 48103,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 22297,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 44963,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 40680,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 23321,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 53212,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 30493,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 42807,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 48657,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 49644,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 35064,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 45821,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46436,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 25715,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46220,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 58817,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 56862,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 21710,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 49918,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 30113,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 49130,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 25699,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 1,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 39697,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 38280,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-dev-port",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46881,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 40443,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 31754,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 39507,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 48802,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 27152,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46253,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 39976,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 44930,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 31211,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 45043,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 42988,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 25728,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 38881,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 35726,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 63989,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 59002,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 55515,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46638,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 32228,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 51523,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 54610,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 2,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 42858,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 47613,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-dev-port",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 21898,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 44858,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "web-node-version",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 49050,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 47442,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-timeout-units",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 47752,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 27937,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "service-retry-limit",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 35477,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 35906,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-numeric-price",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 26964,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 55230,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "catalog-unique-tags",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 42356,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 56703,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-dev-strict-port",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 20670,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 25641,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "vite-preview-port",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 38018,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 49703,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-ci-lint",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 59968,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46035,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "fastify-markdown-lint",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 46265,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 36806,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-node-floor",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": false,
+      "scope_ok": true,
+      "elapsed_ms": 20924,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "candidate",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 58725,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt-and-llama-b10280",
+        "model": "gpt-6-astra-and-Qwen3-4B-Q4_K_M",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    },
+    {
+      "task": "express-coverage-lcov",
+      "round": 3,
+      "arm": "baseline",
+      "route": "cloud",
+      "verified": true,
+      "scope_ok": true,
+      "elapsed_ms": 41084,
+      "observed": {
+        "source_revision": "7e59d945dcc0e6da05c39d8956b8f95283b45300",
+        "artifacts_sha256": "d2556560d4225f32ea983cab0a0fabca9fb0ac2ba337cd5eca6a8de10c895e3a",
+        "runtime": "native-chatgpt",
+        "model": "gpt-6-astra",
+        "harness": "codex-0.154.0",
+        "context": 32768
+      },
+      "worker": "complete"
+    }
+  ]
+}
