@@ -75,11 +75,66 @@ elif command -v git >/dev/null 2>&1 &&
     revision=$(git -C "$root" rev-parse --verify HEAD 2>/dev/null || :)
 fi
 
+# A second installer must not replace files while another owns rollback snapshots.
+mkdir -p "$prefix" "$bin_dir"
+transaction="$prefix/.install-pending"
+mkdir "$transaction" 2>/dev/null || fail "concurrent or unfinished install; inspect $transaction before retrying"
+updating=false
+original_files=
+cli_link_new=true
+daemon_link_new=true
+[ ! -L "$cli_link" ] || cli_link_new=false
+[ ! -L "$daemon_link" ] || daemon_link_new=false
+cleanup() {
+    result=$?
+    trap - EXIT
+    trap '' HUP INT TERM
+    if [ "$result" -ne 0 ]; then
+        if [ "$updating" = true ]; then
+            for file in $original_files; do
+                [ -f "$transaction/old/$file" ] && [ ! -L "$transaction/old/$file" ] || {
+                    printf 'LAO setup: rollback snapshot missing; retained state in %s\n' "$transaction" >&2
+                    exit 1
+                }
+            done
+            for file in lao lao-daemon source-revision; do
+                if [ -f "$transaction/old/$file" ]; then
+                    ln "$transaction/old/$file" "$transaction/restore-$file" &&
+                        mv -f "$transaction/restore-$file" "$prefix/$file" || {
+                        printf 'LAO setup: rollback failed; snapshots retained in %s\n' "$transaction" >&2
+                        exit 1
+                    }
+                else
+                    rm -f "$prefix/$file" || exit 1
+                fi
+            done
+        fi
+        if [ "$cli_link_new" = true ] && [ -L "$cli_link" ] &&
+            [ "$(readlink "$cli_link")" = "$cli" ]; then
+            rm "$cli_link" || exit 1
+        fi
+        if [ "$daemon_link_new" = true ] && [ -L "$daemon_link" ] &&
+            [ "$(readlink "$daemon_link")" = "$daemon" ]; then
+            rm "$daemon_link" || exit 1
+        fi
+    fi
+    rm -rf -- "$transaction"
+    exit "$result"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+check_link "$cli_link" "$cli"
+check_link "$daemon_link" "$daemon"
+for file in lao lao-daemon source-revision; do
+    [ ! -L "$prefix/$file" ] && { [ ! -e "$prefix/$file" ] || [ -f "$prefix/$file" ]; } ||
+        fail "installed $file is not a regular file"
+done
+
 signature() {
-    printf '%s\n%s\n%s\n' \
-        "$revision" \
-        "$(/usr/bin/shasum -a 256 "$cli" | cut -d ' ' -f 1)" \
-        "$(/usr/bin/shasum -a 256 "$daemon" | cut -d ' ' -f 1)"
+    signature_dir=${1:-"$prefix"}
+    cli_hash=$(/usr/bin/shasum -a 256 "$signature_dir/lao") || return 1
+    daemon_hash=$(/usr/bin/shasum -a 256 "$signature_dir/lao-daemon") || return 1
+    printf '%s\n%s\n%s\n' "$revision" "${cli_hash%% *}" "${daemon_hash%% *}"
 }
 
 reuse=false
@@ -107,25 +162,25 @@ else
     printf 'Reusing verified LAO binaries.\n'
 fi
 
-mkdir -p "$prefix" "$bin_dir"
 if [ "$reuse" = false ]; then
-    cli_pending="$prefix/.lao.$$"
-    daemon_pending="$prefix/.lao-daemon.$$"
-    revision_pending="$prefix/.source-revision.$$"
-    cleanup() {
-        rm -f -- "$cli_pending" "$daemon_pending" "$revision_pending"
-    }
-    trap cleanup EXIT
-    trap 'exit 1' HUP INT TERM
-
-    /usr/bin/install -m 700 "$binaries/lao" "$cli_pending"
-    /usr/bin/install -m 700 "$binaries/lao-daemon" "$daemon_pending"
-    mv -f "$cli_pending" "$cli"
-    mv -f "$daemon_pending" "$daemon"
+    mkdir "$transaction/old" "$transaction/new"
+    for file in lao lao-daemon source-revision; do
+        if [ -f "$prefix/$file" ]; then
+            original_files="$original_files $file"
+            ln "$prefix/$file" "$transaction/old/$file"
+        fi
+    done
+    /usr/bin/install -m 700 "$binaries/lao" "$transaction/new/lao"
+    /usr/bin/install -m 700 "$binaries/lao-daemon" "$transaction/new/lao-daemon"
     if [ -n "$revision" ]; then
-        signature >"$revision_pending"
-        chmod 600 "$revision_pending"
-        mv -f "$revision_pending" "$revision_file"
+        signature "$transaction/new" >"$transaction/new/source-revision"
+    fi
+
+    updating=true
+    mv -f "$transaction/new/lao" "$cli"
+    mv -f "$transaction/new/lao-daemon" "$daemon"
+    if [ -n "$revision" ]; then
+        mv -f "$transaction/new/source-revision" "$revision_file"
     else
         rm -f -- "$revision_file"
     fi
@@ -133,5 +188,6 @@ fi
 
 ensure_link "$cli_link" "$cli"
 ensure_link "$daemon_link" "$daemon"
+updating=false
 
 printf '\nLAO binaries are installed. Finish setup with: "%s" install\n' "$cli_link"

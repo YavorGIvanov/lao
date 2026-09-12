@@ -47,6 +47,85 @@ sh "$bundle/install.sh" >"$stage/repeat.log"
 grep -q 'usage: lao' "$stage/cli.log"
 printf 'PASS: prebuilt install and repeat install without source tooling; CLI starts\n'
 
+# R11: upgrade synthetic prior binaries, preserving unrelated files and repeat reuse.
+(
+    export LAO_PREFIX="$stage/upgrade/libexec"
+    export LAO_BIN_DIR="$stage/upgrade/bin"
+    mkdir -p "$LAO_PREFIX"
+    install -m 700 /usr/bin/true "$LAO_PREFIX/lao"
+    install -m 700 /usr/bin/false "$LAO_PREFIX/lao-daemon"
+    printf 'previous test revision\n' >"$LAO_PREFIX/source-revision"
+    printf 'preserve me\n' >"$LAO_PREFIX/keep"
+    sh "$bundle/install.sh" >"$stage/upgrade.log"
+    cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+    cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
+    [ "$(cat "$LAO_PREFIX/keep")" = 'preserve me' ]
+    upgraded_inode=$(stat -f %i "$LAO_PREFIX/lao")
+    sh "$bundle/install.sh" >"$stage/upgrade-repeat.log"
+    [ "$(stat -f %i "$LAO_PREFIX/lao")" = "$upgraded_inode" ]
+    [ ! -e "$LAO_PREFIX/.install-pending" ]
+)
+printf 'PASS: archive upgrade from synthetic prior binaries and repeat installation\n'
+
+# R11: failure after publishing the CLI restores the previous pair and identity.
+mkdir "$stage/fault-tools"
+cat >"$stage/fault-tools/mv" <<'SH'
+#!/bin/sh
+case "$2" in
+    */.install-pending/new/lao-daemon)
+        if [ "$INSTALL_TEST_FAULT" = signal ]; then kill -TERM "$PPID"; fi
+        if [ "$INSTALL_TEST_FAULT" = missing ]; then rm "$LAO_PREFIX/.install-pending/old/lao-daemon"; fi
+        exit 1 ;;
+    */.install-pending/restore-lao)
+        if [ "$INSTALL_TEST_FAULT" = recovery ]; then exit 1; fi ;;
+esac
+exec /bin/mv "$@"
+SH
+chmod 700 "$stage/fault-tools/mv"
+for fault in command signal recovery missing; do
+    (
+        export LAO_PREFIX="$stage/failed-$fault/libexec"
+        export LAO_BIN_DIR="$stage/failed-$fault/bin"
+        mkdir -p "$LAO_PREFIX" "$LAO_BIN_DIR"
+        install -m 700 /usr/bin/true "$LAO_PREFIX/lao"
+        install -m 700 /usr/bin/false "$LAO_PREFIX/lao-daemon"
+        printf 'previous test revision\n' >"$LAO_PREFIX/source-revision"
+        printf 'preserve me\n' >"$LAO_PREFIX/keep"
+        ln -s "$LAO_PREFIX/lao" "$LAO_BIN_DIR/lao"
+        ln -s "$LAO_PREFIX/lao-daemon" "$LAO_BIN_DIR/lao-daemon"
+        previous_inode=$(stat -f %i "$LAO_PREFIX/lao")
+        if PATH="$stage/fault-tools:$PATH" INSTALL_TEST_FAULT="$fault" \
+            sh "$bundle/install.sh" >"$stage/failed-$fault.log" 2>&1; then exit 1; fi
+        if [ "$fault" = recovery ] || [ "$fault" = missing ]; then
+            if [ "$fault" = recovery ]; then
+                grep -q 'rollback failed; snapshots retained' "$stage/failed-$fault.log"
+                cmp /usr/bin/false "$LAO_PREFIX/.install-pending/old/lao-daemon"
+            else
+                grep -q 'rollback snapshot missing' "$stage/failed-$fault.log"
+            fi
+            cmp /usr/bin/true "$LAO_PREFIX/.install-pending/old/lao"
+            [ "$(cat "$LAO_PREFIX/.install-pending/old/source-revision")" = 'previous test revision' ]
+            if sh "$bundle/install.sh" >"$stage/blocked-retry.log" 2>&1; then exit 1; fi
+            grep -q 'concurrent or unfinished install' "$stage/blocked-retry.log"
+            cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+            cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+            exit 0
+        fi
+        cmp /usr/bin/true "$LAO_PREFIX/lao"
+        cmp /usr/bin/false "$LAO_PREFIX/lao-daemon"
+        [ "$(stat -f %i "$LAO_PREFIX/lao")" = "$previous_inode" ]
+        [ "$(cat "$LAO_PREFIX/source-revision")" = 'previous test revision' ]
+        [ "$(cat "$LAO_PREFIX/keep")" = 'preserve me' ]
+        [ "$(readlink "$LAO_BIN_DIR/lao")" = "$LAO_PREFIX/lao" ]
+        [ "$(readlink "$LAO_BIN_DIR/lao-daemon")" = "$LAO_PREFIX/lao-daemon" ]
+        [ ! -e "$LAO_PREFIX/.install-pending" ]
+        sh "$bundle/install.sh" >"$stage/retry-$fault.log"
+        cmp "$bundle/bin/lao" "$LAO_PREFIX/lao"
+        cmp "$bundle/bin/lao-daemon" "$LAO_PREFIX/lao-daemon"
+    )
+done
+printf 'PASS: failed/interrupted binary upgrade restores prior binaries, identity and links; retry succeeds; failed recovery retains snapshots\n'
+
 printf 'local-test-key' >"$stage/runtime.key"
 for client in codex claude; do
     mkdir "$stage/$client"

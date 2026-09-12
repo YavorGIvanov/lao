@@ -20,7 +20,7 @@ To manage one client when both are present, use `lao install --client codex` or 
 
 Minimum versions are Codex 0.151.0 and Claude Code 2.1.251. Newer releases are admitted when CLI capability checks pass, without an allowlist update. Preflight does not certify future versions or native-cloud behavior. Local lifecycle and synthetic protocol checks passed on Codex 0.153.4 and Claude Code 2.1.251; see [compatibility evidence](IMPLEMENTATION_PLAN.md#r11--distribute-without-setup-barriers).
 
-For contributor testing, `sh package.sh` builds `target/release/lao-macos-arm64.tar.gz` on Apple Silicon. Extract the archive, run its `install.sh`, and follow the printed setup command. The receiving Mac needs no source checkout, Git, Rust, or Cargo. These archives are unsigned and not published releases; checksums detect corruption, not publisher identity. The archive includes [dependency and model notices](THIRD_PARTY_NOTICES.txt), covered by its checksum manifest. Signing, notarization, and upgrade/rollback certification remain open.
+For contributor testing, `sh package.sh` builds `target/release/lao-macos-arm64.tar.gz` on Apple Silicon. Extract the archive, run its `install.sh`, and follow the printed setup command. The receiving Mac needs no source checkout, Git, Rust, or Cargo. These archives are unsigned and not published releases; checksums detect corruption, not publisher identity. The archive includes [dependency and model notices](THIRD_PARTY_NOTICES.txt), covered by its checksum manifest. The binary installer stages upgrades and restores prior files on command failures or catchable interruption; failed recovery retains snapshots. Signing, notarization, crash recovery and full upgrade/rollback certification remain open.
 
 ## Normal use
 

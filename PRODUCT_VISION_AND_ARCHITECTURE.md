@@ -80,7 +80,7 @@ The installer:
 
 If questions are skipped, Auto and the recommended model are used. The installer must support a dry run, byte-for-byte backup, rollback, repair, and conflict-aware uninstall.
 
-Current packaging preparation: `package.sh` produces an unsigned Apple Silicon archive whose installer needs no source tooling on the receiving machine. It checks a fixed checksum manifest before installing binaries. This is a contributor test path, not authenticated distribution or a completed one-command release. The archive includes dependency and model notices in its fixed checksum manifest; downloaded models and runtimes are identified separately from bundled code. Signing, notarization, publication and upgrade/rollback evidence remain R11 requirements.
+Current packaging preparation: `package.sh` produces an unsigned Apple Silicon archive whose installer needs no source tooling on the receiving machine. It checks a fixed checksum manifest before installing binaries. This is a contributor test path, not authenticated distribution or a completed one-command release. The archive includes dependency and model notices in its fixed checksum manifest; downloaded models and runtimes are identified separately from bundled code. Binary replacement now stages the pair and retains originals for rollback on command failures or catchable interruption; unresolved recovery blocks another installer. Signing, notarization, publication, automatic crash recovery and full service/settings upgrade evidence remain R11 requirements.
 
 ### 3.2 Normal use
 
